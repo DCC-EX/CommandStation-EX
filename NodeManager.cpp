@@ -46,11 +46,11 @@ void NodeManager::cast(StringBuffer *buffer) {
     if (Diag::NODE) DIAG(F("Node out: %s"), buffer->getString());
 }
 
-void NodeManager::castSharedSensorChange(VPIN vpin, int16_t value) {
+void NodeManager::castSensorChange(char cmd,VPIN vpin) {
     if (!enabled) return;
-    StringBuffer buffer(128);
-     StringFormatter::send(&buffer, F("<z %d %d 1>"), vpin, value);
-   cast(&buffer);
+    StringBuffer buffer(32);
+    StringFormatter::send(&buffer, F("<%c %d>"), cmd,vpin);
+    cast(&buffer);
 }
 
 void NodeManager::castVpin(VPIN vpin, int16_t count, int16_t value) {

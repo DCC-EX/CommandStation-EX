@@ -24,6 +24,7 @@
 // The hostnamem enabled and node flags are also used by ethernet on stm32 platforms.
 
 #include "EXNetworkPreferences.h"
+#include "SystemPreferences.h"
 #include "StringFormatter.h"
 #include "NVSTable.h"
 
@@ -43,6 +44,7 @@ bool EXNetworkPreferences::load() {
     NVSTable::setNVS(SystemPreferences::hiddenAP, false,false);
     NVSTable::setNVS(SystemPreferences::throttleNode, true,false);
   #endif
+    NVSTable::setNVS(SystemPreferences::nodeGroup, 254,false); // default node group
     NVSTable::save();
   }
 
@@ -108,15 +110,14 @@ bool EXNetworkPreferences::getHiddenAP() {
 }
 #endif
 
-
 void EXNetworkPreferences::saveHostName(const char *_hostname) {
   NVSTable::setNVS(SystemPreferences::hostName, _hostname,true);
 }
 
 void EXNetworkPreferences::clear() {
   // clear all network preferences from NVS
-  for (uint16_t i = SystemPreferences::_FIRST; i < SystemPreferences::_LAST; i++) {
-    NVSTable::setNVS(i,(int16_t)0,false);
+  for (auto pref   = SystemPreferences::_FIRST_NETWORK_PREF; pref < SystemPreferences::_LAST_NETWORK_PREF; pref++) {
+    NVSTable::setNVS(pref,0,false);
   }
   NVSTable::save();
   load(); // reload to update static variables and defaults
@@ -141,20 +142,15 @@ const char *EXNetworkPreferences::getHostName() {
 bool EXNetworkPreferences::getThrottleNode() {
   return NVSTable::getNVS(SystemPreferences::throttleNode,true);
 }
-
-void wsp(Print * stream,const char *name,int16_t value) {
-  StringFormatter::send(stream,
-    F("sysNVS[\"%s\"]=%d;"), name, value);
+byte EXNetworkPreferences::getNodeGroup() {
+  auto value = NVSTable::getNVS(SystemPreferences::nodeGroup,true);
+  return value?value:254; // return the value if set, otherwise default to 254
+}
+void EXNetworkPreferences::saveNodeGroup(byte nodeGroup) {
+  NVSTable::setNVS(SystemPreferences::nodeGroup, nodeGroup, true);
 }
 
-void EXNetworkPreferences::streamSystemPreferenceIds(Print * stream) {
-   stream->print(F("sysNVS={};"));
-   #define SP_ENTRY(n) wsp(stream,#n,SystemPreferences::n)
-    SP_ENTRY(ssidSTA); SP_ENTRY(passwordSTA); SP_ENTRY(ssidAP); SP_ENTRY(passwordAP);
-    SP_ENTRY(hostName); SP_ENTRY(enabled); SP_ENTRY(channelAP); SP_ENTRY(hiddenAP);
-    SP_ENTRY(throttleNode);
-  #undef SP_ENTRY
-}
+
 
 void EXNetworkPreferences::dump(Print* stream) {
   StringFormatter::send(stream, 
@@ -179,4 +175,7 @@ void EXNetworkPreferences::dump(Print* stream) {
         NVSTable::getNVS(SystemPreferences::enabled)?F("ON"):F("OFF"),
         NVSTable::getNVS(SystemPreferences::throttleNode,true)?F(""):F(" [NODE]"));
   #endif
+  StringFormatter::send(stream, 
+      F("<* C NODEGROUP %d *>\n"), NVSTable::getNVS(SystemPreferences::nodeGroup,true));
+  
 }

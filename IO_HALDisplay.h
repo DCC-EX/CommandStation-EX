@@ -232,7 +232,7 @@ public:
       // scroll the contents of the buffer and put the new line
       // at the bottom of the screen
       for (int row=1; row<_numRows; row++) {
-        strncpy(&_buffer[(row-1)*_numCols], &_buffer[row*_numCols], _numCols);
+        memmove(&_buffer[(row-1)*_numCols], &_buffer[row*_numCols], _numCols);
         _rowGeneration[row-1]++;
       }
       line = _numRows-1;

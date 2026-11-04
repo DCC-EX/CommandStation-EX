@@ -90,12 +90,16 @@ bool Websockets::checkConnectionString(byte clientId,byte * cmd, RingStream * ou
     Sec-WebSocket-Extensions: permessage-deflate; client_max_window_bits
     */
    
-   // check contents to find Sec-WebSocket-Key: and get key up to \n 
-   auto keyPos=strstr_P((char*)cmd,(char*)F("Sec-WebSocket-Key: "));
-   if (!keyPos) return false;
-   keyPos+=19; // length of Sec-Websocket-Key: 
-   auto endkeypos=strstr(keyPos,"\r");
-   if (!endkeypos) return false; 
+   // check contents to find Sec-WebSocket-Key: and get key up to the line end.
+   // Header names are case-insensitive and some clients send them in lower case
+   // (a scan, as strcasestr is not in the STM32 library)
+   auto keyPos=(char*)cmd;
+   while (*keyPos && strncasecmp(keyPos,"Sec-WebSocket-Key:",18)!=0) keyPos++;
+   if (!*keyPos) return false;
+   keyPos+=18; // length of Sec-WebSocket-Key:
+   while (*keyPos==' ' || *keyPos=='\t') keyPos++;
+   auto endkeypos=strpbrk(keyPos,"\r\n");
+   if (!endkeypos) return false;
    *endkeypos=0;
    
    if (Diag::WEBSOCKET) DIAG(F("Websock key=\"%s\""),keyPos);
@@ -162,11 +166,21 @@ byte * Websockets::unmask(byte clientId,RingStream *ring, byte * buffer) {
 
  if (opcode==0x89) { // ping
      DIAG(F("Websock ping"));
-     buffer[0]=0x8a;  // pong.. and send it back
+     // The pong carries the ping's payload, unmasked as server frames must be.
+     // A control frame is at most 125 bytes (RFC 6455 5.5); payloadLength is
+     // negative here if a longer extended length was sent, so drop those.
+     if (payloadLength<0 || payloadLength>125) return nullptr;
+     byte pong[2+125];
+     byte * pingPayload=maskbit ? mask+4 : mask;
+     pong[0]=0x8a;
+     pong[1]=(byte)payloadLength;
+     for (int i=0;i<payloadLength;i++) {
+         pong[2+i]=maskbit ? (pingPayload[i]^mask[i%4]) : pingPayload[i];
+     }
      ring->mark(clientId &0x7f); // dont readjust
-     ring->print((char *)buffer);
+     ring->write(pong, 2+payloadLength);
      ring->commit();
-     return nullptr; 
+     return nullptr;
      }
   
   if (opcode==0x88) { // close

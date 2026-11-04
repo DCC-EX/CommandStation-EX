@@ -42,4 +42,4 @@ That doesn't stop a node throwing or closing it as the id is shared automaticall
 
 ## Local node processing
 
-Because the node has almost the full (except train driving.. maybe later) EXRAIL capability, its possible to use EXRAIL in the node to monitor ONTHROW/ONCLOSE to perform local signals, switch lights, make sounds and so on.
+Because the node has almost the full EXRAIL capability, its possible to use EXRAIL in the node to monitor ONTHROW/ONCLOSE to perform local signals, switch lights, make sounds and so on.

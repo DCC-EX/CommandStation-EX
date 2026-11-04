@@ -44,6 +44,20 @@ ZZ(F,loco,functionNumber,on)  // Throttle function change
   // It will not cause a rebroadcast
   DCC::setFn(loco,functionNumber,on,false);
 
+ZZ(Q,id)  // Remote JMRI_SENSOR fired
+  Sensor::updateRemoteJMRISensor(id,true);    
+ZZ(q,id)  // Remote JMRI_SENSOR fired
+  Sensor::updateRemoteJMRISensor(id,false);
+
+ZZ(X,id)  // Remote SHARED_SENSOR fired
+  // update local REMOTE_SENSOR if any 
+  // and update our remote sensor if we have one 
+  Sensor::updateRemoteSensor(id,true);  
+
+ZZ(x,id)  // Remote SHARED_SENSOR fired
+  // update local REMOTE_SENSOR if any 
+  Sensor::updateRemoteSensor(id,false);
+
 ZZ(H,turnoutid,bit)  // Turnout throw/close (1=thrown, 0=closed)
   // This was sent by a node that changes a turnout state
   // If it is the guardian of the turnout it will change the turnout state and not rebroadcast.
@@ -57,12 +71,9 @@ ZZ(H,turnoutid,bit,description) // Node startup broadcast of turnout state and d
     // with the wrong turnout id. 
     Turnout::setClosed(turnoutid,bit==0,false);
     tt->setRamDescription(q_description);
+    tt->setRemote(); // mark as remote since it was received from another node
 
-ZZ(H) // CS requests list of locally defined turnouts & shared sensors
-  Turnout::shareNodesToCS();
-  Sensor::shareNodesToCS();
-  Signal::shareNodesToCS();
-   
+     
 ZZ(S,signalid,rag) // Signal aspect change (R=red, A=amber, G=green)
   Signal::setSignal(signalid,(Signal::RAG)rag,false);
 
@@ -101,4 +112,29 @@ ZZ(@,display,row,text) // Display text change
 ZZ(c,clocktime,clockrate) // Clock time change
   // This was sent by a node that changes the clock time
   CommandDistributor::setClockTime(clocktime,clockrate,false);
+
+
+ZZ(?,T) // CS requests list of locally defined turnouts
+  Turnout::shareNodesToCS();
+ZZ(?,Q)  // CS requests list of shared sensors
+  Sensor::shareNodesToCS();
+ZZ(?,S)  // CS requests list of signals
+  Signal::shareNodesToCS();
+ZZ(?,I)  // CS requests list of turntables
+  Turntable::shareNodesToCS();
+
+
+ZZ(i,id,position,action) // Turntable position update from node (lower i to avoid clash with shared) 
+  Turntable::setPosition(id,position,action,false);
+ZZ(i,id,isMoving) // Turntable moving state update from node
+  Turntable::setMoving(id,isMoving,false); // dont rebroadcast to other nodes
+
+// Turntable created from another node
+ZZ(I,id,homeAngle,description) // Turntable shared from node
+  CHECKQ(description)
+  Turntable::createREMOTE(id,homeAngle,q_description);
+ZZ(I,id,posid,angle,description) // Turntable position shared from node
+  CHECKQ(description)
+  auto tt=Turntable::get(id);
+  if (tt) tt->addPosition(posid,angle,0,q_description); // add the position to the turntable
 ZZEND

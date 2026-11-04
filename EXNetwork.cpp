@@ -28,6 +28,7 @@
 #include <vector>
 #include "WiThrottle.h"
 #include "Websockets.h"
+#include "EXNetworkPreferences.h"
 
 #ifdef ARDUINO_ARCH_ESP32
 #include "EthernetOTA.h"
@@ -50,7 +51,7 @@ EXNetworkUDPRx udpNodeRx;
 EXNetworkUDPTx udpTx;
 
 constexpr uint16_t NODE_PORT = IP_PORT + 1;
-const IPAddress nodeMulticastIP = {239, 255, 254, NODE_GROUP};
+IPAddress nodeMulticastIP = {239, 255, 254, 0 /* will become EXNetworkPreferences::getNodeGroup() */};
 IPAddress throttleMulticastIP = {239, 255, 255, 0 /* will become WiFi.localIP()[3] */};
 
 constexpr uint16_t UDP_RESPONSE_MAX = 1472; // max outbound payload (Ethernet MTU 1500 - 20 IP - 8 UDP)
@@ -162,6 +163,7 @@ void EXNetwork::setup() {
 
   myipaddress = _SHIM_::getIPAddress();
   throttleMulticastIP[3] = myipaddress[3];
+  nodeMulticastIP[3] = EXNetworkPreferences::getNodeGroup();
 
   #if defined(ARDUINO_ARCH_STM32) && !defined(ETHERNET_CS_PIN)
   // STM32Ethernet enables NETIF_FLAG_IGMP from its link-state handler.
@@ -402,7 +404,7 @@ void EXNetwork::loop() {
     if (useWebsocket) Websockets::fillOutboundHeader(count, buffer);
     for (int i = 0; i < count; i++) {
       int c = outboundRing->read();
-      if (!c) {
+      if (c < 0) { // a zero is data, as in a websocket length byte
         DIAG(F("Ringread fail at %d"), i);
         break;
       }

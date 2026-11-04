@@ -56,7 +56,7 @@ protected:
       struct {
         bool closed : 1;
         bool hidden : 1;
-        bool _rfu : 1;
+        bool remote : 1;
         uint8_t turnoutType : 5;
       };
       uint8_t flags;
@@ -79,6 +79,8 @@ protected:
     _turnoutData.turnoutType = turnoutType;
     _turnoutData.closed = closed;
     _turnoutData.hidden=false;
+    _turnoutData.remote=false;
+    
     _turnoutData.ramDescription = nullptr;
     add(this);
   }
@@ -118,6 +120,8 @@ public:
   inline bool isClosed() { return _turnoutData.closed; };
   inline bool isThrown() { return !_turnoutData.closed; }
   inline bool isHidden() { return _turnoutData.ramDescription && _turnoutData.ramDescription[0]==0x01; }
+  inline bool isRemote() { return _turnoutData.remote; }
+  inline void setRemote() { _turnoutData.remote = true; } 
   inline bool isType(uint8_t type) { return _turnoutData.turnoutType == type; }
   inline uint16_t getId() { return _turnoutData.id; }
   inline Turnout *next() { return _nextTurnout; }

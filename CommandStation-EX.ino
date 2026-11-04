@@ -72,8 +72,7 @@ static_assert(MAX_LOCOS >1 && MAX_LOCOS<256, "#define MAX_LOCOS " QWRAP_(MAX_LOC
 // remember trailing '\0', sizeof("") == 1.
 #define PASSWDCHECK(S) static_assert(sizeof(S) == 1 || sizeof(S) > 8, "Password shorter than 8 chars")
 
-bool nodeSharePending = false; // true when a node is starting
-bool startupPendingCS = false; // true when a CS is starting and wants to know what turnouts a node has defined.  This is a one time only request.
+int startupLoopCounter=0;  // to separate node sharing from startup sequence
 
 void setup()
 {
@@ -138,15 +137,29 @@ void setup()
     #include "mySetup.h"
     #undef SETUP
   #endif
-
-  startupPendingCS = true; // node will request turnouts list from CS on next loop
-  nodeSharePending = true; // node Will share turnouts list to CS on next loop
   LCD(3, F("Ready"));
 
 }
 
 void loop()
 {
+  if (startupLoopCounter >= 0) {
+    startupLoopCounter++;
+    /* Turnout/Signal/Sensor sharing between nodes and the CS. 
+     On startup we share what we have, and ask others to share with us.
+     This means it doesnt matter whether a node starts after the CS or before. */
+    if (startupLoopCounter == 10) Turnout::shareNodesToCS();
+    if (startupLoopCounter == 50) Sensor::shareNodesToCS();
+    if (startupLoopCounter == 100) Signal::shareNodesToCS();
+    if (startupLoopCounter == 150) NodeManager::cast(F("<?T>")); // asks nodes for turnouts list
+    if (startupLoopCounter == 200) NodeManager::cast(F("<?S>")); // asks nodes for signals list
+    if (startupLoopCounter == 250) NodeManager::cast(F("<?Q>")); // asks nodes for shared sensors list
+    if (startupLoopCounter == 300) Turntable::shareNodesToCS();
+    if (startupLoopCounter == 350) NodeManager::cast(F("<?I>")); // asks nodes for turntables list
+    if (startupLoopCounter == 400) CommandDistributor::broadcastPower();
+    if (startupLoopCounter >  400) startupLoopCounter=-1; // end of startup loop actions
+  }
+  
   
   SerialLog.loop();
   
@@ -193,25 +206,6 @@ void loop()
 
   Sensor::loop(); // Update and print changes
 
-  /* Turnout sharing between nodes and the CS. 
-  On startup the CS will request nodes to share their turnouts.
-  On startup a node will share their turnouts.
-  
-  This means it doesnt matter whether a node starts after the CS or before. */
-  if (nodeSharePending) {
-    // We are on a node and we have just started up, so share our turnouts with the CS.  This is a one time only action.
-    // This is slow but only happens once , so not a problem.  It is done here to ensure that all turnouts have been created before sharing.
-    nodeSharePending = false;
-    Turnout::shareNodesToCS();
-    Sensor::shareNodesToCS();
-    Signal::shareNodesToCS();
-  }
-
-  if (startupPendingCS) { // one time only 
-    CommandDistributor::broadcastPower();
-    startupPendingCS = false;
-    NodeManager::cast(F("<H>")); // CS asks nodes for turnouts list
-  }
   
   // Report any decrease in memory (will automatically trigger on first call)
   static int ramLowWatermark = __INT_MAX__; // replaced on first loop
