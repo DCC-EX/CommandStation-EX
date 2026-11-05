@@ -333,3 +333,13 @@ SHARED_SENSOR(8001,7,8801)  // 8001 and 8002 also tell nodes
 ROUTE("PULSE"_hk,"test 100mS pulse")
   PULSE(8000,100)
   DONE
+
+ROUTE("DELAYTEST"_hk,"Tersting delays")
+ PRINT("Starting delay test")
+  DELAY(2000)
+  PRINT("2 second delay complete")
+  PARSE("<C NVS 1234 5000>")  // not a recommended way to set delays, just for testing purposes
+  PRINT("NVS delay set 5000")
+  DELAY(NVS(1234))
+  PRINT("NVS delay complete")
+  DONE

@@ -473,7 +473,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 
 
 #undef NVS
-#define NVS(nvsnum) ((int32_t)((nvsnum & 0x03FF)<< 16 | 0x40000000)) 
+#define NVS(nvsnum) ((int32_t)((nvsnum & 0x3FFF)<< 16 | 0x40000000)) 
 #undef NVST
 #define NVST(nvsnum)
 
@@ -488,7 +488,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ALIAS(name,value...) 
 #define AMBER(signal_id) OPCODE_AMBER,V(signal_id),
 #define ANOUT(vpin,value,param1,param2) OPCODE_SERVO,V(vpin),OPCODE_PAD,V(value),OPCODE_PAD,V(param1),OPCODE_PAD,V(param2),
-#define ASPECT(address,value) OPCODE_ASPECT,V((address<<5) | (value & 0x1F)),
+#define ASPECT(address,value) OPCODE_ASPECT,V(address),OPCODE_PAD,V(value),
 #define AT(sensor_id) OPCODE_AT,V(sensor_id),
 #define ATGTE(sensor_id,value) OPCODE_ATGTE,V(sensor_id),OPCODE_PAD,V(value),  
 #define ATLT(sensor_id,value) OPCODE_ATLT,V(sensor_id),OPCODE_PAD,V(value),  
@@ -511,16 +511,10 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define DEACTIVATE(addr,subaddr) OPCODE_DCCACTIVATE,V(addr<<3 | subaddr<<1),
 #define DEACTIVATEL(addr) OPCODE_DCCACTIVATE,V((addr+3)<<1),
 
-// DELAY/DELAYRANDOM opcodes altered to select millis or tenths of seconds based on the value of the delay.
-// but allowing NVS tolkens (which are always >= 0x7E000000) to be passed through unchanged as 
-// millis. This does NOT allow the use of NVS tokens for delays that are longer than 30 seconds
-// due to NVS number range limits.
-#define DELAY(ms) (ms<=30000 || ms>=0x7E000000) ? OPCODE_DELAYMS : OPCODE_DELAY,\
-                V((ms<=30000 || ms>=0x7E000000) ? ms : (ms/100L)),
+// DELAY/DELAYRANDOM can now handle 32bit operands 
+#define DELAY(ms) OPCODE_DELAYMS,V(ms),
 #define DELAYMINS(mindelay) OPCODE_DELAYMINS,V(mindelay),
-#define DELAYRANDOM(mindelay,maxdelay) DELAY(mindelay)\
-        (maxdelay<=30000 || maxdelay>=0x7E000000) ? OPCODE_RANDWAIT_MS : OPCODE_RANDWAIT_DS,\
-        V((maxdelay<=30000 || maxdelay>=0x7E000000) ? maxdelay : (maxdelay/100L)),
+#define DELAYRANDOM(mindelay,maxdelay) OPCODE_DELAYMS,V(mindelay),OPCODE_RANDWAIT_MS,V(maxdelay),
 #define DCC_SIGNAL(id,add,subaddr,description...)
 #define DCC_SIGNALL(id,linearaddr,description...)
 #define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect,description...)
@@ -599,23 +593,17 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define MESSAGE(msg) PRINT(msg)
 #define MOMENTUM(accel,decel...) OPCODE_MOMENTUM,V(accel),OPCODE_PAD,V(#decel[0]?decel+0:accel),
 #define MOVETT(vpin,steps,activity) OPCODE_SERVO,V(vpin),OPCODE_PAD,V(steps),OPCODE_PAD,V(activity),OPCODE_PAD,V(0),
-#define NEOPIXEL(...) NEOPIXEL_EXPAND(FOR_EACH_NARG(__VA_ARGS__))(__VA_ARGS__)
-#define NEOPIXEL_EXPAND(n) NEOPIXEL_EXPAND2(n)
-#define NEOPIXEL_EXPAND2(n) NEOPIXEL_##n
+#define NEOPIXEL(id,r,g,b,count...) \
+        id<0?OPCODE_NEOPIXEL_OFF:OPCODE_NEOPIXEL_ON,\
+        V(id<0?-id:id),\
+        OPCODE_PAD,V(r & 0xff),\
+        OPCODE_PAD,V(g & 0xff),\
+        OPCODE_PAD,V(b & 0xff),\
+        OPCODE_PAD,V(#count[0]?(count+0):1),
 #define BRIGHTNESS(level,red,green,blue) \
    (((((red) & 0xff) * ((level) < 0 ? 0 : ((level) > 255 ? 255 : (level))) + 127) / 255 << 16) | \
     ((((green) & 0xff) * ((level) < 0 ? 0 : ((level) > 255 ? 255 : (level))) + 127) / 255 << 8) | \
     (((blue) & 0xff) * ((level) < 0 ? 0 : ((level) > 255 ? 255 : (level))) + 127) / 255)
-#define NEOPIXEL_RGB(id,r,g,b,count...) OPCODE_NEOPIXEL,V(id),\
-        OPCODE_PAD,V(((r & 0xff)<<8) | (g & 0xff)),\
-        OPCODE_PAD,V((b & 0xff)),\
-        OPCODE_PAD,V(#count[0]?(count+0):1),
-#define NEOPIXEL_2(id,colour) \
-   NEOPIXEL_RGB(id,(((colour)>>16)&0xff),(((colour)>>8)&0xff),((colour)&0xff))
-#define NEOPIXEL_3(id,colour,count) \
-   NEOPIXEL_RGB(id,(((colour)>>16)&0xff),(((colour)>>8)&0xff),((colour)&0xff),count)
-#define NEOPIXEL_4(id,r,g,b) NEOPIXEL_RGB(id,r,g,b)
-#define NEOPIXEL_5(id,r,g,b,count) NEOPIXEL_RGB(id,r,g,b,count)
 #define NEOPIXEL_BRIGHTNESS(vpin,brightness,count...) \
    OPCODE_NEOPIXEL_BRIGHTNESS,V(vpin),\
    OPCODE_PAD,V((brightness) < 0 ? 0 : ((brightness) > 255 ? 255 : (brightness))),\
