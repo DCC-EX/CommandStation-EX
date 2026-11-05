@@ -1,4 +1,5 @@
 /*
+ *  © 2026 Mathew Winters (with Github copilot)
  *  © 2023-2024 Paul M. Antoine
  *  © 2021 Neil McKechnie
  *  © 2021 Mike S
@@ -6,6 +7,7 @@
  *  © 2020-2024 Harald Barth
  *  © 2020-2026 Chris Harlow
  *  © 2020 Gregor Baues
+ * 
  *  All rights reserved.
  *  
  *  This file is part of DCC-EX/CommandStation-EX
@@ -29,9 +31,26 @@
 
 #ifndef EthernetInterface_h
 #define EthernetInterface_h
-#if defined (ARDUINO_ARCH_STM32)
+#if defined(ARDUINO_ARCH_STM32) || defined(ARDUINO_ARCH_ESP32)
 #include "defines.h"
 #include <Arduino.h>
+
+#if defined(ARDUINO_ARCH_ESP32)
+#include <SPI.h>
+#include <Ethernet.h>
+#include <EthernetUdp.h>
+
+// The ESP32 core's Server base class declares begin(uint16_t port=0) as pure
+// virtual, but arduino-libraries/Ethernet's EthernetServer only overrides the
+// no-arg begin(), leaving it abstract. Provide the missing override here.
+// end() is also added since arduino-libraries/Ethernet has no such call.
+class EthernetServerESP32 : public EthernetServer {
+ public:
+  EthernetServerESP32(uint16_t port) : EthernetServer(port) {}
+  void begin(uint16_t port = 0) { EthernetServer::begin(); }
+  void end() {}
+};
+#else
 
 #if __has_include ( "STM32Ethernet.h")
   // Nucleo devices with builtin ethernet
@@ -44,6 +63,8 @@
   // Refer to platformio.ini library configs
   #define ETHERNET_CS_PIN 10
   #include <Ethernet.h>
+#endif
+
 #endif
 
 #include <EthernetUdp.h>
@@ -61,12 +82,16 @@ class EthernetInterface {
   static void setupMDNS();
   static void addService(const char *name, const char *proto, uint16_t port);
   static void addServiceTxt(const char *name, const char *proto, const char *key, const char *value);
+#if defined(ARDUINO_ARCH_ESP32)
+  static bool takeLinkLost();
+  static bool takeLinkRestored();
+  static void restartMDNS();
+#endif
   static void teardown();
-  static bool startUDPListener(const IPAddress &ip, uint16_t port);
    
  private:
     static bool connected;
     
 };
-#endif // ETHERNET_ON
+#endif // ARDUINO_ARCH_STM32 || ARDUINO_ARCH_ESP32
 #endif
