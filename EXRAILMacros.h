@@ -244,7 +244,7 @@ bool exrailHalSetup1() {
 #undef DCC_TURNTABLE
 #define DCC_TURNTABLE(id, homeAngle, description...) Turntable::createDCC(id,homeAngle,description);
 #undef EXTT_TURNTABLE
-#define EXTT_TURNTABLE(id, homeAngle, vpin, description...) Turntable::createEXTT(id,homeAngle,vpin,description);
+#define EXTT_TURNTABLE(id, vpin, home, description...) Turntable::createEXTT(id,homeAngle,vpin,description);
 #undef TT_ADDPOSITION
 #define TT_ADDPOSITION(turntable_id,position,value,angle,description...) \
   { auto tt=Turntable::get(turntable_id); if (tt) tt->addPosition(position, value, angle, description);}
