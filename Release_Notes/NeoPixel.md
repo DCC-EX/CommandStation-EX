@@ -64,14 +64,16 @@ must belong to one configured `HAL(NeoPixelRMT,...)` strip.
 3. Setting pixels from EXRAIL
     The NEOPIXEL macro sets an RGB colour, with an optional count:
     `NEOPIXEL([-]vpin, red, green, blue [,count])`
-    To set brightness, BRIGHTNESS scales the RGB values before they are encoded:
-    `NEOPIXEL(700, BRIGHTNESS(90,255,50,77), 8)`
-    BRIGHTNESS takes a brightness level from 0 to 255 followed by red, green, and blue components from 0 to 255. Brightness values outside the range are clamped.
 
     To change brightness without supplying RGB again, use:
     `NEOPIXEL_BRIGHTNESS(vpin, brightness [,count])`
     Count defaults to 1: `NEOPIXEL_BRIGHTNESS(1000, 64)` dims a single pixel.
     For example, `NEOPIXEL_BRIGHTNESS(1000, 64, 8)` dims eight consecutive pixels.
+    Brightness and count can use NVS values, for example:
+    `NEOPIXEL_BRIGHTNESS(1000, NVS(1234), NVS(1235))`.
+    Both values are read each time the command executes, so later `<C NVS ...>`
+    changes take effect without restarting the script. Brightness is clamped
+    after resolving NVS; count must be from 1 to 255.
     Brightness is an absolute scale from 0 (dark) to 255 (full), clamped to this
     range. It preserves each pixel's stored RGB colour and on/off state, including
     blinking. Use 255 to restore the original colour intensity, even after 0.
@@ -102,8 +104,7 @@ must belong to one configured `HAL(NeoPixelRMT,...)` strip.
 
     The fx values above can be created by the NeoRGB macro: bright red is
     `NeoRGB(255,0,0)`, bright green is `NeoRGB(0,255,0)`, and amber can be
-    `NeoRGB(255,100,0)`. To dim a colour, wrap it in `BRIGHTNESS(level,red,green,blue)`
-    inside `NeoRGB`; brightness and colour components range from 0 to 255.
+    `NeoRGB(255,100,0)`. Colour components range from 0 to 255.
     `NeoRGB` creates one packed colour value for use in signal definitions.
     ```
     // create 1-lamp signal with NeoRGB colours
@@ -111,12 +112,6 @@ must belong to one configured `HAL(NeoPixelRMT,...)` strip.
         NeoRGB(255,0,0),
         NeoRGB(255,100,0),
         NeoRGB(0,255,0))
-
-    // Create a dimmer signal by setting a brightness level per aspect
-    NEOPIXEL_SIGNAL(1003,
-        NeoRGB(BRIGHTNESS(90,255,0,0)),
-        NeoRGB(BRIGHTNESS(90,255,100,0)),
-        NeoRGB(BRIGHTNESS(90,0,255,0)))
 
     // Create 1-lamp signal with named colours.
     // This is better if you have multiple signals.
