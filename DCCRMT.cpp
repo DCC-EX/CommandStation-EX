@@ -58,11 +58,18 @@
 #warning You are outside of the DCC-EX supported hardware
 #endif
 
-static const byte RMT_CHAN_PER_DCC_CHAN = 2;
 
 // Number of bits resulting out of X bytes of DCC payload data
 // Each byte has one bit extra and at the end we have one EOF marker
 #define DATA_LEN(X) ((X)*9+1)
+
+// RMT memory blocks per DCC channel: enough for the longest packet on the
+// track with the longer preamble, rounded up. See the asserts in RMTChannel().
+static const byte RMT_CHAN_PER_DCC_CHAN =
+  (DATA_LEN(MAX_PACKET_SIZE+1) + PREAMBLE_BITS_PROG + 2 + SOC_RMT_MEM_WORDS_PER_CHANNEL - 1)
+  / SOC_RMT_MEM_WORDS_PER_CHANNEL;
+static_assert(2 * RMT_CHAN_PER_DCC_CHAN <= SOC_RMT_TX_CANDIDATES_PER_GROUP,
+              "MAIN and PROG need more RMT channels than this ESP32 has for TX");
 
 #if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(4,2,0)
 #error wrong IDF version
@@ -139,8 +146,6 @@ static volatile uint8_t cutoutFlag = 0;
 // As the DCC packet end marker was moved to the next preamble
 // this happens at the beginning of that end packet marker (bit).
 void IRAM_ATTR interrupt(rmt_channel_t channel, void *t) {
-  RMTChannel *tt = channelHandle[channel];
-  if (tt) tt->RMTinterrupt();
   if (channel == 0) {
     MCPWM1.operators[0].gen_stmp_cfg.gen_a_upmethod = 4; // bit 4 means "on sync"
     cutoutFlag = 0;
@@ -158,6 +163,10 @@ void IRAM_ATTR interrupt(rmt_channel_t channel, void *t) {
     };
     mcpwm_sync_configure(MCPWM_UNIT_1, MCPWM_TIMER_0, &sync_conf);
   }
+  // Last: filling a 15 byte packet into RMT memory takes longer than
+  // the cutout arming above can wait
+  RMTChannel *tt = channelHandle[channel];
+  if (tt) tt->RMTinterrupt();
 }
 
 // This intrrupt is called on sync which is configured on mcpwmPulseOn()
@@ -239,7 +248,7 @@ RMTChannel::RMTChannel(pinpair pins, bool isMain) {
   byte plen;
 
   // Below we check if the DCC packet actually fits into the RMT hardware
-  // Currently MAX_PACKET_SIZE = 5 so with checksum there are
+  // With checksum there are
   // MAX_PACKET_SIZE+1 data packets. Each need DATA_LEN (9) bits.
   // To that we add the preamble length, the fencepost DCC end bit
   // and the RMT EOF marker.
