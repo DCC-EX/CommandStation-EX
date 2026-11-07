@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.9.19"
+#define VERSION "5.9.20"
+// 5.9.20 - better organized platformio.ini
 //        - ACK Manager improved diagnostics
 // 5.9.19 - fixed EXTT_TURNTABLE macro for correct homeAngle parameter
 //        - fixed SIGNAL macro for correct inversion of GREEN 
