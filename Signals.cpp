@@ -214,7 +214,7 @@ void LEDSignal::action(){
         IODevice::write(amberPin,amberval);
     }
     if (greenPin) {
-        bool greenval=(state==SIGNAL_GREEN || simamber);
+        bool greenval=(state==SIGNAL_GREEN || simamber) ^ invert;
         RMFT2::killBlinkOnVpin(greenPin);
         IODevice::write(greenPin,greenval);
     }

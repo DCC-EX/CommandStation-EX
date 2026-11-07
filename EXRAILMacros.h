@@ -176,7 +176,7 @@ bool exrailHalSetup1() {
 #define CONFIGURE_SERVO(vpin,pos1,pos2,profile) IODevice::configureServo(vpin,pos1,pos2,PCA9685::profile);
 #undef SIGNAL
 #define SIGNAL(redpin,amberpin,greenpin,description...) \
-  new LEDSignal(redpin,redpin,amberpin,greenpin,false,S_DESC(description));
+  new LEDSignal(redpin,redpin,amberpin,greenpin,true,S_DESC(description));
 #undef SIGNALH
 #define SIGNALH(redpin,amberpin,greenpin,description...) \
   new LEDSignal(redpin,redpin,amberpin,greenpin,false,S_DESC(description));
@@ -244,7 +244,7 @@ bool exrailHalSetup1() {
 #undef DCC_TURNTABLE
 #define DCC_TURNTABLE(id, homeAngle, description...) Turntable::createDCC(id,homeAngle,description);
 #undef EXTT_TURNTABLE
-#define EXTT_TURNTABLE(id, vpin, home, description...) Turntable::createEXTT(id,homeAngle,vpin,description);
+#define EXTT_TURNTABLE(id, vpin, homeAngle, description...) Turntable::createEXTT(id,homeAngle,vpin,description);
 #undef TT_ADDPOSITION
 #define TT_ADDPOSITION(turntable_id,position,value,angle,description...) \
   { auto tt=Turntable::get(turntable_id); if (tt) tt->addPosition(position, value, angle, description);}
