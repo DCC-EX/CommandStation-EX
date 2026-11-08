@@ -262,6 +262,14 @@ static void IRAM_ATTR mcpwmPulseOn(mcpwm_unit_t mcpwm_num) {
   //DEBUG pinMode(26, OUTPUT);
 
   DCCWaveform::setRailcomPossible(true);
+  // FIX (bench-tested 2026-11-08): a 100 ns tick for the booster cutout
+  // timer. At the default 1 us tick the sync reload and a prescaled
+  // increment can land in the same 10 MHz cycle, and the cutout then
+  // starts one tick early on about one packet in ten from an unrelated
+  // source. With the tick equal to the group clock every cycle is an
+  // increment, so the offset is constant. Must precede mcpwm_init().
+  if (mcpwm_num == MCPWM_UNIT_0)
+    mcpwm_timer_set_resolution(MCPWM_UNIT_0, MCPWM_TIMER_0, 10000000);
   mcpwm_config_t pwm_config = {
     .frequency = CUTOUT_BASE_FREQ,      // calculation see above
     .cmpr_a = CUTOUT_OFFSET_IN_PERCENT, // duty cycle of PWMxA (float in %)
