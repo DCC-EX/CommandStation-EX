@@ -196,7 +196,10 @@ void DCCWaveform::interrupt2() {
 
 // Wait until there is no packet pending, then make this pending
 void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repeats) {
-  if (byteCount > MAX_PACKET_SIZE) return; // allow for chksum
+  if (byteCount > MAX_PACKET_SIZE) {
+    DIAG(F("Packet of %d bytes dropped, limit %d"), byteCount, MAX_PACKET_SIZE);
+    return;
+  }
   while (packetPending);
 
   byte checksum = 0;
