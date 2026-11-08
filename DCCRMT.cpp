@@ -137,6 +137,16 @@ RMTChannel *channelHandle[8] = { 0 };
 // cutoutFlag[1] for RMT/main cutout
 static volatile uint8_t cutoutFlag[2] = { 0, 0 };
 
+// FIX (bench-tested 2026-11-08, same pattern as #573 on the main track):
+// compare and phase as the driver worked them out at start-up, written to
+// the registers by interruptSniffer() instead of calling the driver from
+// the ISR. The driver calls run from flash and took up to 136 us under
+// Wi-Fi load on the bench, against the 58 us between arming and the sync
+// edge; a late arming missed the sync and the cutout came from the
+// free-running timer, 170 to 370 us late.
+static uint32_t boostCompare = 0;
+static uint32_t boostPhase = 0;
+
 // define time values for cutout
 #define CUTOUT_TOTAL                486  // usec
 #define CUTOUT_BASE_FREQ           2057  //1000*1000/CUTOUT_TOTAL Hz
@@ -172,23 +182,31 @@ void IRAM_ATTR interruptSniffer(bool state, bool negfirst) {
   __digitalWrite(CSBPIN11, state ? 1 : 0);
 #endif
   if (state == 1) {
+    // The sync input is off here (disarmed at the preamble), so rerouting
+    // the input cannot fire it.
     gpio_matrix_in (BOOSTER_INPUT, PWM0_SYNC0_IN_IDX, negfirst); // invert if negative is first
-    MCPWM0.operators[0].gen_stmp_cfg.gen_a_upmethod = 4; // bit 4 means "on sync"
+    // Register writes in place of mcpwm_set_duty_in_us() and
+    // mcpwm_sync_configure(), see boostCompare above. Software-sync the
+    // free-running timer clear of zero first, so no free timer zero can
+    // fall between here and the sync edge, and drop any zero pending.
+    MCPWM0.timer[0].timer_sync.timer_phase = 10;
+    MCPWM0.timer[0].timer_sync.timer_synci_en = 1;
+    MCPWM0.timer[0].timer_sync.timer_sync_sw = ~MCPWM0.timer[0].timer_sync.timer_sync_sw;
+    MCPWM0.timer[0].timer_sync.timer_synci_en = 0;
+    MCPWM0.int_clr.timer0_tez_int_clr = 1;
     cutoutFlag[0] = 0;
-    // not needed here, we keep it enabled all the time
-    //MCPWM0.int_ena.timer0_tez_int_ena = 1;              // Enable interrupt on TEZ
-    mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_GEN_A, CUTOUT_PULSE);
-    mcpwm_sync_config_t sync_conf = {
-      .sync_sig = MCPWM_SELECT_GPIO_SYNC0,
-      .timer_val = CUTOUT_OFFSET_IN_PROMILLE, // in promille of all values
-      .count_direction = MCPWM_TIMER_DIRECTION_UP,
-    };
-    mcpwm_sync_configure(MCPWM_UNIT_0, MCPWM_TIMER_0, &sync_conf);
+    MCPWM0.operators[0].gen_stmp_cfg.gen_a_upmethod = 4; // bit 4 means "on sync"
+    MCPWM0.operators[0].timestamp[0].val = boostCompare;  // taken at the sync only
+    MCPWM0.timer[0].timer_sync.timer_phase = boostPhase;
+    MCPWM0.timer[0].timer_sync.timer_phase_direction = 0;
+    MCPWM0.timer[0].timer_sync.timer_synci_en = 1;
   }
   if (state == 0) {
-    MCPWM0.operators[0].gen_stmp_cfg.gen_a_upmethod = 1; // means TEZ = timer zero
-    mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_GEN_A, 0);
-    mcpwm_sync_disable(MCPWM_UNIT_0, MCPWM_TIMER_0);
+    // Register writes in place of mcpwm_set_duty_in_us(0) and
+    // mcpwm_sync_disable(), which did exactly this
+    MCPWM0.operators[0].gen_stmp_cfg.gen_a_upmethod = 3; // bits 1 and 2: on timer zero and period
+    MCPWM0.operators[0].timestamp[0].val = 0;
+    MCPWM0.timer[0].timer_sync.timer_synci_en = 0;
   }
 }
 
@@ -409,6 +427,10 @@ RMTChannel::RMTChannel(pinpair pins, bool isMain) {
 #ifdef BOOSTER_INPUT
   // Configure MCPWM_UNIT_0 for cutout driven by the BOOSTER input
   mcpwmPulseOn(MCPWM_UNIT_0);
+  // Keep the values the driver worked out, for interruptSniffer() to write
+  boostPhase = MCPWM0.timer[0].timer_sync.timer_phase;
+  mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_GEN_A, CUTOUT_PULSE);
+  boostCompare = MCPWM0.operators[0].timestamp[0].val;
   gpio_matrix_in (BOOSTER_INPUT, PWM0_SYNC0_IN_IDX, false);
 #ifdef NOPE
   ESP_ERROR_CHECK(mcpwm_isr_register(
