@@ -432,7 +432,10 @@ void RMFT2::loop() {
 bool RMFT2::skipIf;
 
 void RMFT2::loop2() {
-  if (delayTime!=0 && millis()-delayStart < delayTime) return;
+  if (delayTime) {
+    if (millis()-delayStart < delayTime) return;  // still waiting for delay to complete
+    delayTime = 0; // delay completed
+  }
 
   // special stand alone blink task
   if (compileFeatures & FEATURE_BLINK) { 
@@ -639,7 +642,7 @@ void RMFT2::loop2() {
     
   case OPCODE_ATTIMEOUT2:
     if (readSensor(operand)) break; // success without timeout
-    if (millis()-timeoutStart > 100*getOperand(1)) {
+    if (millis()-timeoutStart > getOperand(1)) {
       blinkState=at_timeout;
       break; // and drop through
     }

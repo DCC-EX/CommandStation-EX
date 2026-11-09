@@ -139,24 +139,32 @@ bool RMFT2::streamStatus(Print * stream) {
       
           auto progCounter=task->progCounter; // name to satisfy macros below
           auto operand=task->getOperand(progCounter,0);
+          bool hideDelay = false;
           switch(GET_OPCODE) {
               case OPCODE_RESERVE:
                 StringFormatter::send(stream,F(" WAIT RESERVE %d"),operand);
+                hideDelay=true;
                 break;
               case OPCODE_AT:
-              case OPCODE_ATTIMEOUT2:
               case OPCODE_AFTER:
               case OPCODE_ATGTE:
               case OPCODE_ATLT:
+                hideDelay=true;
                 StringFormatter::send(stream,F(" WAIT AT/AFTER %d"),(int16_t)operand);
                 break;
+              case OPCODE_ATTIMEOUT2:
+                hideDelay=true;
+                StringFormatter::send(stream,F(" WAIT AT_TIMEOUT %d %d mS remaining"),
+                operand, getOperand(progCounter,1) - (millis()-task->timeoutStart));
+                break;
               case OPCODE_WAIT_WHILE_RED:
+                hideDelay=true;
                 StringFormatter::send(stream,F(" WAIT WHILE RED %d"),operand);
                 break; 
             // Note DELAY-type opcodes wait with pc->next opcode
             default: break;
           }
-          if (task->delayTime>0) 
+          if (task->delayTime>0 && !hideDelay) 
               StringFormatter::send(stream,F(" DELAY %l mS remaining "),
               task->delayTime - (millis() - task->delayStart));
       }

@@ -488,7 +488,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define AT(sensor_id) OPCODE_AT,V(sensor_id),
 #define ATGTE(sensor_id,value) OPCODE_ATGTE,V(sensor_id),OPCODE_PAD,V(value),  
 #define ATLT(sensor_id,value) OPCODE_ATLT,V(sensor_id),OPCODE_PAD,V(value),  
-#define ATTIMEOUT(sensor_id,timeout) OPCODE_ATTIMEOUT1,V(0),OPCODE_ATTIMEOUT2,V(sensor_id),OPCODE_PAD,V(timeout/100L),
+#define ATTIMEOUT(sensor_id,timeout) OPCODE_ATTIMEOUT1,V(0),OPCODE_ATTIMEOUT2,V(sensor_id),OPCODE_PAD,V(timeout),
 #define AUTOMATION(id, description)  OPCODE_AUTOMATION, V(id), 
 #define AUTOSTART OPCODE_AUTOSTART,V(0),
 #define BLINK(vpin,onDuty,offDuty) OPCODE_BLINK,V(vpin),OPCODE_PAD,V(onDuty),OPCODE_PAD,V(offDuty),
