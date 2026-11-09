@@ -86,18 +86,18 @@ const FSH  * * RMFT2::routeCaptionArray=nullptr;
 
 
 // getOperand instance version, uses progCounter from instance.
-uint16_t RMFT2::getOperand(byte n) {
+uint32_t RMFT2::getOperand(byte n) {
   return getOperand(progCounter,n);
 }
 
 // getOperand static version, must be provided prog counter from loop etc.
-uint16_t RMFT2::getOperand(int progCounter,byte n, bool atBoot) {
+uint32_t RMFT2::getOperand(int progCounter,byte n, bool atBoot) {
   int offset=progCounter+1+(n*fixedOpcodeLength);
   byte b3=GETHIGHFLASH(RouteCode,offset);
   byte b2=GETHIGHFLASH(RouteCode,offset+1);
   byte b1=GETHIGHFLASH(RouteCode,offset+2);
   byte b0=GETHIGHFLASH(RouteCode,offset+3);
-  int32_t value=(int32_t)b3 | ((int32_t)b2<<8) | ((int32_t)b1<<16) | ((int32_t)b0<<24);
+  uint32_t value=(uint32_t)b3 | ((uint32_t)b2<<8) | ((uint32_t)b1<<16) | ((uint32_t)b0<<24);
   return NVSTable::decodeNVSToken(value,atBoot);
 }
 
@@ -452,7 +452,7 @@ void RMFT2::loop2() {
   
   // Normal progstep following tasks continue here.
   byte opcode = GET_OPCODE;
-  int16_t operand =  getOperand(0);
+  int32_t operand =  getOperand(0);
 
   // skipIf will get set to indicate a failing IF condition 
   skipIf=false; 
@@ -1241,6 +1241,10 @@ void RMFT2::loop2() {
 }
 
 void RMFT2::delayMe(long delay) {
+  if (delay<0) {
+    DIAG(F("EXRAIL Bad DELAY(%l)"), delay);
+    return;
+  }
   delayTime=delay;
   delayStart=millis();
 }

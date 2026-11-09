@@ -126,12 +126,12 @@ bool RMFT2::streamStatus(Print * stream) {
     while(task) {
       if ((compileFeatures & FEATURE_BLINK)
        && (task->blinkState==blink_high || task->blinkState==blink_low)) {
-        StringFormatter::send(stream,F("\nID=%d,PC=%d,BLINK=%d"),
+        StringFormatter::send(stream,F("\n BLINK ID=%d,PC=%d,VPIN=%d"),
 			    (int)(task->taskId),task->progCounter,task->blinkPin
 			    );
       }
       else {
-      StringFormatter::send(stream,F("\nID=%d,PC=%d,LOCO=%d %c"),
+      StringFormatter::send(stream,F("\n Task ID=%d,PC=%d,LOCO=%d %c"),
 			    (int)(task->taskId),task->progCounter,task->loco,
 			    task->invert?'I':' '
 			    );
@@ -152,14 +152,13 @@ bool RMFT2::streamStatus(Print * stream) {
                 break;
               case OPCODE_WAIT_WHILE_RED:
                 StringFormatter::send(stream,F(" WAIT WHILE RED %d"),operand);
-                break;  
-              case OPCODE_DELAYMINS:
-              case OPCODE_DELAYMS:
-              case OPCODE_RANDWAIT_MS:
-                StringFormatter::send(stream,F(" WAIT DELAY"));
                 break; 
+            // Note DELAY-type opcodes wait with pc->next opcode
             default: break;
           }
+          if (task->delayTime>0) 
+              StringFormatter::send(stream,F(" DELAY %l mS remaining "),
+              task->delayTime - (millis() - task->delayStart));
       }
       task=task->next;
       if (task==loopTask) break;
@@ -168,7 +167,7 @@ bool RMFT2::streamStatus(Print * stream) {
     for (int id=0;id<MAX_FLAGS; id++) {
       byte flag=flags[id];
       if (flag & ~TASK_FLAG) { // not interested in TASK_FLAG only. Already shown above
-	      StringFormatter::send(stream,F("\nflags[%d] "),id);
+	      StringFormatter::send(stream,F("\n flags[%d] "),id);
 	      if (flag & SECTION_FLAG) StringFormatter::send(stream,F(" RESERVED"));
 	      if (flag & LATCH_FLAG) StringFormatter::send(stream,F(" LATCHED"));
       }

@@ -3,7 +3,10 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.9.20"
+#define VERSION "5.9.21"
+// 5.9.21 - Relocated my*.example.* files to example.my*.*
+//        - EXRAIL 32bit operands and delay support
+//        - EXRAIL improved / command display
 // 5.9.20 - better organized platformio.ini
 //        - ACK Manager improved diagnostics
 // 5.9.19 - fixed EXTT_TURNTABLE macro for correct homeAngle parameter
