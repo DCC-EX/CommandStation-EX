@@ -3,7 +3,20 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.9.17"
+#define VERSION "5.9.21"
+// 5.9.21 - Relocated my*.example.* files to example.my*.*
+//        - EXRAIL 32bit operands and delay support
+//        - EXRAIL improved / command display
+// 5.9.20 - better organized platformio.ini
+//        - ACK Manager improved diagnostics
+// 5.9.19 - fixed EXTT_TURNTABLE macro for correct homeAngle parameter
+//        - fixed SIGNAL macro for correct inversion of GREEN 
+//        - fixed EXRAIL NEOPIXEL and ASPECT macros for correct NVS handling
+//        - reverted <jR id X> to <jR id "" ""> when not found
+// 5.9.18 - fixed DELAY(NVS(x))
+//        - fixed hidden signal display in </>
+//        - Implemengted turntable sharing between nodes
+//        - fixed websocket ping/pong 
 // 5.9.17 - Fix multiple node command handling
 //        - Internal improvements and refactoring of NVS system preferences
 //        - Roster dialog does not show on a node

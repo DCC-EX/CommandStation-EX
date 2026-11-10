@@ -47,8 +47,8 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
              OPCODE_LATCH,OPCODE_UNLATCH,OPCODE_SET,OPCODE_RESET,
              OPCODE_BLINK,
              OPCODE_ENDIF,OPCODE_ELSE,
-             OPCODE_DELAY,OPCODE_DELAYMINS,OPCODE_DELAYMS,
-             OPCODE_RANDWAIT_MS,OPCODE_RANDWAIT_DS,
+             OPCODE_DELAYMINS,OPCODE_DELAYMS,
+             OPCODE_RANDWAIT_MS,
              OPCODE_FON,OPCODE_FOFF,OPCODE_XFON,OPCODE_XFOFF,
              OPCODE_FTOGGLE,OPCODE_XFTOGGLE,OPCODE_XFWD,OPCODE_XREV,
              OPCODE_RED,OPCODE_GREEN,OPCODE_AMBER,OPCODE_DRIVE,
@@ -83,7 +83,7 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
              OPCODE_STASH,OPCODE_CLEAR_STASH,OPCODE_CLEAR_ALL_STASH,OPCODE_PICKUP_STASH,
              OPCODE_CLEAR_ANY_STASH,
              OPCODE_ONBUTTON,OPCODE_ONBUTTONUP,OPCODE_ONSENSOR,
-             OPCODE_NEOPIXEL,
+             OPCODE_NEOPIXEL_ON,OPCODE_NEOPIXEL_OFF,
              OPCODE_ONBLOCKENTER,OPCODE_ONBLOCKEXIT,
              OPCODE_ESTOPALL,OPCODE_XPOM,
              OPCODE_BITMAP_AND,OPCODE_BITMAP_OR,OPCODE_BITMAP_XOR,OPCODE_BITMAP_INC,OPCODE_BITMAP_DEC,OPCODE_ONBITMAP,
@@ -214,7 +214,7 @@ private:
     static int16_t progtrackLocoId;
     static LookList* LookListLoader(OPCODE op1,
                       OPCODE op2=OPCODE_ENDEXRAIL,OPCODE op3=OPCODE_ENDEXRAIL);
-    static uint16_t getOperand(int progCounter,byte n, bool atBoot=false);
+    static uint32_t getOperand(int progCounter,byte n, bool atBoot=false);
     
     static void ifAllFunc(const int16_t * vpinList, int16_t count); 
     static void ifAnyFunc(const int16_t * vpinList, int16_t count);
@@ -228,7 +228,7 @@ private:
     void printMessage(uint16_t id);  // Built by RMFTMacros.h
     void printMessage2(const FSH * msg);
     void thrungeString(uint32_t strfar, thrunger mode, byte id=0);
-    uint16_t getOperand(byte n); 
+    uint32_t getOperand(byte n); 
     void pause();
     void resume();
     
