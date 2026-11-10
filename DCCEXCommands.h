@@ -330,6 +330,7 @@ ZZ_nodoc(D,SHARE) // dev testing nodes only
   Turnout::shareNodesToCS();
   Sensor::shareNodesToCS();
   Signal::shareNodesToCS();
+  Turntable::shareNodesToCS();
 ZZ(D,SENSORS) // @V6 Show sensor task list diagnostics
   Sensor::dumpAll(stream);
 ZZ(C,PROGBOOST) // Configure PROG track boost

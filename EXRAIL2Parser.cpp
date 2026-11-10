@@ -126,12 +126,12 @@ bool RMFT2::streamStatus(Print * stream) {
     while(task) {
       if ((compileFeatures & FEATURE_BLINK)
        && (task->blinkState==blink_high || task->blinkState==blink_low)) {
-        StringFormatter::send(stream,F("\nID=%d,PC=%d,BLINK=%d"),
+        StringFormatter::send(stream,F("\n BLINK ID=%d,PC=%d,VPIN=%d"),
 			    (int)(task->taskId),task->progCounter,task->blinkPin
 			    );
       }
       else {
-      StringFormatter::send(stream,F("\nID=%d,PC=%d,LOCO=%d %c"),
+      StringFormatter::send(stream,F("\n Task ID=%d,PC=%d,LOCO=%d %c"),
 			    (int)(task->taskId),task->progCounter,task->loco,
 			    task->invert?'I':' '
 			    );
@@ -139,29 +139,34 @@ bool RMFT2::streamStatus(Print * stream) {
       
           auto progCounter=task->progCounter; // name to satisfy macros below
           auto operand=task->getOperand(progCounter,0);
+          bool hideDelay = false;
           switch(GET_OPCODE) {
               case OPCODE_RESERVE:
                 StringFormatter::send(stream,F(" WAIT RESERVE %d"),operand);
+                hideDelay=true;
                 break;
               case OPCODE_AT:
-              case OPCODE_ATTIMEOUT2:
               case OPCODE_AFTER:
               case OPCODE_ATGTE:
               case OPCODE_ATLT:
+                hideDelay=true;
                 StringFormatter::send(stream,F(" WAIT AT/AFTER %d"),(int16_t)operand);
                 break;
+              case OPCODE_ATTIMEOUT2:
+                hideDelay=true;
+                StringFormatter::send(stream,F(" WAIT AT_TIMEOUT %d %d mS remaining"),
+                operand, getOperand(progCounter,1) - (millis()-task->timeoutStart));
+                break;
               case OPCODE_WAIT_WHILE_RED:
+                hideDelay=true;
                 StringFormatter::send(stream,F(" WAIT WHILE RED %d"),operand);
-                break;  
-              case OPCODE_DELAY:
-              case OPCODE_DELAYMINS:
-              case OPCODE_DELAYMS:
-              case OPCODE_RANDWAIT_MS:
-              case OPCODE_RANDWAIT_DS:
-                StringFormatter::send(stream,F(" WAIT DELAY"));
                 break; 
+            // Note DELAY-type opcodes wait with pc->next opcode
             default: break;
           }
+          if (task->delayTime>0 && !hideDelay) 
+              StringFormatter::send(stream,F(" DELAY %l mS remaining "),
+              task->delayTime - (millis() - task->delayStart));
       }
       task=task->next;
       if (task==loopTask) break;
@@ -170,7 +175,7 @@ bool RMFT2::streamStatus(Print * stream) {
     for (int id=0;id<MAX_FLAGS; id++) {
       byte flag=flags[id];
       if (flag & ~TASK_FLAG) { // not interested in TASK_FLAG only. Already shown above
-	      StringFormatter::send(stream,F("\nflags[%d] "),id);
+	      StringFormatter::send(stream,F("\n flags[%d] "),id);
 	      if (flag & SECTION_FLAG) StringFormatter::send(stream,F(" RESERVED"));
 	      if (flag & LATCH_FLAG) StringFormatter::send(stream,F(" LATCHED"));
       }

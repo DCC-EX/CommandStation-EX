@@ -84,7 +84,7 @@ void set(const char * value) {
     void dump(Print * stream) {
     if (nvsStringValue)  
          StringFormatter::send(stream,F("<C NVS %3d \"%s\">\n"),nvsNumber, nvsStringValue);
-    else StringFormatter::send(stream,F("<C NVS %3d %5d>\n"), nvsNumber, nvsValue);
+    else StringFormatter::send(stream,F("<C NVS %3d %d>\n"), nvsNumber, nvsValue);
     }
     
     // Save the value to a stream in a format suitable for reloading later.
