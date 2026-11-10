@@ -180,7 +180,7 @@ bool exrailHalSetup1() {
 #define CONFIGURE_SERVO(vpin,pos1,pos2,profile) IODevice::configureServo(vpin,pos1,pos2,PCA9685::profile);
 #undef SIGNAL
 #define SIGNAL(redpin,amberpin,greenpin,description...) \
-  new LEDSignal(redpin,redpin,amberpin,greenpin,false,S_DESC(description));
+  new LEDSignal(redpin,redpin,amberpin,greenpin,true,S_DESC(description));
 #undef SIGNALH
 #define SIGNALH(redpin,amberpin,greenpin,description...) \
   new LEDSignal(redpin,redpin,amberpin,greenpin,false,S_DESC(description));
@@ -248,7 +248,7 @@ bool exrailHalSetup1() {
 #undef DCC_TURNTABLE
 #define DCC_TURNTABLE(id, homeAngle, description...) Turntable::createDCC(id,homeAngle,description);
 #undef EXTT_TURNTABLE
-#define EXTT_TURNTABLE(id, homeAngle, vpin, description...) Turntable::createEXTT(id,homeAngle,vpin,description);
+#define EXTT_TURNTABLE(id, vpin, homeAngle, description...) Turntable::createEXTT(id,homeAngle,vpin,description);
 #undef TT_ADDPOSITION
 #define TT_ADDPOSITION(turntable_id,position,value,angle,description...) \
   { auto tt=Turntable::get(turntable_id); if (tt) tt->addPosition(position, value, angle, description);}
@@ -492,7 +492,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define AT(sensor_id) OPCODE_AT,V(sensor_id),
 #define ATGTE(sensor_id,value) OPCODE_ATGTE,V(sensor_id),OPCODE_PAD,V(value),  
 #define ATLT(sensor_id,value) OPCODE_ATLT,V(sensor_id),OPCODE_PAD,V(value),  
-#define ATTIMEOUT(sensor_id,timeout) OPCODE_ATTIMEOUT1,V(0),OPCODE_ATTIMEOUT2,V(sensor_id),OPCODE_PAD,V(timeout/100L),
+#define ATTIMEOUT(sensor_id,timeout) OPCODE_ATTIMEOUT1,V(0),OPCODE_ATTIMEOUT2,V(sensor_id),OPCODE_PAD,V(timeout),
 #define AUTOMATION(id, description)  OPCODE_AUTOMATION, V(id), 
 #define AUTOSTART OPCODE_AUTOSTART,V(0),
 #define BLINK(vpin,onDuty,offDuty) OPCODE_BLINK,V(vpin),OPCODE_PAD,V(onDuty),OPCODE_PAD,V(offDuty),
