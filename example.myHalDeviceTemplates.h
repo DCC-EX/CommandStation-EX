@@ -1,4 +1,7 @@
-// myHalDeviceTemplates.txt  
+// example.myHalDeviceTemplates.h
+
+// Example device definitions that can be used in myAutomation.h
+
 
 // =======================================================================  
 // The following directives define auxiliary display devices.

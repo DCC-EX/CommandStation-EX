@@ -1,5 +1,6 @@
 /*
  *  © 2023 Peter Cole
+ *  © 2026 Chris Harlow
  *  All rights reserved.
  *  
  *  This file is part of CommandStation-EX
@@ -31,215 +32,164 @@
  */
 Turntable *Turntable::_firstTurntable = 0;
 
+Turntable::Turntable() {}
 
-/*
- * Public static data
- */
-int Turntable::turntablelistHash = 0;
+Turntable* Turntable::create(uint16_t id, TurntableType turntableType,uint16_t homeAngle,VPIN extVpin, const char * description) {
+    Turntable *tt = get(id);
+    if (tt) {
+      DIAG(F("Duplicate Turntable ID: %d\n"), id);
+      return nullptr;
+    }
+    tt = new Turntable();
+    if (!tt) return tt;
+    tt->id = id;
+    tt->type = turntableType;
+    tt->moving = false;
+    tt->position = 0;
+    tt->previousPosition = 0;
+    tt->extVpin = extVpin;
+    tt->homeAngle=homeAngle;
+    tt->description = new char[strlen(description) + 1];
+    strcpy(tt->description, description);
+    tt->_firstPosition = nullptr; 
+    tt->addPosition(0,0, homeAngle, "Home");
+    tt->_nextTurntable = _firstTurntable;
+    _firstTurntable = tt;
+    return tt;
+  }
+
+  TurntablePosition* Turntable::addPosition(uint8_t idx, uint16_t value, uint16_t angle, const char * description) {
+    for (auto p=_firstPosition;p;p=p->next) {
+      if (p->index==idx) {
+        DIAG(F("Duplicate Turntable %d Position Index: %d\n"), id, idx);
+        return nullptr;
+      }
+    }
+    TurntablePosition* newPosition = new TurntablePosition();
+    newPosition->index = idx;
+    newPosition->dccAddress = value; // same for DCC and EXTT, union handles it
+    newPosition->angle = angle;
+    newPosition->description = new char[strlen(description) + 1];
+    strcpy(newPosition->description, description);
+    newPosition->next = _firstPosition;
+    _firstPosition = newPosition;
+    return newPosition;
+  }
 
 
 /*
  * Protected static functions
  */
-// Add new turntable to end of list
-
-void Turntable::add(Turntable *tto) {
-  if (!_firstTurntable) {
-    _firstTurntable = tto;
-  } else {
-    Turntable *ptr = _firstTurntable;
-    for ( ; ptr->_nextTurntable!=0; ptr=ptr->_nextTurntable) {}
-    ptr->_nextTurntable = tto;
-  }
-  turntablelistHash++;
-}
-
-// Add a position
-void Turntable::addPosition(uint8_t idx, uint16_t value, uint16_t angle) {
-  _turntablePositions.insert(idx, value, angle);
-}
-
-// Get value for position
-uint16_t Turntable::getPositionValue(uint8_t position) {
-  TurntablePosition* currentPosition = _turntablePositions.getHead();
-  while (currentPosition) {
-    if (currentPosition->index == position) {
-      return currentPosition->data;
-    }
-    currentPosition = currentPosition->next;
-  }
-  return false;
-}
-
-// Get value for position
-uint16_t Turntable::getPositionAngle(uint8_t position) {
-  TurntablePosition* currentPosition = _turntablePositions.getHead();
-  while (currentPosition) {
-    if (currentPosition->index == position) {
-      return currentPosition->angle;
-    }
-    currentPosition = currentPosition->next;
-  }
-  return false;
-}
-
-// Get the count of positions associated with the turntable
-uint8_t Turntable::getPositionCount()  {
-  TurntablePosition* currentPosition = _turntablePositions.getHead();
-  uint8_t count = 0;
-  while (currentPosition) {
-    count++;
-    currentPosition = currentPosition->next;
-  }
-  return count;
-}
 
 /*
  * Public static functions
  */
 // Find turntable from list
 Turntable *Turntable::get(uint16_t id) {
-  for (Turntable *tto = _firstTurntable; tto != nullptr; tto = tto->_nextTurntable)
-    if (tto->_turntableData.id == id) return tto;
-  return NULL;
+  for (auto *tto = _firstTurntable; tto != nullptr; tto = tto->_nextTurntable)
+    if (tto->id == id) return tto;
+  return nullptr;
 }
 
-// Find turntable via Vpin
-Turntable *Turntable::getByVpin(VPIN vpin) {
-  for (Turntable *tto = _firstTurntable; tto != nullptr; tto = tto->_nextTurntable) {
-    if (tto->isEXTT()) {
-      EXTTTurntable *exttTto = static_cast<EXTTTurntable*>(tto);
-      if (exttTto->getVpin() == vpin) {
-        return tto;
-      }
-    }
-  }
-  return nullptr;
+uint16_t Turntable::getByVpin(VPIN vpin) {
+  for (auto *tto = _firstTurntable; tto != nullptr; tto = tto->_nextTurntable)
+    if (tto->type==TURNTABLE_EXTT && tto->extVpin == vpin) return tto->id;
+  return 0;
+}
+
+uint8_t Turntable::getPositionCount() {
+      byte count=0;
+      for (auto p=_firstPosition; p; p=p->next) if (p->description[0]!=0x01) count++;
+      return count;
 }
 
 // Get the current position for turntable with the specified ID
 uint8_t Turntable::getPosition(uint16_t id) {
   Turntable *tto = get(id);
-  if (!tto) return false;
-  return tto->getPosition();
+  if (!tto) return 0;
+  return tto?tto->position:0;
 }
 
 // Got the moving state of the specified turntable
-bool Turntable::ttMoving(uint16_t id) {
+bool Turntable::isMoving(uint16_t id) {
   Turntable *tto = get(id);
-  if (!tto) return false;
-  return tto->isMoving();
+  return tto?tto->moving:false;
 }
 
-// Initiate a turntable move
-bool Turntable::setPosition(uint16_t id, uint8_t position, uint8_t activity) {
-#if defined(DIAG_IO)
-  DIAG(F("Rotate turntable %d to position %d, activity %d)"), id, position, activity);
-#endif
-  Turntable *tto = Turntable::get(id);
-  if (!tto) return false;
-  if (tto->isMoving()) return false;
-  bool ok = tto->setPositionInternal(position, activity);
-
-  if (ok) {
-    // We only deal with broadcasts for DCC turntables here, EXTT in the device driver
-    if (!tto->isEXTT()) {
-      CommandDistributor::broadcastTurntable(id, position, false);
-    }
-    // Trigger EXRAIL rotateEvent for both types here if changed
-#if defined(EXRAIL_ACTIVE)
-    bool rotated = false;
-    if (position != tto->_previousPosition) rotated = true;
-    RMFT2::rotateEvent(id, rotated);
-#endif
-  }
-  return ok;
+void Turntable::setMoving(uint16_t id, bool isMoving, bool tellNodes) {
+  auto *tto = Turntable::get(id);
+  if (!tto) return;
+  if (tto->moving == isMoving) return;
+  tto->moving=isMoving;
+  CommandDistributor::broadcastTurntable(id, tto->position, isMoving);
+  if (tellNodes)NodeManager::cast(F("<i %d %b>"), id, isMoving);
 }
 
-/*************************************************************************************
- * EXTTTurntable - EX-Turntable device.
- * 
- *************************************************************************************/
-// Private constructor
-EXTTTurntable::EXTTTurntable(uint16_t id, VPIN vpin) :
-  Turntable(id, TURNTABLE_EXTT)
-{
-  _exttTurntableData.vpin = vpin;
+// Initiate a turntable move (static)
+bool Turntable::setPosition(uint16_t id, uint8_t position, ActivityNumber activity) {
+  return setPosition(id, position, static_cast<byte>(activity));
 }
 
-using DevState = IODevice::DeviceStateEnum;
+bool Turntable::setPosition(uint16_t id, uint8_t position, byte activity, bool tellNodes) {
+  auto *tto = Turntable::get(id);
+  return tto?tto->setPositionInternal(position, activity, tellNodes):false;
+}
 
-// Create function
-  Turntable *EXTTTurntable::create(uint16_t id, VPIN vpin) {
-    Turntable *tto = get(id);
-    if (tto) {
-      if (tto->isType(TURNTABLE_EXTT)) {
-        EXTTTurntable *extt = (EXTTTurntable *)tto;
-        extt->_exttTurntableData.vpin = vpin;
-        return tto;
-      }
-    }
-    if (!IODevice::exists(vpin)) return nullptr;
-    if (IODevice::getStatus(vpin) == DevState::DEVSTATE_FAILED) return nullptr;
-    if (Turntable::getByVpin(vpin)) return nullptr;
-    tto = (Turntable *)new EXTTTurntable(id, vpin);
-    DIAG(F("Turntable 0x%x size %d size %d"), tto, sizeof(Turntable), sizeof(struct TurntableData));
-    return tto;
-  }
 
-  void EXTTTurntable::print(Print *stream) {
-    StringFormatter::send(stream, F("<i %d EXTURNTABLE %d>\n"), _turntableData.id, _exttTurntableData.vpin);
-  }
 
   // EX-Turntable specific code for moving to the specified position
-  bool EXTTTurntable::setPositionInternal(uint8_t position, uint8_t activity) {
-    int16_t value;
-    if (position == 0) {
-      value = 0;  // Position 0 is just to send activities
-    } else {
-      if (activity > 1) return false; // If sending a position update, only phase changes valid (0|1)
-      value = getPositionValue(position); // Get position value from position list
+  bool Turntable::setPositionInternal(uint8_t newposition, byte activity, bool tellNodes) {
+    if (newposition==0) { // send activity only }
+      if (type==TURNTABLE_DCC) return false;  // DCC turntables cannot send activity only commands
+      if (type==TURNTABLE_EXTT) IODevice::writeAnalogue(extVpin, 0, activity);
+      if (tellNodes) NodeManager::cast(F("<i %d %d %d>"), id, 0, activity);
+      return true;
     }
-    if (position > 0 && !value) return false; // Return false if it's not a valid position
-    // Set position via device driver
-    _previousPosition = _turntableData.position;
-    _turntableData.position = position;
-    EXTurntable::writeAnalogue(_exttTurntableData.vpin, value, activity);
+    
+    if (activity != ActivityNumber::Turn && activity != ActivityNumber::Turn_PInvert) return false; // If sending a position update, only phase changes valid (0|1)
+    if (position == newposition) return false; // No change in position
+    
+    // locate the positoion data
+    auto pp=_firstPosition;
+    while (pp && pp->index != newposition) pp = pp->next;
+    if (!pp) return false; // Position not found
+  
+    previousPosition = position;
+    if (type==TURNTABLE_EXTT) IODevice::writeAnalogue(extVpin, pp->exttData, activity);
+    if (type==TURNTABLE_DCC) DCC::setAccessory(pp->dccAddress>>3, pp->dccAddress & 0x03, 1);
+    if (tellNodes) NodeManager::cast(F("<i %d %d %d>"), id, newposition, activity);
+    CommandDistributor::broadcastTurntable(id, newposition, true); // is moving
     return true;
   }
 
-/*************************************************************************************
- * DCCTurntable - DCC Turntable device.
- * 
- *************************************************************************************/
-// Private constructor
-DCCTurntable::DCCTurntable(uint16_t id) : Turntable(id, TURNTABLE_DCC) {}
-
-// Create function
-  Turntable *DCCTurntable::create(uint16_t id) {
-    Turntable *tto = get(id);
-    if (!tto) {
-      tto = (Turntable *)new DCCTurntable(id);
-      DIAG(F("Turntable 0x%x size %d size %d"), tto, sizeof(Turntable), sizeof(struct TurntableData));
+  void Turntable::printState(Print *stream) {
+    switch(type) {
+      case TURNTABLE_EXTT:
+        StringFormatter::send(stream, F("<I %d EXT %d %d>\n"), id, extVpin, homeAngle);
+        break;
+      case TURNTABLE_DCC:
+        StringFormatter::send(stream, F("<I %d DCC %d>\n"), id, homeAngle);
+        break;
+      case TURNTABLE_REMOTE:
+        StringFormatter::send(stream, F("<I %d REMOTE>\n"), id, getPosition());
+        break;
     }
-    return tto;
+    for (auto pp=_firstPosition; pp != nullptr; pp = pp->next)
+      StringFormatter::send(stream, F("<I %d ADD %d %d %d>\n"), id, pp->index, pp->exttData, pp->angle);
   }
 
-  void DCCTurntable::print(Print *stream) {
-    StringFormatter::send(stream, F("<i %d DCCTURNTABLE>\n"), _turntableData.id);
+ void Turntable::printAll(Print *stream) {
+    for (auto *tto = _firstTurntable; tto != 0; tto = tto->_nextTurntable) tto->printState(stream);
+  }
+void Turntable::shareNodesToCS() {
+    for (auto *tto = _firstTurntable; tto != 0; tto = tto->_nextTurntable) tto->shareNodeToCS();
   }
 
-// EX-Turntable specific code for moving to the specified position
-bool DCCTurntable::setPositionInternal(uint8_t position, uint8_t activity) {
-  (void) activity;
-  int16_t value = getPositionValue(position);
-  if (position == 0 || !value) return false; // Return false if it's not a valid position
-  // Set position via device driver
-  int16_t addr=value>>3;
-  int16_t subaddr=(value>>1) & 0x03;
-  bool active=value & 0x01;
-  _previousPosition = _turntableData.position;
-  _turntableData.position = position;
-  DCC::setAccessory(addr, subaddr, active);
-  return true;
-}
+  void Turntable::shareNodeToCS() {
+    if (type==TURNTABLE_REMOTE) return;
+    NodeManager::cast(F("<I %d %d \"%s\">"), id,homeAngle, description);
+    for (auto pp=_firstPosition; pp != nullptr; pp = pp->next)
+      if (pp->index)NodeManager::cast(F("<I %d %d %d \"%s\">"), id, pp->index, pp->angle, pp->description);
+    NodeManager::cast(F("<i %d %d %d>"), id, position, moving);  
+  }
+  

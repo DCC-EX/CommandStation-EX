@@ -7,7 +7,7 @@ Typically a Mimic panel would need to:
 - Show turnout states
 - Show signal states
 - Show track occupied
-- Have buttons to toggle tuirnouts
+- Have buttons to toggle turnouts
 - Display texts on an Oled screen
 
 All this can be built into a CS but it is easier to build this as a node which can stand alone and handle all the above in EXRAIL without any change to the existing CS or node logic.

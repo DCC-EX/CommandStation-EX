@@ -58,8 +58,6 @@
 #define O_DESC(id, desc) case id: return ("" desc)[0]?F("" desc):NULL;
 #define S_DESC(desc) ("" desc)[0]?("" desc):nullptr
 
-// helper macro for turntable descriptions, creates NULL for missing description
-#define T_DESC(tid,pid,desc) if(turntableId==tid && positionId==pid) return ("" desc)[0]?F("" desc):NULL;
 // helper macro for turnout description as HIDDEN 
 #define HIDDEN "\x01"
 
@@ -178,7 +176,7 @@ bool exrailHalSetup1() {
 #define CONFIGURE_SERVO(vpin,pos1,pos2,profile) IODevice::configureServo(vpin,pos1,pos2,PCA9685::profile);
 #undef SIGNAL
 #define SIGNAL(redpin,amberpin,greenpin,description...) \
-  new LEDSignal(redpin,redpin,amberpin,greenpin,false,S_DESC(description));
+  new LEDSignal(redpin,redpin,amberpin,greenpin,true,S_DESC(description));
 #undef SIGNALH
 #define SIGNALH(redpin,amberpin,greenpin,description...) \
   new LEDSignal(redpin,redpin,amberpin,greenpin,false,S_DESC(description));
@@ -242,8 +240,16 @@ bool exrailHalSetup1() {
 #undef ROSTER
 #define ROSTER(cabid,name,funcmap...) \
  Roster::create(cabid,name,funcmap);
+// Turntables created here
+#undef DCC_TURNTABLE
+#define DCC_TURNTABLE(id, homeAngle, description...) Turntable::createDCC(id,homeAngle,description);
+#undef EXTT_TURNTABLE
+#define EXTT_TURNTABLE(id, vpin, homeAngle, description...) Turntable::createEXTT(id,homeAngle,vpin,description);
+#undef TT_ADDPOSITION
+#define TT_ADDPOSITION(turntable_id,position,value,angle,description...) \
+  { auto tt=Turntable::get(turntable_id); if (tt) tt->addPosition(position, value, angle, description);}
 
-void exrailHalSetup2() {
+  void exrailHalSetup2() {
    #include "myAutomation.h"
 }
 
@@ -437,33 +443,6 @@ void  RMFT2::printMessage(uint16_t id) {
   if (strfar) thrungeString(strfar,tmode,lcdid);
 }
 
-// Pass to get turntable descriptions (optional)
-#include "EXRAIL2MacroReset.h"
-#undef DCC_TURNTABLE
-#define DCC_TURNTABLE(id,home,description...) O_DESC(id,description)
-#undef EXTT_TURNTABLE
-#define EXTT_TURNTABLE(id,vpin,home,description...) O_DESC(id,description)
-
-const FSH * RMFT2::getTurntableDescription(int16_t turntableId) {
-   switch (turntableId) {
-      #include "myAutomation.h"
-   default:break;
-   }
-   return NULL;
-}
-
-// Pass to get turntable position descriptions (optional)
-#include "EXRAIL2MacroReset.h"
-#undef TT_ADDPOSITION
-#define TT_ADDPOSITION(turntable_id,position,value,home,description...) T_DESC(turntable_id,position,description)
-
-const FSH * RMFT2::getTurntablePositionDescription(int16_t turntableId, uint8_t positionId) {
-  (void)turntableId;
-  (void)positionId;
-   #include "myAutomation.h"
-   return NULL;
-}
-
 // Pass 9 ONLCC/ ONMERG counter and lookup array
 #include "EXRAIL2MacroReset.h"
 #undef ONLCC
@@ -490,7 +469,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 
 
 #undef NVS
-#define NVS(nvsnum) ((int32_t)((nvsnum & 0x03FF)<< 16 | 0x40000000)) 
+#define NVS(nvsnum) ((int32_t)((nvsnum & 0x3FFF)<< 16 | 0x40000000)) 
 #undef NVST
 #define NVST(nvsnum)
 
@@ -505,11 +484,11 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ALIAS(name,value...) 
 #define AMBER(signal_id) OPCODE_AMBER,V(signal_id),
 #define ANOUT(vpin,value,param1,param2) OPCODE_SERVO,V(vpin),OPCODE_PAD,V(value),OPCODE_PAD,V(param1),OPCODE_PAD,V(param2),
-#define ASPECT(address,value) OPCODE_ASPECT,V((address<<5) | (value & 0x1F)),
+#define ASPECT(address,value) OPCODE_ASPECT,V(address),OPCODE_PAD,V(value),
 #define AT(sensor_id) OPCODE_AT,V(sensor_id),
 #define ATGTE(sensor_id,value) OPCODE_ATGTE,V(sensor_id),OPCODE_PAD,V(value),  
 #define ATLT(sensor_id,value) OPCODE_ATLT,V(sensor_id),OPCODE_PAD,V(value),  
-#define ATTIMEOUT(sensor_id,timeout) OPCODE_ATTIMEOUT1,V(0),OPCODE_ATTIMEOUT2,V(sensor_id),OPCODE_PAD,V(timeout/100L),
+#define ATTIMEOUT(sensor_id,timeout) OPCODE_ATTIMEOUT1,V(0),OPCODE_ATTIMEOUT2,V(sensor_id),OPCODE_PAD,V(timeout),
 #define AUTOMATION(id, description)  OPCODE_AUTOMATION, V(id), 
 #define AUTOSTART OPCODE_AUTOSTART,V(0),
 #define BLINK(vpin,onDuty,offDuty) OPCODE_BLINK,V(vpin),OPCODE_PAD,V(onDuty),OPCODE_PAD,V(offDuty),
@@ -524,20 +503,14 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define CLOSE(id)  OPCODE_CLOSE,V(id),
 #define CONFIGURE_DIALOG(title,body)
 #define CONFIGURE_SERVO(vpin,pos1,pos2,profile)
-#define DCC_TURNTABLE(id,home,description...) OPCODE_DCCTURNTABLE,V(id),OPCODE_PAD,V(home),
+#define DCC_TURNTABLE(id,home,description...)
 #define DEACTIVATE(addr,subaddr) OPCODE_DCCACTIVATE,V(addr<<3 | subaddr<<1),
 #define DEACTIVATEL(addr) OPCODE_DCCACTIVATE,V((addr+3)<<1),
 
-// DELAY/DELAYRANDOM opcodes altered to select millis or tenths of seconds based on the value of the delay.
-// but allowing NVS tolkens (which are always >= 0x7E000000) to be passed through unchanged as 
-// millis. This does NOT allow the use of NVS tokens for delays that are longer than 30 seconds
-// due to NVS number range limits.
-#define DELAY(ms) (ms<=30000 || ms>=0x7E000000) ? OPCODE_DELAYMS : OPCODE_DELAY,\
-                V((ms<=30000 || ms>=0x7E000000) ? ms : (ms/100L)),
+// DELAY/DELAYRANDOM can now handle 32bit operands 
+#define DELAY(ms) OPCODE_DELAYMS,V(ms),
 #define DELAYMINS(mindelay) OPCODE_DELAYMINS,V(mindelay),
-#define DELAYRANDOM(mindelay,maxdelay) DELAY(mindelay)\
-        (maxdelay<=30000 || maxdelay>=0x7E000000) ? OPCODE_RANDWAIT_MS : OPCODE_RANDWAIT_DS,\
-        V((maxdelay<=30000 || maxdelay>=0x7E000000) ? maxdelay : (maxdelay/100L)),
+#define DELAYRANDOM(mindelay,maxdelay) OPCODE_DELAYMS,V(mindelay),OPCODE_RANDWAIT_MS,V(maxdelay),
 #define DCC_SIGNAL(id,add,subaddr,description...)
 #define DCC_SIGNALL(id,linearaddr,description...)
 #define DCCX_SIGNAL(id,redAspect,amberAspect,greenAspect,description...)
@@ -552,7 +525,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ESTOP_PAUSE OPCODE_ESTOPALL,V(1),
 #define ESTOP_RESUME OPCODE_ESTOPALL,V(2),
 #define EXRAIL
-#define EXTT_TURNTABLE(id,vpin,home,description...) OPCODE_EXTTTURNTABLE,V(id),OPCODE_PAD,V(vpin),OPCODE_PAD,V(home),
+#define EXTT_TURNTABLE(id,vpin,home,description...)
 #define FADE(pin,value,ms) OPCODE_SERVO,V(pin),OPCODE_PAD,V(value),OPCODE_PAD,V((int16_t)PCA9685::ProfileType::UseDuration|(int16_t)PCA9685::ProfileType::NoPowerOff),OPCODE_PAD,V(ms/100L),
 #define FOFF(func) OPCODE_FOFF,V(func),
 #define FOLLOW(route) OPCODE_FOLLOW,V(route),
@@ -615,10 +588,13 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define STEALTH_GLOBAL(code...) 
 #define MESSAGE(msg) PRINT(msg)
 #define MOMENTUM(accel,decel...) OPCODE_MOMENTUM,V(accel),OPCODE_PAD,V(#decel[0]?decel+0:accel),
-#define MOVETT(id,steps,activity) OPCODE_SERVO,V(id),OPCODE_PAD,V(steps),OPCODE_PAD,V(EXTurntable::activity),OPCODE_PAD,V(0),
-#define NEOPIXEL(id,r,g,b,count...) OPCODE_NEOPIXEL,V(id),\
-        OPCODE_PAD,V(((r & 0xff)<<8) | (g & 0xff)),\
-        OPCODE_PAD,V((b & 0xff)),\
+#define MOVETT(vpin,steps,activity) OPCODE_SERVO,V(vpin),OPCODE_PAD,V(steps),OPCODE_PAD,V(activity),OPCODE_PAD,V(0),
+#define NEOPIXEL(id,r,g,b,count...) \
+        id<0?OPCODE_NEOPIXEL_OFF:OPCODE_NEOPIXEL_ON,\
+        V(id<0?-id:id),\
+        OPCODE_PAD,V(r & 0xff),\
+        OPCODE_PAD,V(g & 0xff),\
+        OPCODE_PAD,V(b & 0xff),\
         OPCODE_PAD,V(#count[0]?(count+0):1),
          
 #define NEOPIXEL_SIGNAL(sigid,redcolour,ambercolour,greencolour,description...)
@@ -682,8 +658,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define RETURN OPCODE_RETURN,V(0),
 #define REV(speed) OPCODE_REV,V(speed),
 #define ROSTER(cabid,name,funcmap...)
-#define ROTATE(id,position,activity) OPCODE_ROTATE,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(EXTurntable::activity),
-#define ROTATE_DCC(id,position) OPCODE_ROTATE,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(0),
+#define ROTATE(id,position,activity) OPCODE_ROTATE,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(ActivityNumber::activity),
+#define ROTATE_DCC(id,position) OPCODE_ROTATE,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(ActivityNumber::Turn),
 #define ROUTE(id, description)  OPCODE_ROUTE, V(id), 
 #define ROUTE_ACTIVE(id)  OPCODE_ROUTE_ACTIVE,V(id),
 #define ROUTE_INACTIVE(id)  OPCODE_ROUTE_INACTIVE,V(id),
@@ -725,7 +701,7 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define STOP OPCODE_SPEED,V(0), 
 #define THROW(id)  OPCODE_THROW,V(id),
 #define TOGGLE_TURNOUT(id)  OPCODE_TOGGLE_TURNOUT,V(id),
-#define TT_ADDPOSITION(id,position,value,angle,description...) OPCODE_TTADDPOSITION,V(id),OPCODE_PAD,V(position),OPCODE_PAD,V(value),OPCODE_PAD,V(angle),
+#define TT_ADDPOSITION(id,position,value,angle,description...)
 #define TURNOUT(id,addr,subaddr,description...)
 #define TURNOUTL(id,addr,description...)
 #define UNJOIN OPCODE_UNJOIN,V(0),

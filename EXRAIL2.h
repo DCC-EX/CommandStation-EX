@@ -30,7 +30,7 @@
 #include "Turntables.h"
    
 // The following are the operation codes (or instructions) for a kind of virtual machine.
-// Each instruction is normally 3 bytes long with an operation code followed by a parameter.
+// Each instruction is normally 5 bytes long with an operation code followed by a parameter.
 // In cases where more than one parameter is required, the first parameter is followed by one  
 // or more OPCODE_PAD instructions with the subsequent parameters. This wastes a byte but makes 
 // searching easier as a parameter can never be confused with an opcode. 
@@ -47,8 +47,8 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
              OPCODE_LATCH,OPCODE_UNLATCH,OPCODE_SET,OPCODE_RESET,
              OPCODE_BLINK,
              OPCODE_ENDIF,OPCODE_ELSE,
-             OPCODE_DELAY,OPCODE_DELAYMINS,OPCODE_DELAYMS,
-             OPCODE_RANDWAIT_MS,OPCODE_RANDWAIT_DS,
+             OPCODE_DELAYMINS,OPCODE_DELAYMS,
+             OPCODE_RANDWAIT_MS,
              OPCODE_FON,OPCODE_FOFF,OPCODE_XFON,OPCODE_XFOFF,
              OPCODE_FTOGGLE,OPCODE_XFTOGGLE,OPCODE_XFWD,OPCODE_XREV,
              OPCODE_RED,OPCODE_GREEN,OPCODE_AMBER,OPCODE_DRIVE,
@@ -72,19 +72,18 @@ enum OPCODE : byte {OPCODE_THROW,OPCODE_CLOSE,OPCODE_TOGGLE_TURNOUT,
              OPCODE_ONCHANGE,
              OPCODE_ONCLOCKTIME,
              OPCODE_ONTIME,
-             OPCODE_TTADDPOSITION,OPCODE_DCCTURNTABLE,OPCODE_EXTTTURNTABLE,
              OPCODE_ONROTATE,OPCODE_ROTATE,OPCODE_WAITFORTT,
              OPCODE_LCC,OPCODE_LCCX,OPCODE_ONLCC,
              OPCODE_ACON, OPCODE_ACOF, 
              OPCODE_ONACON, OPCODE_ONACOF, 
              OPCODE_ONOVERLOAD,
-	     OPCODE_ONRAILSYNCON,OPCODE_ONRAILSYNCOFF,
+	           OPCODE_ONRAILSYNCON,OPCODE_ONRAILSYNCOFF,
              OPCODE_ROUTE_ACTIVE,OPCODE_ROUTE_INACTIVE,OPCODE_ROUTE_HIDDEN,
              OPCODE_ROUTE_DISABLED,
              OPCODE_STASH,OPCODE_CLEAR_STASH,OPCODE_CLEAR_ALL_STASH,OPCODE_PICKUP_STASH,
              OPCODE_CLEAR_ANY_STASH,
              OPCODE_ONBUTTON,OPCODE_ONBUTTONUP,OPCODE_ONSENSOR,
-             OPCODE_NEOPIXEL,
+             OPCODE_NEOPIXEL_ON,OPCODE_NEOPIXEL_OFF,
              OPCODE_ONBLOCKENTER,OPCODE_ONBLOCKEXIT,
              OPCODE_ESTOPALL,OPCODE_XPOM,
              OPCODE_BITMAP_AND,OPCODE_BITMAP_OR,OPCODE_BITMAP_XOR,OPCODE_BITMAP_INC,OPCODE_BITMAP_DEC,OPCODE_ONBITMAP,
@@ -201,8 +200,6 @@ class LookList {
   static const int16_t HIGHFLASH automationIdList[];
   static const FSH *  getRouteDescription(int16_t id);
   static char   getRouteType(int16_t id);
-  static const FSH *  getTurntableDescription(int16_t id);
-  static const FSH *  getTurntablePositionDescription(int16_t turntableId, uint8_t positionId);
   static void startNonRecursiveTask(const FSH* reason, int16_t id,int pc, uint16_t loco=0);
   static bool readSensor(uint16_t sensorId);
   static bool isSignal(int16_t id,char rag);
@@ -215,10 +212,9 @@ private:
     static bool setFlag(VPIN id,byte onMask, byte OffMask=0);
     static bool getFlag(VPIN id,byte mask); 
     static int16_t progtrackLocoId;
-    static void setTurntableHiddenState(Turntable * tto);
     static LookList* LookListLoader(OPCODE op1,
                       OPCODE op2=OPCODE_ENDEXRAIL,OPCODE op3=OPCODE_ENDEXRAIL);
-    static uint16_t getOperand(int progCounter,byte n, bool atBoot=false);
+    static uint32_t getOperand(int progCounter,byte n, bool atBoot=false);
     
     static void ifAllFunc(const int16_t * vpinList, int16_t count); 
     static void ifAnyFunc(const int16_t * vpinList, int16_t count);
@@ -232,7 +228,7 @@ private:
     void printMessage(uint16_t id);  // Built by RMFTMacros.h
     void printMessage2(const FSH * msg);
     void thrungeString(uint32_t strfar, thrunger mode, byte id=0);
-    uint16_t getOperand(byte n); 
+    uint32_t getOperand(byte n); 
     void pause();
     void resume();
     

@@ -120,5 +120,21 @@ ZZ(?,Q)  // CS requests list of shared sensors
   Sensor::shareNodesToCS();
 ZZ(?,S)  // CS requests list of signals
   Signal::shareNodesToCS();
+ZZ(?,I)  // CS requests list of turntables
+  Turntable::shareNodesToCS();
 
+
+ZZ(i,id,position,action) // Turntable position update from node (lower i to avoid clash with shared) 
+  Turntable::setPosition(id,position,action,false);
+ZZ(i,id,isMoving) // Turntable moving state update from node
+  Turntable::setMoving(id,isMoving,false); // dont rebroadcast to other nodes
+
+// Turntable created from another node
+ZZ(I,id,homeAngle,description) // Turntable shared from node
+  CHECKQ(description)
+  Turntable::createREMOTE(id,homeAngle,q_description);
+ZZ(I,id,posid,angle,description) // Turntable position shared from node
+  CHECKQ(description)
+  auto tt=Turntable::get(id);
+  if (tt) tt->addPosition(posid,angle,0,q_description); // add the position to the turntable
 ZZEND

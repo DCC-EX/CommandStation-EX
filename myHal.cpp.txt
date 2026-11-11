@@ -1,2 +1,0 @@
-// this file exists in versions prior to DCC-EX 5.6.0
-// it was often mistaken for myHal.cpp_example.txt

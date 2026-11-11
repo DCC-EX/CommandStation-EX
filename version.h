@@ -3,7 +3,25 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.9.16"
+#define VERSION "5.9.22"
+// 5.9.22 - ESP32 4MB flash: added partitions_4MB_ota.csv partition scheme to increase OTA partition size to 1.5MB, shrinking SPIFFS/LittleFS partition to 0.375MB
+// 5.9.21 - Relocated my*.example.* files to example.my*.*
+//        - EXRAIL 32bit operands and delay support
+//        - EXRAIL improved / command display
+// 5.9.20 - better organized platformio.ini
+//        - ACK Manager improved diagnostics
+// 5.9.19 - fixed EXTT_TURNTABLE macro for correct homeAngle parameter
+//        - fixed SIGNAL macro for correct inversion of GREEN 
+//        - fixed EXRAIL NEOPIXEL and ASPECT macros for correct NVS handling
+//        - reverted <jR id X> to <jR id "" ""> when not found
+// 5.9.18 - fixed DELAY(NVS(x))
+//        - fixed hidden signal display in </>
+//        - Implemengted turntable sharing between nodes
+//        - fixed websocket ping/pong 
+// 5.9.17 - Fix multiple node command handling
+//        - Internal improvements and refactoring of NVS system preferences
+//        - Roster dialog does not show on a node
+//        - <C NODEGROUP xx> and Browser configuration support for node group
 // 5.9.16 - Sensor, turnout,signal sharing improvements between nodes and CS
 // 5.9.15 - Implementation of SHARED_SENSOR and REMOTE_SENSOR
 //        - JMRI_SENSOR on nodes writes through to throttles 

@@ -154,8 +154,10 @@ void loop()
     if (startupLoopCounter == 150) NodeManager::cast(F("<?T>")); // asks nodes for turnouts list
     if (startupLoopCounter == 200) NodeManager::cast(F("<?S>")); // asks nodes for signals list
     if (startupLoopCounter == 250) NodeManager::cast(F("<?Q>")); // asks nodes for shared sensors list
-    if (startupLoopCounter == 300) CommandDistributor::broadcastPower();
-    if (startupLoopCounter >  300) startupLoopCounter=-1; // end of startup loop actions
+    if (startupLoopCounter == 300) Turntable::shareNodesToCS();
+    if (startupLoopCounter == 350) NodeManager::cast(F("<?I>")); // asks nodes for turntables list
+    if (startupLoopCounter == 400) CommandDistributor::broadcastPower();
+    if (startupLoopCounter >  400) startupLoopCounter=-1; // end of startup loop actions
   }
   
   
