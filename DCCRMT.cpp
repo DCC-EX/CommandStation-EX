@@ -130,6 +130,14 @@ RMTChannel *channelHandle[8] = { 0 };
 // interrupt and we do the cutout
 static volatile uint8_t cutoutFlag = 0;
 
+// The compare value for the cutout pulse and the sync phase, as the
+// driver works them out in mcpwmPulseOn(). The interrupt writes them to
+// the registers itself: the driver calls run from flash and take up to
+// 250 us when the cache is busy, which is longer than the end bit that
+// the arming has to fit into.
+static uint32_t cutoutCompare = 0;
+static uint32_t cutoutPhase = 0;
+
 // define time values for cutout
 #define CUTOUT_TOTAL                486  // usec
 #define CUTOUT_BASE_FREQ           2057  //1000*1000/CUTOUT_TOTAL Hz
@@ -139,10 +147,16 @@ static volatile uint8_t cutoutFlag = 0;
 // As the DCC packet end marker was moved to the next preamble
 // this happens at the beginning of that end packet marker (bit).
 void IRAM_ATTR interrupt(rmt_channel_t channel, void *t) {
-  RMTChannel *tt = channelHandle[channel];
-  if (tt) tt->RMTinterrupt();
   if (channel == 0) {
-    MCPWM1.operators[0].gen_stmp_cfg.gen_a_upmethod = 4; // bit 4 means "on sync"
+    // The timer runs freely at 486 us. A zero before the sync, which is up
+    // to 116 us away, would be taken for the cutout start. So software sync
+    // the timer clear of zero first. The sync input must be off again before
+    // it is armed below, which makes an edge if the RMT line is high.
+    MCPWM1.timer[0].timer_sync.timer_phase = 10;
+    MCPWM1.timer[0].timer_sync.timer_synci_en = 1;
+    MCPWM1.timer[0].timer_sync.timer_sync_sw = ~MCPWM1.timer[0].timer_sync.timer_sync_sw;
+    MCPWM1.timer[0].timer_sync.timer_synci_en = 0;
+    MCPWM1.int_clr.timer0_tez_int_clr = 1;               // a zero already pending
     cutoutFlag = 0;
     // not needed here, we keep it enabled all the time
     //MCPWM1.int_ena.timer0_tez_int_ena = 1;              // Enable interrupt on TEZ
@@ -150,14 +164,21 @@ void IRAM_ATTR interrupt(rmt_channel_t channel, void *t) {
     __digitalWrite(13 , 0);
     __digitalWrite(26 , 1);
 #endif
-    mcpwm_set_duty_in_us(MCPWM_UNIT_1, MCPWM_TIMER_0, MCPWM_GEN_A, CUTOUT_PULSE);
-    mcpwm_sync_config_t sync_conf = {
-      .sync_sig = MCPWM_SELECT_GPIO_SYNC0,
-      .timer_val =  CUTOUT_OFFSET_IN_PROMILLE, // in promille of all values
-      .count_direction = MCPWM_TIMER_DIRECTION_UP,
-    };
-    mcpwm_sync_configure(MCPWM_UNIT_1, MCPWM_TIMER_0, &sync_conf);
+    // Register writes in place of mcpwm_set_duty_in_us() and
+    // mcpwm_sync_configure(), see cutoutCompare above. The sync source was
+    // selected once in mcpwmPulseOn() and is not changed here. The inline
+    // HAL calls in hal/mcpwm_ll.h (mcpwm_ll_operator_set_compare_value,
+    // mcpwm_ll_timer_set_sync_phase_value and so on) could be used in
+    // place of these writes, but that is untested.
+    MCPWM1.operators[0].gen_stmp_cfg.gen_a_upmethod = 4; // bit 4 means "on sync"
+    MCPWM1.operators[0].timestamp[0].val = cutoutCompare; // taken at the sync only
+    MCPWM1.timer[0].timer_sync.timer_phase = cutoutPhase;
+    MCPWM1.timer[0].timer_sync.timer_phase_direction = 0;
+    MCPWM1.timer[0].timer_sync.timer_synci_en = 1;
   }
+  // Last, as filling the packet takes time and the cutout must be armed
+  RMTChannel *tt = channelHandle[channel];
+  if (tt) tt->RMTinterrupt();
 }
 
 // This intrrupt is called on sync which is configured on mcpwmPulseOn()
@@ -171,9 +192,11 @@ static void IRAM_ATTR mcpwmIsrHandler(void* arg) {
       // The cutout has not happened yet
       // This interrupt is on cutout start
       // but we reset already the mcpwm into standby mode
-      MCPWM1.operators[0].gen_stmp_cfg.gen_a_upmethod = 1; // bit 1 means "TEZ = timer zero"
-      mcpwm_set_duty_in_us(MCPWM_UNIT_1, MCPWM_TIMER_0, MCPWM_GEN_A, 0);
-      mcpwm_sync_disable(MCPWM_UNIT_1, MCPWM_TIMER_0);
+      // Register writes in place of mcpwm_set_duty_in_us(0) and
+      // mcpwm_sync_disable(), which did exactly this
+      MCPWM1.operators[0].gen_stmp_cfg.gen_a_upmethod = 3; // bits 1 and 2: on timer zero and period
+      MCPWM1.operators[0].timestamp[0].val = 0;
+      MCPWM1.timer[0].timer_sync.timer_synci_en = 0;
       cutoutFlag++;
     } else if (cutoutFlag == 1) { // the else is important
 #ifdef MCPWM_DEBUG
@@ -221,6 +244,10 @@ static void IRAM_ATTR mcpwmPulseOn() {
   // default is pos edge trigger, handled by mcpwm_sync_invert_gpio_synchro()
   // if neg edge needed
   mcpwm_sync_configure(MCPWM_UNIT_1, MCPWM_TIMER_0, &sync_conf);
+  // Keep the values the driver worked out, for the interrupt to write
+  cutoutPhase = MCPWM1.timer[0].timer_sync.timer_phase;
+  mcpwm_set_duty_in_us(MCPWM_UNIT_1, MCPWM_TIMER_0, MCPWM_GEN_A, CUTOUT_PULSE);
+  cutoutCompare = MCPWM1.operators[0].timestamp[0].val;
   // Here We wanted to do with the unused silicon "virtual" pin 30.
   // like this mcpwm_gpio_init(MCPWM_UNIT_1, MCPWM_SYNC_0, 30);
   // But mcpwm_gpio_init() checks if the pins are real so we can't do
