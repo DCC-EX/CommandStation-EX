@@ -1,6 +1,7 @@
 /*
  *  © 2024 Morten "Doc" Nielsen
  *  © 2023-2024 Paul M. Antoine
+ *  © 2026 Herb Morton
  *  © 2022 Bruno Sanches
  *  © 2021 Fred Decker
  *  © 2020-2022 Harald Barth
@@ -28,12 +29,14 @@
 #include "defines.h" 
 #include "EthernetInterface.h"
 #include "EXNetworkPreferences.h"
-
-extern "C" struct netif gnetif;
-
+#include <SPI.h>
 #include "DIAG.h"
 #include "DCCTimer.h"
 #include "EXmDNS.h"
+
+#ifndef ETHERNET_CS_PIN
+extern "C" struct netif gnetif;
+#endif
 
 EthernetUDP udpMdns;
 MDNS mdns(udpMdns);
@@ -47,30 +50,49 @@ bool EthernetInterface::setup()
 {
   connected=false;
   DIAG(F("Ethernet starting (with mDNS). Please be patient, especially if no cable is connected!"));
-    
-    byte mac[6];
-    DCCTimer::getSimulatedMacAddress(mac);
-  
-  #ifdef ETHERNET_CS_PIN
-    Ethernet.init(ETHERNET_CS_PIN);
-  #endif
+  byte mac[6];
+  DCCTimer::getSimulatedMacAddress(mac);
+  DIAG(F("Generated MAC Address: %02X:%02X:%02X:%02X:%02X:%02X"),
+       mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
-  #ifdef IP_ADDRESS
-    static IPAddress myIP(IP_ADDRESS);
-    Ethernet.begin(mac,myIP);
-  #else
-    if (Ethernet.begin(mac)==0) {
-      LCD(4,F("IP: No DHCP"));
-      return false;
+#ifdef ETHERNET_CS_PIN
+  // Remap STM32 SPI peripheral pins when using an external SPI Ethernet controller (e.g., W5500)
+#if defined(PIN_SPI_MOSI) && defined(PIN_SPI_MISO) && defined(PIN_SPI_SCK)
+  DIAG(F("PIN_SPI_MOSI:%d PIN_SPI_MISO:%d PIN_SPI_SCK:%d"), PIN_SPI_MOSI, PIN_SPI_MISO, PIN_SPI_SCK);
+  SPI.setMOSI(PIN_SPI_MOSI);
+  SPI.setMISO(PIN_SPI_MISO);
+  SPI.setSCLK(PIN_SPI_SCK);
+#endif
+#if defined(PIN_SPI_SS)
+  DIAG(F("PIN_SPI_SS:%d"), PIN_SPI_SS);
+#endif
+  SPI.begin();
+  DIAG(F("CS:%d"), ETHERNET_CS_PIN);
+  Ethernet.init(ETHERNET_CS_PIN);
+#endif
+
+#ifdef IP_ADDRESS
+  static IPAddress myIP(IP_ADDRESS);
+  Ethernet.begin(mac,myIP);
+#else
+  if (Ethernet.begin(mac)==0) {
+#ifdef ETHERNET_CS_PIN
+    if (Ethernet.hardwareStatus() == EthernetNoHardware) {
+      DIAG(F("Ethernet hardware not found"));
     }
-  #endif
+#endif
+    LCD(4,F("IP: No DHCP"));
+    return false;
+  }
+#endif
 
-  #ifndef ETHERNET_CS_PIN
-  // Accept all multicast frames. STM32Ethernet registers multicast MAC hashes,
-  // but its hash-filter path is unreliable on this MAC. This does not enable
-  // promiscuous unicast reception.
+#ifndef ETHERNET_CS_PIN
+  // Native STM32 MAC (F429ZI/F439ZI): Accept all multicast frames.
+  // STM32Ethernet registers multicast MAC hashes, but its
+  // multicast hash-filter path is unreliable on this MAC.
+  // This does not enable promiscuous unicast reception.
   ETH->MACFFR |= (1UL << 4);
-  #endif
+#endif
 
   LCD(7, F("IP: %s"), Ethernet.localIP().toString().c_str());
   connected=true;
@@ -105,37 +127,45 @@ IPAddress EthernetInterface::getIPAddress() {
 
 void EthernetInterface::loop()
 {
-    if (!connected) return;
-      
-    static bool warnedAboutLink=false;
-    if (Ethernet.linkStatus() == LinkOFF){
-        if (warnedAboutLink) return;
+  if (!connected) return;
+  static bool warnedAboutLink=false;
+  static uint32_t lastLinkCheckMs = 0;
+  uint32_t now = millis();
+  if (now - lastLinkCheckMs >= 250) {
+    lastLinkCheckMs = now;
+    if (Ethernet.linkStatus() == LinkOFF) {
+      if (!warnedAboutLink) {
         DIAG(F("Ethernet link OFF"));
         warnedAboutLink=true;
-        return;
+      }
+      return;
     }
-    
     // link status must be ok here 
     if (warnedAboutLink) {
       DIAG(F("Ethernet link RESTORED"));
       warnedAboutLink=false;
-    } 
-    
-    // Always do this because we don't want traffic to intefere with being found!
-    mdns.run();
-    
-    switch (Ethernet.maintain()) {
+    }
+  } else if (warnedAboutLink) {
+    return;
+  }
+
+  // Always do this because we don't want traffic to interfere with being found!
+  mdns.run();
+
+#ifndef IP_ADDRESS
+  switch (Ethernet.maintain()) {
     case 1:
-        DIAG(F("Ethernet Error: renewed fail"));
-        connected=false;
-        return;
+      DIAG(F("Ethernet Error: renewed fail"));
+      connected=false;
+      return;
     case 3:
-        DIAG(F("Ethernet Error: rebind fail"));
-        connected=false;
-        return;
+      DIAG(F("Ethernet Error: rebind fail"));
+      connected=false;
+      return;
     default:
-        break;
-    }   
+      break;
+  }
+#endif
 }
 
 #endif

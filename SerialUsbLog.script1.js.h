@@ -16,7 +16,7 @@ function atBottom(){return (logEl.scrollHeight-logEl.scrollTop-logEl.clientHeigh
 logEl.addEventListener('scroll',()=>{userScrolled=!atBottom();});
 wrapCb.addEventListener('change',()=>{logEl.style.whiteSpace=wrapCb.checked?'pre-wrap':'pre';});
 pauseBtn.onclick=()=>{paused=!paused; pauseBtn.textContent=paused?'Resume':'Pause';};
-clearBtn.onclick=()=>{buf=''; logEl.value=''; seq=0;};
+clearBtn.onclick=()=>{buf=''; logEl.value=''; seq=-1;};
 cmdButton.onclick=()=>{cmdWaiting=true;};
 function applyFilter(text){
 const f=filterIn.value.trim();

@@ -1,6 +1,7 @@
 /*
  *  © 2023 Neil McKechnie
  *  © 2022-2024 Paul M. Antoine
+ *  © 2026 Herb Morton
  *  © 2021 Mike S
  *  © 2021, 2023 Harald Barth
  *  © 2021 Fred Decker
@@ -241,14 +242,16 @@ void DCCTimer::clearPWM() {
   return;
 }
 
-void   DCCTimer::getSimulatedMacAddress(byte mac[6]) {
-  volatile uint32_t *serno1 = (volatile uint32_t *)UID_BASE;
-  volatile uint32_t *serno2 = (volatile uint32_t *)UID_BASE+4;
-  // volatile uint32_t *serno3 = (volatile uint32_t *)UID_BASE+8;
+void DCCTimer::getSimulatedMacAddress(byte mac[6]) {
+  volatile uint32_t *serno = (volatile uint32_t *)UID_BASE;
 
-  volatile uint32_t m1 = *serno1;
-  volatile uint32_t m2 = *serno2;
-  mac[0] = m1 >> 8;
+  // Use array indexing [0] and [1] to safely fetch 4-byte boundaries without pointer math errors
+  uint32_t m1 = serno[0];
+  uint32_t m2 = serno[1];
+  
+  mac[0] = (m1 >> 8) & 0xFE;  // Clear bit 0: Guarantees a Unicast address (Fixes DHCP ignores)
+  mac[0] |= 0x02;             // Set bit 1: Establishes a "Locally Administered" MAC address block
+  
   mac[1] = m1 >> 0;
   mac[2] = m2 >> 24;
   mac[3] = m2 >> 16;

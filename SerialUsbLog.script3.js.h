@@ -242,8 +242,9 @@ function saveConfigPanel() {
 
 window.addConfig = function(label, path) {
   addConfigMenuItem(label, function() {
+    const wasPaused = paused;
+    paused = true; // Free W5500 TCP socket during config fetch
     window.setConfigPanel(label, '<div style="color:#666;">Loading…</div>');
-
     refreshNvsValues()
       .then(function() {
         return fetch(path, {
@@ -263,6 +264,9 @@ window.addConfig = function(label, path) {
           '<div style="color:#a00;">Failed to load config: ' + err.message + '</div>'
         );
         console.error(err);
+      })
+      .finally(function() {
+        paused = wasPaused;
       });
   });
 };
