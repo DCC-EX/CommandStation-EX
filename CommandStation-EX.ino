@@ -22,7 +22,7 @@ You must use Version 5.6.x
 #else 
   #warning config.h not found.
 #endif 
-#ifndef MOTOR_SHIELD_TYPE
+#if !defined(MOTOR_SHIELD_TYPE) && !defined(MOTOR_SHIELD_OVERRIDE) && !defined(DCCEX_NODE)
   #warning MOTOR_SHIELD_TYPE not found. Building with no motor shield
 #endif
 
