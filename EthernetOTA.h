@@ -62,6 +62,7 @@ private:
   IPAddress remoteIP;
   uint16_t remotePort;
   char expectedMD5[33];
+  uint32_t authStarted;
   String hostname;
   String password;
   String nonce;

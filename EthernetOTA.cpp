@@ -23,7 +23,10 @@
 
 #if defined(ARDUINO_ARCH_ESP32)
 
-#include <MD5Builder.h>
+#include <esp_system.h>
+#include <mbedtls/md.h>
+#include <mbedtls/pkcs5.h>
+#include <mbedtls/version.h>
 #include <Update.h>
 #include "TrackManager.h"
 #include "Display_Implementation.h"
@@ -44,17 +47,68 @@ static constexpr int OTA_END_ERROR = 4;
 
 EthernetOTAClass EthernetOTA;
 
-static String md5(const String& value) {
-  MD5Builder builder;
-  builder.begin();
-  builder.add(value);
-  builder.calculate();
-  return builder.toString();
+static String hexString(const uint8_t* bytes, size_t length) {
+  static const char digits[] = "0123456789abcdef";
+  String result;
+  result.reserve(length * 2);
+  for (size_t i = 0; i < length; ++i) {
+    result += digits[bytes[i] >> 4];
+    result += digits[bytes[i] & 0x0f];
+  }
+  return result;
+}
+
+static bool sha256(const String& value, String& result) {
+  uint8_t digest[32];
+  const mbedtls_md_info_t* info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
+  if (!info) {
+    DIAG(F("EthernetOTA SHA256 unavailable"));
+    return false;
+  }
+  int error = mbedtls_md(info, reinterpret_cast<const uint8_t*>(value.c_str()),
+                        value.length(), digest);
+  if (error) {
+    DIAG(F("EthernetOTA SHA256 failed: %d"), error);
+    return false;
+  }
+  result = hexString(digest, sizeof(digest));
+  return true;
+}
+
+static bool authenticationResponse(const String& password, const String& nonce,
+                                   const String& clientNonce, String& response) {
+  String passwordHash;
+  if (!sha256(password, passwordHash)) return false;
+  String salt = nonce + ":" + clientNonce;
+  uint8_t key[32];
+  // espota.py uses the hexadecimal SHA256 password hash as the PBKDF2 password.
+#if MBEDTLS_VERSION_MAJOR >= 3
+  int error = mbedtls_pkcs5_pbkdf2_hmac_ext(
+    MBEDTLS_MD_SHA256,
+    reinterpret_cast<const uint8_t*>(passwordHash.c_str()), passwordHash.length(),
+    reinterpret_cast<const uint8_t*>(salt.c_str()), salt.length(), 10000, sizeof(key), key);
+#else
+  mbedtls_md_context_t context;
+  mbedtls_md_init(&context);
+  int error = mbedtls_md_setup(&context, mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), 1);
+  if (!error) {
+    error = mbedtls_pkcs5_pbkdf2_hmac(
+      &context,
+      reinterpret_cast<const uint8_t*>(passwordHash.c_str()), passwordHash.length(),
+      reinterpret_cast<const uint8_t*>(salt.c_str()), salt.length(), 10000, sizeof(key), key);
+  }
+  mbedtls_md_free(&context);
+#endif
+  if (error) {
+    DIAG(F("EthernetOTA PBKDF2 failed: %d"), error);
+    return false;
+  }
+  return sha256(hexString(key, sizeof(key)) + ":" + nonce + ":" + clientNonce, response);
 }
 
 EthernetOTAClass::EthernetOTAClass()
   : state(IDLE), initialized(false), command(U_FLASH), updatePort(0),
-    updateSize(0), remoteIP(), remotePort(0), expectedMD5{} {}
+    updateSize(0), remoteIP(), remotePort(0), expectedMD5{}, authStarted(0) {}
 
 EthernetOTAClass& EthernetOTAClass::setHostname(const char* value) {
   if (!initialized && value) hostname = value;
@@ -142,9 +196,12 @@ void EthernetOTAClass::receiveInvitation() {
   expectedMD5[sizeof(expectedMD5) - 1] = '\0';
 
   if (password.length()) {
-    nonce = md5(String(micros()));
+    uint8_t randomBytes[32];
+    esp_fill_random(randomBytes, sizeof(randomBytes));
+    nonce = hexString(randomBytes, sizeof(randomBytes));
     String response = "AUTH " + nonce;
     sendResponse(response.c_str());
+    authStarted = millis();
     state = WAIT_AUTH;
   } else {
     sendResponse("OK");
@@ -153,23 +210,37 @@ void EthernetOTAClass::receiveInvitation() {
 }
 
 void EthernetOTAClass::receiveAuthentication() {
-  char packet[100];
+  if (udp.remoteIP() != remoteIP) {
+    udp.flush();
+    DIAG(F("EthernetOTA ignored authentication from unexpected host"));
+    return;
+  }
+  // espota.py opens a new UDP socket for authentication.
+  remotePort = udp.remotePort();
+  char packet[160];
   int length = udp.read(packet, sizeof(packet) - 1);
   if (length <= 0) return;
   packet[length] = '\0';
 
   int authCommand;
-  char clientNonce[33];
-  char response[33];
-  if (sscanf(packet, "%d %32s %32s", &authCommand, clientNonce, response) != 3 ||
-      authCommand != U_AUTH) {
+  char clientNonce[65];
+  char response[65];
+  char extra;
+  if (sscanf(packet, "%d %64s %64s %c", &authCommand, clientNonce, response, &extra) != 3 ||
+      authCommand != U_AUTH || strlen(clientNonce) != 64 || strlen(response) != 64 ||
+      strspn(clientNonce, "0123456789abcdef") != 64 ||
+      strspn(response, "0123456789abcdef") != 64) {
+    DIAG(F("EthernetOTA invalid authentication packet"));
+    sendResponse("Authentication Failed");
+    if (errorCallback) errorCallback(OTA_AUTH_ERROR);
     state = IDLE;
     return;
   }
 
-  String passMD5 = md5(password);
-  String challenge = passMD5 + ":" + nonce + ":" + clientNonce;
-  if (md5(challenge) != response) {
+  String expectedResponse;
+  if (!authenticationResponse(password, nonce, clientNonce, expectedResponse) ||
+      expectedResponse != response) {
+    DIAG(F("EthernetOTA authentication failed"));
     sendResponse("Authentication Failed");
     if (errorCallback) errorCallback(OTA_AUTH_ERROR);
     state = IDLE;
@@ -266,6 +337,7 @@ void EthernetOTAClass::loop() {
       );
     });
     EthernetOTA.onError([](int error) {
+      DIAG(F("EthernetOTA update error: %d"), error);
       DISPLAY_START (
         LCD(0,F("OTA update"));
         LCD(1,F("Error: %d"), error);
@@ -277,6 +349,12 @@ void EthernetOTAClass::loop() {
   if (state == RUN_UPDATE) {
     runUpdate();
     return;
+  }
+
+  if (state == WAIT_AUTH && millis() - authStarted > 10000) {
+    DIAG(F("EthernetOTA authentication timed out"));
+    if (errorCallback) errorCallback(OTA_AUTH_ERROR);
+    state = IDLE;
   }
 
   if (udp.parsePacket()) {

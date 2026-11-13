@@ -34,6 +34,19 @@ Refer to [our web site](https://https://dcc-ex.com/ex-commandstation/get-started
 * Rename or copy ``config.example.h`` to ``config.h``. 
 * You must edit ``config.h`` according to the help texts in ``config.h``.
 
+## ESP32 network OTA updates
+
+The ESP32 network OTA service listens on UDP port 3232 over the selected WiFi or
+Ethernet interface. When `OTA_AUTH` is configured, authentication uses the
+ESP32 Arduino Core 3.3.1+ PBKDF2-HMAC-SHA256 protocol (10,000 iterations).
+Use a current `espota.py` uploader and supply the plaintext `OTA_AUTH` password
+with `-a`; do not use its `--md5-target` password-hash option. The firmware image
+checksum still uses MD5, independently of authentication.
+
+The device connects back to the uploader's TCP listening port, so that port must
+be reachable through the host firewall. Uploading over USB may be necessary once
+to replace firmware with the older authentication reply-port bug. Older
+MD5-only uploaders cannot authenticate with the updated service.
+
 # More information
 You can learn more at the [DCC-EX website](https://dcc-ex.com/)
-
