@@ -31,7 +31,10 @@
 #include "EXNetworkPreferences.h"
 
 #ifdef ARDUINO_ARCH_ESP32
+#if __has_include(<esp_arduino_version.h>)
+#include <esp_arduino_version.h>
 #include "EthernetOTA.h"
+#endif
 #endif
 
 #ifndef NODE_GROUP
@@ -61,6 +64,11 @@ constexpr uint16_t UDP_COMMAND_MAX  = 1472; // Set to same as outbound, there mi
 static RingStream *outboundRing = new RingStream(10240);
 
 static std::vector<IPAddress> udpDiscoveryClients;
+
+static EXNetworkClient acceptNetworkClient(EXNetworkServer &server) {
+  return server.available();
+
+}
 
 static void rememberUdpDiscoveryClient(const IPAddress &ip) {
   for (const auto &knownIp : udpDiscoveryClients) {
@@ -210,6 +218,7 @@ void EXNetwork::setup() {
   _SHIM_::addService("withrottle", "tcp", IP_PORT);
   _SHIM_::addService("dcc-ex", "tcp", IP_PORT);
   _SHIM_::addService("dcc-ex", "udp", IP_PORT);
+
   _SHIM_::addServiceTxt("dcc-ex", "udp", "multicast", "true");
   _SHIM_::addServiceTxt("dcc-ex", "udp", "group", throttleMulticastIP.toString().c_str());
   _SHIM_::addServiceTxt("dcc-ex", "udp", "port", String(IP_PORT).c_str());
@@ -250,33 +259,15 @@ void EXNetwork::udpNodeMulticast(const char *buffer) {
 }
 
 EXNetworkClient EXNetwork::acceptWebInput() {
-  return webServer.available();
+  return acceptNetworkClient(webServer);
 }
 
-static void restartUdpListener(EXNetworkUDPRx &udp, uint16_t localPort) {
-  const IPAddress multicastIP =
-    localPort == IP_PORT ? throttleMulticastIP : nodeMulticastIP;
-  udp.stop();
-  if (!udp.beginMulticast(multicastIP, localPort)) {
-    DIAG(F("UDP listener restart failed on port %d"), localPort);
-  } else {
-    DIAG(F("UDP listener restarted on %s:%d"),
-         multicastIP.toString().c_str(), localPort);
-  }
-}
 
 void EXNetwork::processUdpPacket(EXNetworkUDPRx &udp, uint16_t localPort) {
   int packetSize = udp.available();
   if (packetSize <= 2) {
     // Packet smaller than smallest DCCEX payload
     udp.flush();
-    return;
-  }
-
-  if (packetSize > UDP_COMMAND_MAX) {
-    DIAG(F("Invalid UDP packet size %d on port %d; restarting listener"),
-         packetSize, localPort);
-    restartUdpListener(udp, localPort);
     return;
   }
 
@@ -288,7 +279,7 @@ void EXNetwork::processUdpPacket(EXNetworkUDPRx &udp, uint16_t localPort) {
     DIAG(F("Short UDP read: got %d of %d bytes from %s:%d; link %d, IP %s"),
          length, packetSize, remoteIP.toString().c_str(), udp.remotePort(),
          Ethernet.linkStatus(), Ethernet.localIP().toString().c_str());
-    restartUdpListener(udp, localPort);
+    udp.flush();
     return;
   }
   // Null terminate incoming data
@@ -336,11 +327,11 @@ void EXNetwork::loop() {
   
   // Track new socket clients. 
   // STM32: .available() returns any client with data waiting.
-  // ESP32: .available() returns only new clients.
+  // ESP32: .accept() returns only new clients.
 
   size_t clientId; // internal id to be used in ringstream operations.
   EXNetworkClient client;
-  if ((client = throttleServer.available())) {
+  if ((client = acceptNetworkClient(throttleServer))) {
 
     // Work out the clientId for this client and recycle or create a new throttleClients entry as needed.
     // ESP32: recycling a client happens only once per client connect.
