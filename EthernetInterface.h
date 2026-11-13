@@ -47,7 +47,8 @@
 class EthernetServerESP32 : public EthernetServer {
  public:
   EthernetServerESP32(uint16_t port) : EthernetServer(port) {}
-  void begin(uint16_t port = 0) { EthernetServer::begin(); }
+  using EthernetServer::begin;
+  void begin(uint16_t) { EthernetServer::begin(); }
   void end() {}
 };
 #else

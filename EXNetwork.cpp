@@ -96,7 +96,7 @@ public:
     return true;
   }
   bool recycle(EXNetworkClient c) {
-    if (client == c) {
+    if (client.operator==(c)) {
       // ESP32: caller will warn about duplicate clients/recycling
       // STM32: this is normal behavior due to .available() returning clients with unread data.
       inUse = true;
@@ -340,7 +340,7 @@ void EXNetwork::loop() {
 
   size_t clientId; // internal id to be used in ringstream operations.
   EXNetworkClient client;
-  if (client = throttleServer.available()) {
+  if ((client = throttleServer.available())) {
 
     // Work out the clientId for this client and recycle or create a new throttleClients entry as needed.
     // ESP32: recycling a client happens only once per client connect.

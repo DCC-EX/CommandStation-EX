@@ -155,7 +155,7 @@ void PCA9685::_writeAnalogue(VPIN vpin, int value, uint8_t profile, uint16_t dur
   struct ServoData *s = _servoData[pin];
   if (s == NULL) {
     // Servo pin not configured, so configure now using defaults
-    s = _servoData[pin] = (struct ServoData *) calloc(sizeof(struct ServoData), 1);
+    s = _servoData[pin] = (struct ServoData *) calloc(1, sizeof(struct ServoData));
     if (s == NULL) return;  // Check for memory allocation failure
     s->activePosition = 4095;
     s->inactivePosition = 0;

@@ -126,7 +126,11 @@ public:
   EXNetworkClient available() {
     return exNetworkUsingEthernet
       ? EXNetworkClient(ethernetServer.available())
+#if defined(ESP_ARDUINO_VERSION_MAJOR) && ESP_ARDUINO_VERSION_MAJOR >= 3
+      : EXNetworkClient(wifiServer.accept());
+#else
       : EXNetworkClient(wifiServer.available());
+#endif
   }
 
 private:
@@ -168,7 +172,11 @@ public:
   }
   void flush() {
     if (exNetworkUsingEthernet) ethernetUDP.flush();
+#if defined(ESP_ARDUINO_VERSION_MAJOR) && ESP_ARDUINO_VERSION_MAJOR >= 3
+    else wifiUDP.clear();
+#else
     else wifiUDP.flush();
+#endif
   }
   IPAddress remoteIP() {
     return exNetworkUsingEthernet ? ethernetUDP.remoteIP() : wifiUDP.remoteIP();
