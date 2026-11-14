@@ -39,14 +39,16 @@ Refer to [our web site](https://https://dcc-ex.com/ex-commandstation/get-started
 The ESP32 network OTA service listens on UDP port 3232 over the selected WiFi or
 Ethernet interface. When `OTA_AUTH` is configured, authentication uses the
 ESP32 Arduino Core 3.3.1+ PBKDF2-HMAC-SHA256 protocol (10,000 iterations).
-Use a current `espota.py` uploader and supply the plaintext `OTA_AUTH` password
-with `-a`; do not use its `--md5-target` password-hash option. The firmware image
-checksum still uses MD5, independently of authentication.
+The service also accepts the legacy MD5 challenge/response used by older
+`espota.py` uploaders. Use a current uploader and supply the plaintext
+`OTA_AUTH` password with `-a`; do not use its `--md5-target` password-hash
+option. The firmware image checksum still uses MD5, independently of
+authentication. Legacy MD5 authentication is retained for compatibility and is
+less secure than the newer PBKDF2 protocol.
 
 The device connects back to the uploader's TCP listening port, so that port must
 be reachable through the host firewall. Uploading over USB may be necessary once
-to replace firmware with the older authentication reply-port bug. Older
-MD5-only uploaders cannot authenticate with the updated service.
+to replace firmware with the older authentication reply-port bug.
 
 # More information
 You can learn more at the [DCC-EX website](https://dcc-ex.com/)
