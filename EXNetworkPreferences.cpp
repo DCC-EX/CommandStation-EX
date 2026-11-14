@@ -1,5 +1,6 @@
 /*
  *  © 2026 Chris Harlow
+ *  © 2026 Mathew Winters
  *
  *  This file is part of CommandStation-EX
  *
@@ -27,11 +28,16 @@
 #include "StringFormatter.h"
 #include "NVSTable.h"
 
+// allow defined DCCHOSTNAME (eg in platformio.ini) to override the hostname
 bool EXNetworkPreferences::load() {
   auto hostName=NVSTable::getTextNVS(SystemPreferences::hostName);
   if (hostName[0]==0) {
-    // We have not been here before, set all non ""/0 defaults 
+#ifdef DCCHOSTNAME
+    NVSTable::setNVS(SystemPreferences::hostName, DCCHOSTNAME,false);
+#else
     NVSTable::setNVS(SystemPreferences::hostName, "DCC-EX",false);
+#endif
+    // We have not been here before, set all non ""/0 defaults
     NVSTable::setNVS(SystemPreferences::enabled, true,false);
   #ifdef ARDUINO_ARCH_ESP32
     NVSTable::setNVS(SystemPreferences::channelAP, 11,false);
@@ -41,11 +47,13 @@ bool EXNetworkPreferences::load() {
     NVSTable::setNVS(SystemPreferences::nodeGroup, 254,false); // default node group
     NVSTable::save();
   }
-  if (NVSTable::getNVS(SystemPreferences::nodeGroup,true) == 0) {
-    NVSTable::setNVS(SystemPreferences::nodeGroup, 254,false);
-    NVSTable::save();
-  }
-  return true; // indicate that the preferences were successfully loaded
+
+#ifdef DCCHOSTNAME
+  NVSTable::setNVS(SystemPreferences::hostName, DCCHOSTNAME,false);
+  NVSTable::save();
+#endif
+
+  return true;
 }
 
 #ifdef ARDUINO_ARCH_ESP32

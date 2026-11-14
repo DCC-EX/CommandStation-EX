@@ -1,3 +1,25 @@
+/*
+ *  © 2026 Chris Harlow (with Github copilot)
+ *  © 2026 Mathew Winters (with Github copilot)
+ *
+ *  All rights reserved.
+ *
+ *  This file is part of CommandStation-EX
+ *
+ *  This is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  It is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "EXNetwork.h"
 #include "DIAG.h"
 #include "CommandDistributor.h"
@@ -8,6 +30,16 @@
 #include "Websockets.h"
 #include "EXNetworkPreferences.h"
 
+#ifdef ARDUINO_ARCH_ESP32
+#if __has_include(<esp_arduino_version.h>)
+#include <esp_arduino_version.h>
+#include "EthernetOTA.h"
+#endif
+#endif
+
+#ifndef NODE_GROUP
+#define NODE_GROUP 254
+#endif
 #ifndef IP_PORT
 #define IP_PORT 2560
 #endif
@@ -15,7 +47,6 @@
 // Common points of interaction for network interfaces
 EXNetworkServer webServer(80);
 EXNetworkServer throttleServer(IP_PORT);
-
 
 // udp throtttle traffic 
 EXNetworkUDPRx udpThrottleRx;
@@ -33,6 +64,11 @@ constexpr uint16_t UDP_COMMAND_MAX  = 1472; // Set to same as outbound, there mi
 static RingStream *outboundRing = new RingStream(10240);
 
 static std::vector<IPAddress> udpDiscoveryClients;
+
+static EXNetworkClient acceptNetworkClient(EXNetworkServer &server) {
+  return server.available();
+
+}
 
 static void rememberUdpDiscoveryClient(const IPAddress &ip) {
   for (const auto &knownIp : udpDiscoveryClients) {
@@ -68,7 +104,7 @@ public:
     return true;
   }
   bool recycle(EXNetworkClient c) {
-    if (client == c) {
+    if (client.operator==(c)) {
       // ESP32: caller will warn about duplicate clients/recycling
       // STM32: this is normal behavior due to .available() returning clients with unread data.
       inUse = true;
@@ -88,6 +124,36 @@ private:
   bool inUse;
 };
 static std::vector<exNetworkClient> throttleClients; // A list to hold all clients.
+
+#ifdef ARDUINO_ARCH_ESP32
+void EXNetwork::restartEthernetServices() {
+  DIAG(F("Ethernet service recovery starting: hardware %d, IP %s"),
+       Ethernet.hardwareStatus(), EthernetInterface::getIPAddress().toString().c_str());
+  while (!throttleClients.empty()) {
+    const auto clientId = static_cast<byte>(throttleClients.size() - 1);
+    CommandDistributor::forget(clientId);
+    throttleClients.pop_back();
+  }
+
+  myipaddress = EthernetInterface::getIPAddress();
+  throttleMulticastIP[3] = myipaddress[3];
+  udpDiscoveryClients.clear();
+
+  udpTx.stop();
+  udpThrottleRx.stop();
+  udpNodeRx.stop();
+  const bool txStarted = udpTx.begin(0);
+  const bool throttleStarted = udpThrottleRx.beginMulticast(throttleMulticastIP, IP_PORT);
+  const bool nodeStarted = udpNodeRx.beginMulticast(nodeMulticastIP, NODE_PORT);
+  DIAG(F("Ethernet socket recovery results: tx %d, throttle multicast %d, node multicast %d"),
+       txStarted, throttleStarted, nodeStarted);
+
+  EthernetInterface::restartMDNS();
+  EthernetOTA.networkRestored();
+  DIAG(F("Ethernet service recovery complete: IP %s"),
+       EthernetInterface::getIPAddress().toString().c_str());
+}
+#endif
 
 IPAddress EXNetwork::myipaddress = { 0 , 0 , 0 , 0 };
 
@@ -156,6 +222,9 @@ void EXNetwork::setup() {
   _SHIM_::addServiceTxt("dcc-ex", "udp", "multicast", "true");
   _SHIM_::addServiceTxt("dcc-ex", "udp", "group", throttleMulticastIP.toString().c_str());
   _SHIM_::addServiceTxt("dcc-ex", "udp", "port", String(IP_PORT).c_str());
+#ifdef ARDUINO_ARCH_ESP32
+  EthernetOTA.begin<_SHIM_>();
+#endif
 }
 
 bool EXNetwork::isUp() { return _SHIM_::isUp(); }
@@ -190,8 +259,9 @@ void EXNetwork::udpNodeMulticast(const char *buffer) {
 }
 
 EXNetworkClient EXNetwork::acceptWebInput() {
-  return webServer.available();
+  return acceptNetworkClient(webServer);
 }
+
 
 void EXNetwork::processUdpPacket(EXNetworkUDPRx &udp, uint16_t localPort) {
   int packetSize = udp.available();
@@ -206,7 +276,9 @@ void EXNetwork::processUdpPacket(EXNetworkUDPRx &udp, uint16_t localPort) {
   int length = udp.read(data, UDP_COMMAND_MAX);
   IPAddress remoteIP = udp.remoteIP();
   if (length < packetSize) {
-    DIAG(F("Short UDP packet read %d < %d from %s"), length, packetSize, remoteIP.toString().c_str());
+    DIAG(F("Short UDP read: got %d of %d bytes from %s:%d; link %d, IP %s"),
+         length, packetSize, remoteIP.toString().c_str(), udp.remotePort(),
+         Ethernet.linkStatus(), Ethernet.localIP().toString().c_str());
     udp.flush();
     return;
   }
@@ -239,16 +311,27 @@ void EXNetwork::processUdpPacket(EXNetworkUDPRx &udp, uint16_t localPort) {
 }
 
 void EXNetwork::loop() {
-  _SHIM_::loop(); // Wi-Fi/Ethernet continuous support.
+  _SHIM_::loop();
+#ifdef ARDUINO_ARCH_ESP32
+  if (exNetworkUsingEthernet) {
+    if (EthernetInterface::takeLinkLost()) {
+      DIAG(F("Ethernet link down confirmed; emergency-stopping all locos"));
+      DCC::estopAll();
+    }
+    if (EthernetInterface::takeLinkRestored()) {
+      restartEthernetServices();
+    }
+  }
+#endif
   if (!isUp()) return;
   
   // Track new socket clients. 
   // STM32: .available() returns any client with data waiting.
-  // ESP32: .available() returns only new clients.
+  // ESP32: .accept() returns only new clients.
 
   size_t clientId; // internal id to be used in ringstream operations.
   EXNetworkClient client;
-  if (client = throttleServer.available()) {
+  if ((client = acceptNetworkClient(throttleServer))) {
 
     // Work out the clientId for this client and recycle or create a new throttleClients entry as needed.
     // ESP32: recycling a client happens only once per client connect.
@@ -335,6 +418,10 @@ void EXNetwork::loop() {
       DIAG(F("Non existent client %d has message: %s"), clientId, buffer + wsHeaderLen);
     }
   }
+
+  #ifdef ARDUINO_ARCH_ESP32
+    EthernetOTA.loop();
+  #endif
 }
 
 

@@ -205,7 +205,7 @@ void SerialUsbLog::shoveToBuffer(uint8_t b) {
     _pos_write = 0;
   }
   _buffer[_pos_write++] = b;
-  _seq_write++;
+  _seq_write = _seq_write + 1;
 
 // #if defined(ARDUINO_ARCH_ESP32)
 //   portEXIT_CRITICAL(&_mux);
