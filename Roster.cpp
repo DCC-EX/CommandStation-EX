@@ -65,8 +65,10 @@ void Roster::sendIdsToThrottle(Print * stream) {
 
 void Roster::sendToThrottle(int locoId, Print * stream) {
     auto rr=find(locoId);
-    if (rr) rr->sendToThrottle(stream); 
-    else StringFormatter::send(stream,F("<jR %d X>\n"), locoId);
+    if (rr) rr->sendToThrottle(stream);
+    
+    // <jR id X> seems better but for the time being we use <jR id "" ""> for ED
+    else StringFormatter::send(stream,F("<jR %d \"\" \"\">\n"), locoId);
 }
 
 

@@ -333,3 +333,41 @@ SHARED_SENSOR(8001,7,8801)  // 8001 and 8002 also tell nodes
 ROUTE("PULSE"_hk,"test 100mS pulse")
   PULSE(8000,100)
   DONE
+
+ROUTE("DELAYTEST"_hk,"Testing delays")
+STEALTH_GLOBAL(
+  unsigned long delayTestStart;
+  void startDelayTest(unsigned long expectedDelay) {
+    delayTestStart = millis();
+    StringFormatter::send(&USB_SERIAL, F("<* Delay test %dmS started*>\n"), expectedDelay);
+  }
+  void delayTestEnd() {
+    auto delayTook = millis() - delayTestStart;
+    StringFormatter::send(&USB_SERIAL, F("<* Delay test ended after %l ms *>\n"), delayTook);
+  }
+)
+ PRINT("Starting delay test")
+  PRINT("Short delay")
+  STEALTH(startDelayTest(2000);)
+  DELAY(2000)
+  STEALTH(delayTestEnd();)
+  
+  PRINT("NVS delay set 5000")
+  PARSE("<C NVS 1234 5000>")  // not a recommended way to set delays, just for testing purposes
+  STEALTH(startDelayTest(5000);)
+  DELAY(NVS(1234))
+  STEALTH(delayTestEnd();)
+
+  PRINT("Delay set 45000")
+  STEALTH(startDelayTest(45000);)
+  DELAY(45000)
+  STEALTH(delayTestEnd();)
+
+  PRINT("NVS delay set 45000")
+  PARSE("<C NVS 1234 45000>")  // not a recommended way to set delays, just for testing purposes
+  STEALTH(startDelayTest(45000);)
+  DELAY(NVS(1234))
+  STEALTH(delayTestEnd();)
+
+  PRINT("NVS delay complete")
+  DONE
