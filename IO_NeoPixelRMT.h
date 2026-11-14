@@ -19,13 +19,22 @@
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
 
- #ifndef IO_EX_NeoPixelRMT_H
+#ifndef IO_EX_NeoPixelRMT_H
 #define IO_EX_NeoPixelRMT_H
 
 #if defined(ARDUINO_ARCH_ESP32)
 
 #include "IO_NeoPixel.h"
+#include <esp_idf_version.h>
+#include <esp_heap_caps.h>
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0) && !defined(MOTOR_SHIELD_TYPE)
+#define NEOPIXEL_RMT_USE_IDF5
+#include <driver/rmt_tx.h>
+#include <driver/rmt_encoder.h>
+#include <soc/soc_caps.h>
+#else
 #include <driver/rmt.h>
+#endif
 #include <freertos/FreeRTOS.h>
 
 #define MAX_LEDS 256
@@ -106,6 +115,12 @@ public:
   }
 
 private:
+#ifdef NEOPIXEL_RMT_USE_IDF5
+  using RMTItem = rmt_symbol_word_t;
+#else
+  using RMTItem = rmt_item32_t;
+#endif
+
   struct RGB {
     byte red;
     byte green;
@@ -113,10 +128,11 @@ private:
     byte brightness;
   };
 
-  static constexpr uint16_t TICKS_800_T0H = 14;
-  static constexpr uint16_t TICKS_800_T0L = 36;
-  static constexpr uint16_t TICKS_800_T1H = 28;
-  static constexpr uint16_t TICKS_800_T1L = 22;
+  // 40 MHz ticks: match Adafruit's Arduino 3 ESP32 waveform.
+  static constexpr uint16_t TICKS_800_T0H = 16;
+  static constexpr uint16_t TICKS_800_T0L = 32;
+  static constexpr uint16_t TICKS_800_T1H = 32;
+  static constexpr uint16_t TICKS_800_T1L = 16;
   static constexpr uint16_t TICKS_400_T0H = 35;
   static constexpr uint16_t TICKS_400_T0L = 65;
   static constexpr uint16_t TICKS_400_T1H = 70;
@@ -151,8 +167,9 @@ private:
       _on = static_cast<byte *>(calloc(nPixels, sizeof(byte)));
       _frame = static_cast<RGB *>(malloc(nPixels * sizeof(RGB)));
       _frameOn = static_cast<byte *>(malloc(nPixels * sizeof(byte)));
-      _items = static_cast<rmt_item32_t *>(malloc(
-          (static_cast<size_t>(nPixels) * _bytesPerPixel * 8 + 2) * sizeof(rmt_item32_t)));
+      _items = static_cast<RMTItem *>(heap_caps_malloc(
+          (static_cast<size_t>(nPixels) * _bytesPerPixel * 8 + 1) * sizeof(RMTItem),
+          MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT));
 
       if (_pixels == nullptr || _on == nullptr || _frame == nullptr ||
           _frameOn == nullptr || _items == nullptr) {
@@ -170,11 +187,13 @@ private:
         _deviceState = DEVSTATE_FAILED;
       } else {
         memset(_pixels, 0xFF, nPixels * sizeof(RGB));
+#ifndef NEOPIXEL_RMT_USE_IDF5
         _channel = allocateChannel();
         if (_channel == RMT_CHANNEL_MAX) {
           DIAG(F("NeoPixel RMT Out of Memory"));
           _deviceState = DEVSTATE_FAILED;
         }
+#endif
       }
     }
 
@@ -183,6 +202,7 @@ private:
     addDevice(this);
   }
 
+#ifndef NEOPIXEL_RMT_USE_IDF5
   static rmt_channel_t allocateChannel() {
 #ifdef MOTOR_SHIELD_TYPE
     static uint8_t nextChannel = 4;
@@ -195,6 +215,7 @@ private:
     }
     return static_cast<rmt_channel_t>(nextChannel++);
   }
+#endif
 
   void _begin() override {
     if (_rmtReady) return;
@@ -204,6 +225,22 @@ private:
     }
 
     _deviceState = DEVSTATE_INITIALISING;
+#ifdef NEOPIXEL_RMT_USE_IDF5
+    rmt_tx_channel_config_t config = {};
+    config.gpio_num = static_cast<gpio_num_t>(_dataPin);
+    config.clk_src = RMT_CLK_SRC_DEFAULT;
+    config.resolution_hz = 40000000;
+    // Two blocks double the refill deadline without monopolising the peripheral.
+    config.mem_block_symbols = 2 * SOC_RMT_MEM_WORDS_PER_CHANNEL;
+    config.trans_queue_depth = 1;
+    config.intr_priority = 3;
+    auto _rmtError = rmt_new_tx_channel(&config, &_txChannel);
+    rmt_copy_encoder_config_t encoderConfig = {};
+    if (_rmtError == ESP_OK)
+      _rmtError = rmt_new_copy_encoder(&encoderConfig, &_encoder);
+    if (_rmtError == ESP_OK)
+      _rmtError = rmt_enable(_txChannel);
+#else
     rmt_config_t config = RMT_DEFAULT_CONFIG_TX(
         static_cast<gpio_num_t>(_dataPin), _channel);
     config.clk_div = 2;
@@ -216,14 +253,35 @@ private:
     if (_rmtError == ESP_OK) {
       _rmtError = rmt_driver_install(_channel, 0, 0);
     }
+#endif
     if (_rmtError != ESP_OK) {
-      _rmtFailed = true;
-      _deviceState = DEVSTATE_FAILED;
-      _display();
+#ifdef NEOPIXEL_RMT_USE_IDF5
+      if (_encoder != nullptr) {
+        esp_err_t cleanupError = rmt_del_encoder(_encoder);
+        if (cleanupError != ESP_OK)
+          DIAG(F("NeoPixel RMT encoder cleanup error:%d"), cleanupError);
+        _encoder = nullptr;
+      }
+      if (_txChannel != nullptr) {
+        esp_err_t cleanupError = rmt_del_channel(_txChannel);
+        if (cleanupError != ESP_OK)
+          DIAG(F("NeoPixel RMT channel cleanup error:%d"), cleanupError);
+        _txChannel = nullptr;
+      }
+#endif
+      failRmt(_rmtError);
       return;
     }
 
     _rmtReady = true;
+  }
+
+  void failRmt(esp_err_t error) {
+    DIAG(F("NeoPixel RMT GPIO:%d error:%d"), _dataPin, error);
+    _rmtFailed = true;
+    _rmtReady = false;
+    _deviceState = DEVSTATE_FAILED;
+    _display();
   }
 
   bool copyFrame() {
@@ -276,9 +334,9 @@ private:
     }
 
     _items[item].level0 = 0;
-    _items[item].duration0 = RESET_TICKS;
+    _items[item].duration0 = RESET_TICKS / 2;
     _items[item].level1 = 0;
-    _items[item].duration1 = 0;
+    _items[item].duration1 = RESET_TICKS / 2;
     _itemCount = item + 1;
   }
 
@@ -296,13 +354,14 @@ private:
     if (!_rmtReady || _rmtFailed) return;
 
     if (_transmitting) {
+#ifdef NEOPIXEL_RMT_USE_IDF5
+      auto _rmtError = rmt_tx_wait_all_done(_txChannel, 0);
+#else
       auto _rmtError = rmt_wait_tx_done(_channel, 0);
+#endif
       if (_rmtError == ESP_ERR_TIMEOUT) return;
       if (_rmtError != ESP_OK) {
-        _rmtFailed = true;
-        _rmtReady = false;
-        _deviceState = DEVSTATE_FAILED;
-        _display();
+        failRmt(_rmtError);
         return;
       }
       _transmitting = false;
@@ -310,12 +369,15 @@ private:
 
     if (!copyFrame()) return;
     encodeFrame();
+#ifdef NEOPIXEL_RMT_USE_IDF5
+    rmt_transmit_config_t transmitConfig = {};
+    auto _rmtError = rmt_transmit(_txChannel, _encoder, _items,
+                                _itemCount * sizeof(RMTItem), &transmitConfig);
+#else
     auto _rmtError = rmt_write_items(_channel, _items, _itemCount, false);
+#endif
     if (_rmtError != ESP_OK) {
-      _rmtFailed = true;
-      _rmtReady = false;
-      _deviceState = DEVSTATE_FAILED;
-      _display();
+      failRmt(_rmtError);
       return;
     }
     _transmitting = true;
@@ -467,12 +529,17 @@ private:
 
   NeoPixelRMT *_nextNeoPixel = nullptr;
   const int _dataPin;
+#ifdef NEOPIXEL_RMT_USE_IDF5
+  rmt_channel_handle_t _txChannel = nullptr;
+  rmt_encoder_handle_t _encoder = nullptr;
+#else
   rmt_channel_t _channel = RMT_CHANNEL_MAX;
+#endif
   RGB *_pixels = nullptr;
   byte *_on = nullptr;
   RGB *_frame = nullptr;
   byte *_frameOn = nullptr;
-  rmt_item32_t *_items = nullptr;
+  RMTItem *_items = nullptr;
   size_t _itemCount = 0;
   byte _bytesPerPixel = 3;
   byte _redOffset = 1;
@@ -499,6 +566,8 @@ private:
   volatile bool _rmtFailed = false;
   portMUX_TYPE _bufferMux = portMUX_INITIALIZER_UNLOCKED;
 };
+
+#undef NEOPIXEL_RMT_USE_IDF5
 
 #endif // ARDUINO_ARCH_ESP32
 

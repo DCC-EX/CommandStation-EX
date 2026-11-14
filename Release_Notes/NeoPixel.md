@@ -19,6 +19,12 @@ blue, and off across the selected range, changing color once per second. For
 example, `<o 1000 FLASH 20 64>` flashes 20 pixels at brightness 64. The range
 must belong to one configured `HAL(NeoPixelRMT,...)` strip.
 
+Arduino 3 / ESP-IDF 5 nodes use the current RMT transmit driver with two
+hardware memory blocks per strip and priority-3 refill interrupts. Transmit
+buffers stay in internal RAM until the complete frame has finished. The
+800 kHz mode uses the same pulse widths as Adafruit NeoPixel on Arduino 3.
+Command stations retain the legacy RMT API to share it with DCC.
+
 
 1.  Defining the hardware driver:
 
