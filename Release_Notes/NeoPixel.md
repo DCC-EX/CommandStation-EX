@@ -1,4 +1,4 @@
-NeoPixel support
+# NeoPixel support
 
 The IO_NeoPixel.h driver supports the adafruit neopixel seesaw board. It turns each pixel into an individual VPIN which can be given a colour and turned on or off using the new <o> command or the NEOPIXEL Exrail macro. Exrail SIGNALS can also drive a single pixel signal or multiple separate pixels.
 
@@ -7,6 +7,12 @@ ESP32 boards can also use the hardware RMT peripheral with the `NeoPixelRMT` dri
     HAL(NeoPixelRMT, firstVpin, numberOfPixels, dataPin [, mode])
 
 For example, `HAL(NeoPixelRMT,1000,64,26,NEO_GRB)` assigns VPINs 1000-1063 to a 64-pixel string on GPIO 26. The default mode is `NEO_GRB | NEO_KHZ800`. RMT pixels use the existing `<o>` NeoPixel commands described below.
+
+Arduino 3 / ESP-IDF 5 nodes use the current RMT transmit driver with two
+hardware memory blocks per strip and priority-3 refill interrupts. Transmit
+buffers stay in internal RAM until the complete frame has finished. The
+800 kHz mode uses the same pulse widths as Adafruit NeoPixel on Arduino 3.
+Command stations retain the legacy RMT API to share it with DCC.
 
 
 1.  Defining the hardware driver:
