@@ -1,19 +1,39 @@
+/*
+ *  © 2026 Mathew Winters (with Github copilot)
+ *
+ *  All rights reserved.
+ *
+ *  This file is part of CommandStation-EX
+ *
+ *  This is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  It is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "EthernetOTA.h"
 
 #if defined(ARDUINO_ARCH_ESP32)
 
-#include <MD5Builder.h>
+#include <esp_system.h>
+#include <mbedtls/md.h>
+#include <mbedtls/pkcs5.h>
+#include <mbedtls/version.h>
 #include <Update.h>
-#if !ETHERNET_ON
-#include <ESPmDNS.h>
-#endif
 #include "TrackManager.h"
 #include "Display_Implementation.h"
 #include "DCC.h"
 #include "CommandDistributor.h"
 #include "DIAG.h"
 #include "EXNetworkPreferences.h"
-
 
 static constexpr uint16_t ETHERNET_OTA_PORT = 3232;
 static constexpr int OTA_AUTH_ERROR = 0;
@@ -112,7 +132,7 @@ static bool legacyAuthenticationResponse(const String& password, const String& n
 
 EthernetOTAClass::EthernetOTAClass()
   : state(IDLE), initialized(false), command(U_FLASH), updatePort(0),
-    updateSize(0), remoteIP(), remotePort(0), expectedMD5{} {}
+    updateSize(0), remoteIP(), remotePort(0), expectedMD5{}, authStarted(0) {}
 
 EthernetOTAClass& EthernetOTAClass::setHostname(const char* value) {
   if (!initialized && value) hostname = value;
@@ -140,7 +160,9 @@ EthernetOTAClass& EthernetOTAClass::onError(std::function<void(int)> callback) {
 }
 
 void EthernetOTAClass::configure() {
-  setHostname(EXNetworkPreferences::getHostName());
+  setHostname(
+    EXNetworkPreferences::getHostName()
+  );
 #ifdef OTA_AUTH
   setPassword(OTA_AUTH);
 #endif // OTA_AUTH
@@ -163,6 +185,14 @@ void EthernetOTAClass::begin(AddServiceCallback addService, AddServiceTxtCallbac
 
   }
 
+}
+
+void EthernetOTAClass::networkRestored() {
+  udp.stop();
+  if (!udp.begin(ETHERNET_OTA_PORT)) {
+    DIAG(F("EthernetOTA UDP restart failed on port %d"), ETHERNET_OTA_PORT);
+  }
+  state = IDLE;
 }
 
 void EthernetOTAClass::sendResponse(const char* response) {
@@ -190,9 +220,12 @@ void EthernetOTAClass::receiveInvitation() {
   expectedMD5[sizeof(expectedMD5) - 1] = '\0';
 
   if (password.length()) {
-    nonce = md5(String(micros()));
+    uint8_t randomBytes[32];
+    esp_fill_random(randomBytes, sizeof(randomBytes));
+    nonce = hexString(randomBytes, sizeof(randomBytes));
     String response = "AUTH " + nonce;
     sendResponse(response.c_str());
+    authStarted = millis();
     state = WAIT_AUTH;
   } else {
     sendResponse("OK");
@@ -201,7 +234,14 @@ void EthernetOTAClass::receiveInvitation() {
 }
 
 void EthernetOTAClass::receiveAuthentication() {
-  char packet[100];
+  if (udp.remoteIP() != remoteIP) {
+    udp.flush();
+    DIAG(F("EthernetOTA ignored authentication from unexpected host"));
+    return;
+  }
+  // espota.py opens a new UDP socket for authentication.
+  remotePort = udp.remotePort();
+  char packet[160];
   int length = udp.read(packet, sizeof(packet) - 1);
   if (length <= 0) return;
   packet[length] = '\0';
@@ -355,6 +395,7 @@ void EthernetOTAClass::loop() {
       );
     });
     EthernetOTA.onError([](int error) {
+      DIAG(F("EthernetOTA update error: %d"), error);
       DISPLAY_START (
         LCD(0,F("OTA update"));
         LCD(1,F("Error: %d"), error);
@@ -366,6 +407,12 @@ void EthernetOTAClass::loop() {
   if (state == RUN_UPDATE) {
     runUpdate();
     return;
+  }
+
+  if (state == WAIT_AUTH && millis() - authStarted > 10000) {
+    DIAG(F("EthernetOTA authentication timed out"));
+    if (errorCallback) errorCallback(OTA_AUTH_ERROR);
+    state = IDLE;
   }
 
   if (udp.parsePacket()) {
