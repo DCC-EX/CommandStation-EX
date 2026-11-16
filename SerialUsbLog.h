@@ -18,10 +18,10 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
-#include "defines.h"
 
 #ifndef SerialUsbLog_h
 #define SerialUsbLog_h
+#include "defines.h"
 
 #include <Arduino.h>
   

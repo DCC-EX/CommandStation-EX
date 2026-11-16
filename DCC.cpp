@@ -27,9 +27,6 @@
 #include "DCC.h"
 #include "DCCWaveform.h"
 #include "DCCConsist.h"
-#ifndef DISABLE_EEPROM
-#include "EEStore.h"
-#endif
 #include "GITHUB_SHA.h"
 #include "version.h"
 #include "FSH.h"
@@ -67,11 +64,6 @@ byte DCC::globalSpeedsteps=128;
 
 void DCC::begin() {
   StringFormatter::send(&USB_SERIAL,F("<iDCC-EX V-%S / %S / %S G-%S>\n"), F(VERSION), F(ARDUINO_TYPE), shieldName, F(GITHUB_SHA));
-#ifndef DISABLE_EEPROM
-  // Load stuff from EEprom
-  (void)EEPROM; // tell compiler not to warn this is unused
-  EEStore::init();
-#endif
 #ifndef ARDUINO_ARCH_ESP32 /* On ESP32 started in TrackManager::setTrackMode() */
   DCCWaveform::begin();
 #endif

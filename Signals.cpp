@@ -100,11 +100,14 @@ Signal * Signal::findSignal(uint16_t id) {
 
 void Signal::display(Print * stream) {
     for (auto s=firstSignal;s;s=s->nextSignal) {
+        const char * desc=s->description;
+        if (!desc) desc="";
+        if (desc[0]==0x01) desc="[HIDDEN]";
         switch(s->state) {
-            case SIGNAL_RED:    StringFormatter::send(stream,F("Signal %d: RED   %s\n"),s->id,s->description); break;
-            case SIGNAL_AMBER:  StringFormatter::send(stream,F("Signal %d: AMBER %s\n"),s->id,s->description); break;
-            case SIGNAL_GREEN:  StringFormatter::send(stream,F("Signal %d: GREEN %s\n"),s->id,s->description); break;
-            default: StringFormatter::send(stream,F("Signal %d: UNKNOWN %s\n"),s->id,s->description); break;
+            case SIGNAL_RED:    StringFormatter::send(stream,F(" Signal %d: RED   %s\n"),s->id,desc); break;
+            case SIGNAL_AMBER:  StringFormatter::send(stream,F(" Signal %d: AMBER %s\n"),s->id,desc); break;
+            case SIGNAL_GREEN:  StringFormatter::send(stream,F(" Signal %d: GREEN %s\n"),s->id,desc); break;
+            default: StringFormatter::send(stream,F(" Signal %d: UNKNOWN %s\n"),s->id,desc); break;
         }
      }
 }
@@ -118,13 +121,20 @@ void Signal::listSignalIds(Print * stream){
 /* static */ void Signal::shareNodesToCS() {
     
     DIAG(F("Sharing signals to CS"));
+    const int maxBuffer=1000;
+    StringBuffer buffer(maxBuffer);
     for (auto s=firstSignal;s;s=s->nextSignal) {
       if (s->isHidden()) continue;
 	  // todo prevent loopback
       auto description=s->getDescription();
-      NodeManager::cast(F("<S %d %d \"%s\">"),s->id, s->state,
-       description?description:"");  
+      if (!description) description="";
+      if (buffer.getLength()> maxBuffer - sizeof("<S 32768 X \"\"") - strlen(description)) {
+        NodeManager::cast(&buffer);
+        buffer.flush();
+      }
+      StringFormatter::send(&buffer,F("<S %d %c \"%s\">"),s->id, s->state,description);  
     }
+    if (buffer.getLength() > 0) NodeManager::cast(&buffer);
   }
 
 // DCC Signals 
@@ -204,7 +214,7 @@ void LEDSignal::action(){
         IODevice::write(amberPin,amberval);
     }
     if (greenPin) {
-        bool greenval=(state==SIGNAL_GREEN || simamber);
+        bool greenval=(state==SIGNAL_GREEN || simamber) ^ invert;
         RMFT2::killBlinkOnVpin(greenPin);
         IODevice::write(greenPin,greenval);
     }

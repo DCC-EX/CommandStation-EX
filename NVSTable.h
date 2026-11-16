@@ -35,9 +35,10 @@ class NVSTable {
     static void dump(Print * stream, uint16_t nvsNumber);
     static bool saveNeeded();
     static void save();
-    static void setNVS(uint16_t nvsNumber, int16_t value, bool autosave=true);
+    static void setNVS(uint16_t nvsNumber, int value, bool autosave=true);
     static void setNVS(uint16_t nvsNumber, const char * value, bool autosave=true);
-    static int16_t getNVS(uint16_t nvsNumber, bool atBoot=false);
+    static int getNVS(uint16_t nvsNumber, bool atBoot=false);
+    static int getNVSWithDefault(uint16_t nvsNumber, int defaultValue, bool atBoot=false);
     static const char * getTextNVS(uint16_t nvsNumber);
     static bool hasNVS(uint16_t nvsNumber);
     
@@ -47,7 +48,7 @@ class NVSTable {
 
     // Acess NVS() values from EXRAIL scripts. This will decode a token into its corresponding NVS value.
     // This identifies EXRAIL type 32-bit tokens which may represent NVS[x]+
-    static int16_t decodeNVSToken(int32_t token, bool atBoot);
+    static int decodeNVSToken(int token, bool atBoot);
   private:
       static void save2(const char * data);
 };

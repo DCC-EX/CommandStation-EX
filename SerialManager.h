@@ -34,7 +34,7 @@
 // Other: 128bytes+128bytes
 //        <fooo   ><baar  >
 #ifndef COMMAND_BUFFER_SIZE
- #define COMMAND_BUFFER_SIZE 256
+ #define COMMAND_BUFFER_SIZE 512
 #endif
 
 class SerialManager {

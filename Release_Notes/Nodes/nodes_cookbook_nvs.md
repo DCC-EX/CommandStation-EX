@@ -186,3 +186,7 @@ When the Web Browser interface is opened on the command station, the "Configs" b
 [TODO pic1, pic2]
 
 The dialog will populate with the current values. The Save button will appear if you have changed any of them, or you can close without saving.
+
+## Configuring system settings (not ususally done by user dialogs)
+
+Configuration of system NVS settings like the wifi ssid and password can be done by user dialogs but the `nvs=` parameter of `<nvsinput` will refer to the setting by fixed names (search code for SystemPreferences)  

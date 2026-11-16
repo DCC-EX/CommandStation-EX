@@ -1,0 +1,21 @@
+  
+  // This list maps system preference names to NVS ids. 
+  SYSPref(_FIRST_NETWORK_PREF,32001)
+  SYSPref(ssidSTA,32001) 
+  SYSPref(passwordSTA,32002) 
+  SYSPref(ssidAP,32003)
+  SYSPref(passwordAP,32004) 
+  SYSPref(hostName,32005) 
+  SYSPref(enabled,32006) 
+  SYSPref(channelAP,32007) 
+  SYSPref(hiddenAP,32008)
+  SYSPref(throttleNode,32009)
+  SYSPref(nodeGroup,32010)
+  SYSPref(_LAST_NETWORK_PREF,32099)
+
+  SYSPref(_FIRST_ACK_PREF,32100)
+  SYSPref(ackLimitmA,32100)
+  SYSPref(ackMinDurationUs,32101)
+  SYSPref(ackMaxDurationUs,32102)
+  SYSPref(ackRetryCount,32103)
+  SYSPref(_LAST_ACK_PREF,32199)

@@ -3,7 +3,7 @@
  *  © 2021 Mike S
  *  © 2021 Fred Decker
  *  © 2020-2025 Harald Barth
- *  © 2020-2022 Chris Harlow
+ *  © 2020-2026 Chris Harlow
  *  All rights reserved.
  *  
  *  This file is part of CommandStation-EX
@@ -26,47 +26,67 @@
 #include "DCC.h"
 #include "DCCWaveform.h"
 #include "TrackManager.h"
+#include "version.h"
 
+// variables used extarnally even with no motor shield defined
+int  DCCACK::ackThreshold; 
+int  DCCACK::ackLimitmA = 50;
+int DCCACK::ackMaxCurrent;
 unsigned long DCCACK::minAckPulseDuration = 2000; // micros
 unsigned long DCCACK::maxAckPulseDuration = 20000; // micros
-  
-MotorDriver *  DCCACK::progDriver=NULL;
-ackOp  const *  DCCACK::ackManagerProg;
-ackOp  const *  DCCACK::ackManagerProgStart;
-byte   DCCACK::ackManagerByte;
-byte   DCCACK::ackManagerByteVerify;
-byte   DCCACK::ackManagerStash;
-int    DCCACK::ackManagerWord;
-byte   DCCACK::ackManagerRetry;
 byte   DCCACK::ackRetry = 2;
 int16_t  DCCACK::ackRetrySum;
 int16_t  DCCACK::ackRetryPSum;
-int    DCCACK::ackManagerCv;
-byte   DCCACK::ackManagerBitNum;
-bool   DCCACK::ackReceived;
-bool   DCCACK::ackManagerRejoin;
+ackOp  const *  DCCACK::ackManagerProg;
+ACK_CALLBACK DCCACK::ackManagerCallback;
+   
+#ifndef MOTOR_SHIELD_TYPE
+// dummy out the public interface if no motor shield is defined
+void  DCCACK::Setup(int wordval, ackOp const program[], ACK_CALLBACK callback) {
+  (void)wordval;
+  (void)program;
+  DIAG(F("DCC ACK Manager: No motor shield"));
+  if (callback) (callback)(-4);
+}
+void  DCCACK::Setup(int cv, byte byteValueOrBitnum, ackOp const program[], ACK_CALLBACK callback) {
+  (void)cv;
+  (void)byteValueOrBitnum;
+  Setup(0, program, callback);
+}
+void DCCACK::loop() {}
+void DCCACK::checkAck(byte sentResetsSincePacket) {}
+#else
+
+// All code beyond here is compiled out if no motor shield defined
+  
+MotorDriver *   DCCACK::progDriver=NULL;
+ackOp  const *  DCCACK::ackManagerProgStart;
+byte         DCCACK::ackManagerByte;
+byte         DCCACK::ackManagerByteVerify;
+byte         DCCACK::ackManagerStash;
+int          DCCACK::ackManagerWord;
+byte         DCCACK::ackManagerRetry;
+int          DCCACK::ackManagerCv;
+byte         DCCACK::ackManagerBitNum;
+bool         DCCACK::ackReceived;
+bool         DCCACK::ackManagerRejoin;
 volatile uint8_t DCCACK::numAckGaps=0;
 volatile uint8_t DCCACK::numAckSamples=0;
-uint8_t DCCACK::trailingEdgeCounter=0;
-
-
+uint8_t       DCCACK::trailingEdgeCounter=0;
 unsigned long DCCACK::ackPulseDuration;  // micros
 unsigned long DCCACK::ackPulseStart; // micros
- volatile bool DCCACK::ackDetected;
- unsigned long DCCACK::ackCheckStart; // millis
- volatile bool DCCACK::ackPending;
-  bool   DCCACK::autoPowerOff;
-   int  DCCACK::ackThreshold; 
-   int  DCCACK::ackLimitmA = 50;
-     int DCCACK::ackMaxCurrent;
-      unsigned int DCCACK::ackCheckDuration; // millis       
-    
-    
+volatile bool DCCACK::ackDetected;
+unsigned long DCCACK::ackCheckStart; // millis
+volatile bool DCCACK::ackPending;
+bool          DCCACK::autoPowerOff;
+unsigned int  DCCACK::ackCheckDuration; // millis    
 CALLBACK_STATE DCCACK::callbackState=READY;
 
-ACK_CALLBACK DCCACK::ackManagerCallback;
+
 
 void  DCCACK::Setup(int cv, byte byteValueOrBitnum, ackOp const program[], ACK_CALLBACK callback) {
+  if (Diag::ACK) DIAG(F("DCCAckManager: " VERSION " / " ARDUINO_TYPE " / %S"),DCC::getMotorShieldName());
+        
   // On ESP32 the joined track is hidden from sight (it has type MAIN)
   // and because of that we need first check if track was joined and
   // then unjoin if necessary. This requires that the joined flag is
@@ -85,11 +105,13 @@ void  DCCACK::Setup(int cv, byte byteValueOrBitnum, ackOp const program[], ACK_C
       DIAG(F("Joined but no Prog track"));
       TrackManager::setJoin(false);
     }
+    DIAG(F("DCC ACK Manager: No Prog track available"));
     callback(-3); // we dont have a prog track!
     return;
   }
   if (!progDriver->canMeasureCurrent()) {
     TrackManager::setJoin(ackManagerRejoin);
+    DIAG(F("DCC ACK Manager: Prog track can't measure current"));
     callback(-2); // our prog track cant measure current
     return;
   }
@@ -132,14 +154,17 @@ bool DCCACK::checkResets(uint8_t numResets) {
 // Operations applicable to PROG track ONLY.
 // (yes I know I could have subclassed the main track but...) 
 
-void DCCACK::setAckBaseline() {
+void DCCACK::setAckBaseline() {  
       int baseline=progDriver->getCurrentRaw();
       ackThreshold= baseline + progDriver->mA2raw(ackLimitmA);
-      if (Diag::ACK) DIAG(F("ACK baseline=%d/%dmA Threshold=%d/%dmA Duration between %lus and %lus"),
-			  baseline,progDriver->raw2mA(baseline),
-			  ackThreshold,progDriver->raw2mA(ackThreshold),
-                          minAckPulseDuration, maxAckPulseDuration);
-}
+
+      if (Diag::ACK) {
+          DIAG(F("ACK baseline=%d/%dmA Threshold=%d/%dmA Duration between %lus and %lus"),
+			    baseline,progDriver->raw2mA(baseline),
+			    ackThreshold,progDriver->raw2mA(ackThreshold),
+          minAckPulseDuration, maxAckPulseDuration);
+      }
+ }
 
 void DCCACK::setAckPending() {
       ackMaxCurrent=0;
@@ -160,7 +185,6 @@ byte DCCACK::getAck() {
       return(0);  // pending set off but not detected means no ACK.   
 }
 
-#ifndef DISABLE_PROG
 void DCCACK::loop() {
   while (ackManagerProg) {
     byte opcode=GETFLASH(ackManagerProg);
@@ -453,7 +477,6 @@ void DCCACK::callback(int value) {
           (ackManagerCallback)( value);
     }
 }
-#endif
 
 void DCCACK::checkAck(byte sentResetsSincePacket) {
     if (!ackPending) return; 
@@ -506,3 +529,4 @@ void DCCACK::checkAck(byte sentResetsSincePacket) {
     }      
     ackPulseStart=0;  // We have detected a too-short or too-long pulse so ignore and wait for next leading edge 
 }
+#endif // MOTOR_SHIELD_TYPE not defined

@@ -29,7 +29,6 @@ class Diag {
   static bool WIFI;
   static bool WITHROTTLE;
   static bool ETHERNET;
-  static bool LCN;
   static bool RAILCOM;
   static bool WEBSOCKET;
   static bool SNIFFER;
