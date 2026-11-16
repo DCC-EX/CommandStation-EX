@@ -29,13 +29,16 @@
 */
 
 #include "IODevice.h"
+#include "IO_EXTurntable.h"
 #include "I2CManager.h"
 #include "DIAG.h"
 #include "Turntables.h"
 #include "CommandDistributor.h"
 
 void EXTurntable::create(VPIN firstVpin, int nPins, I2CAddress I2CAddress) {
-  new EXTurntable(firstVpin, nPins, I2CAddress);
+  if (IODevice::checkNoOverlap(firstVpin,nPins,I2CAddress))
+    new EXTurntable(firstVpin, nPins, I2CAddress);
+  
 }
 
 // Constructor
@@ -92,13 +95,8 @@ int EXTurntable::_read(VPIN vpin) {
 
 // If a status change has occurred for a turntable object, broadcast it
 void EXTurntable::_broadcastStatus (VPIN vpin, uint8_t status, uint8_t activity) {
-  Turntable *tto = Turntable::getByVpin(vpin);
-  if (tto) {
-    if (activity < 4) {
-      tto->setMoving(status);
-      CommandDistributor::broadcastTurntable(tto->getId(), tto->getPosition(), status);
-    }
-  }
+  auto ttid = Turntable::getByVpin(vpin);
+  if (ttid && activity<4) Turntable::setMoving(ttid, status);
 }
 
 // writeAnalogue to send the steps and activity to Turntable-EX.

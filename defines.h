@@ -4,7 +4,7 @@
  *  © 2021 Mike S
  *  © 2021 Fred Decker
  *  © 2020-2022 Harald Barth
- *  © 2020-2025 Chris Harlow
+ *  © 2020-2026 Chris Harlow
  *
  *  This file is part of CommandStation-EX
  *
@@ -32,6 +32,11 @@
     #include "config.h"
 #endif
 
+#ifdef MOTOR_SHIELD_OVERRIDE
+  // Override the motor shield type when provided by PIO environment
+  #undef MOTOR_SHIELD_TYPE
+  #define MOTOR_SHIELD_TYPE MOTOR_SHIELD_OVERRIDE
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 // Create a cpu type we can share and 

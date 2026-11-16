@@ -37,11 +37,52 @@
  * It is included automatically through `IODeviceList.h` in those builds.
  *
  * ## Define the device
+ *
+ * @code{}
+ * [env:EX_Turntable_Onboard]
+ * extends = env:ESP32-NODE
+ * platform = espressif32
+ * board = arduino_nano_esp32
+ * 
+ * build_flags = 
+ *     ${env:ESP32-NODE.build_flags} 
+ *     -std=c++17
+ *     -DARDUINO_USB_MODE=1
+ *     -DARDUINO_USB_CDC_ON_BOOT=1
+ *     -DSD_CHIP_SELECT_MODE=1
+ *     -DBOARD_HAS_PSRAM
+ *     -DEXTURNTABLE_ONBOARD
+ *     -DNO_DISPLAY
+ *     -DI2C_SDA=11
+ *     -DI2C_SCL=10
+ *     -mfix-esp32-psram-cache-issue
+ * 
+ * lib_deps = 
+ *     ${env:ESP32-NODE.lib_deps} 
+ * 	waspinator/AccelStepper @ ^1.64.0
+ * 
+ * ; Board-specific settings (ESP32-S3 with 16MB Flash, 8MB PSRAM)
+ * board_build.mcu = esp32s3
+ * board_build.f_cpu = 240000000L
+ * board_build.f_flash = 80000000L
+ * board_build.flash_mode = dio
+ * board_build.partitions = default_16MB.csv
+
+ * ; Specify upload and monitor speed
+ * upload_speed = 921600
+ * upload_protocol = esptool
+ * monitor_speed = 115200
+ * monitor_echo = yes
+ * vmonitor_dtr = 0
+ * monitor_rts = 0
+ * @endcode
+ *
  * Add a `HAL` declaration in `myAutomation.h`. The first number is the first virtual pin (VPIN), the second is the number of vpins
  * to use.  This is only 1 as that's all that's required for the turntable.
  * 
  *
  * @code{.cpp}
+ * #include "IO_EXTurntable_Onboard.h"
  * HAL(EXTurntable_OB, 600, 1)
  * @endcode
  * 
@@ -74,6 +115,8 @@
 
 #ifndef IO_EXTURNTABLE_ONBOARD_H
 #define IO_EXTURNTABLE_ONBOARD_H
+
+#if !defined(MOTOR_SHIELD_TYPE) && __has_include(<AccelStepper.h>)
 
 #include "defines.h"
 #include "AccelStepper.h"
@@ -1058,4 +1101,5 @@ inline void EXTurntable_OB::_display() {
        (int)_firstVpin, (int)_firstVpin + _nPins - 1);
 }
 
-#endif
+#endif // DCCEX_NODE, etc
+#endif // IO_EXTURNTABLE_ONBOARD_H

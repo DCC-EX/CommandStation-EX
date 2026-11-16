@@ -312,7 +312,7 @@ void EXNetwork::loop() {
     if (useWebsocket) Websockets::fillOutboundHeader(count, buffer);
     for (int i = 0; i < count; i++) {
       int c = outboundRing->read();
-      if (!c) {
+      if (c < 0) { // a zero is data, as in a websocket length byte
         DIAG(F("Ringread fail at %d"), i);
         break;
       }

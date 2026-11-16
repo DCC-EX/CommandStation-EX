@@ -2,7 +2,7 @@
  *  © 2024 Paul M. Antoine
  *  © 2021 Neil McKechnie
  *  © 2021-2023 Harald Barth
- *  © 2020-2025 Chris Harlow
+ *  © 2020-2026 Chris Harlow
  *  © 2022-2023 Colin Murdoch
  *  © 2025 Morten Nielsen
  *  All rights reserved.
@@ -22,26 +22,6 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
-
-/* EXRAILPlus planned FEATURE additions
-   F1. [DONE] DCC accessory packet opcodes (short and long form)
-   F2. [DONE] ONAccessory catchers 
-   F3. [DONE] Turnout descriptions for Withrottle
-   F4. [DONE] Oled announcements (depends on HAL)
-   F5. [DONE] Withrottle roster info
-   F6. Multi-occupancy semaphore
-   F7. [DONE see AUTOSTART] Self starting sequences
-   F8. Park/unpark
-   F9.  [DONE] Analog drive
-   F10. [DONE] Alias anywhere
-   F11. [DONE]EXRAIL/ENDEXRAIL unnecessary
-   F12. [DONE] Allow guarded code (as effect of ALIAS anywhere)
-   F13. [DONE] IFGTE/IFLT function  
-  */
-/* EXRAILPlus planned TRANSPARENT additions
-   T1. [DONE] RAM based fast lookup for sequences ON* event catchers and signals.
-   T2. Extend to >64k
-  */
 
 #include <Arduino.h>
 #include "defines.h"
@@ -106,18 +86,18 @@ const FSH  * * RMFT2::routeCaptionArray=nullptr;
 
 
 // getOperand instance version, uses progCounter from instance.
-uint16_t RMFT2::getOperand(byte n) {
+uint32_t RMFT2::getOperand(byte n) {
   return getOperand(progCounter,n);
 }
 
 // getOperand static version, must be provided prog counter from loop etc.
-uint16_t RMFT2::getOperand(int progCounter,byte n, bool atBoot) {
+uint32_t RMFT2::getOperand(int progCounter,byte n, bool atBoot) {
   int offset=progCounter+1+(n*fixedOpcodeLength);
   byte b3=GETHIGHFLASH(RouteCode,offset);
   byte b2=GETHIGHFLASH(RouteCode,offset+1);
   byte b1=GETHIGHFLASH(RouteCode,offset+2);
   byte b0=GETHIGHFLASH(RouteCode,offset+3);
-  int32_t value=(int32_t)b3 | ((int32_t)b2<<8) | ((int32_t)b1<<16) | ((int32_t)b0<<24);
+  uint32_t value=(uint32_t)b3 | ((uint32_t)b2<<8) | ((uint32_t)b1<<16) | ((uint32_t)b0<<24);
   return NVSTable::decodeNVSToken(value,atBoot);
 }
 
@@ -285,41 +265,6 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
     case OPCODE_ONBITMAP:
         Sensor::createEXRAIL(operand,true); // analogue sensor
       break;
-    
-    case OPCODE_DCCTURNTABLE: {
-      VPIN id=operand;
-      int home=getOperand(progCounter,1);
-      Turntable *tto = DCCTurntable::create(id);
-      if (tto) {
-	setTurntableHiddenState(tto);
-	tto->addPosition(0,0,home);
-      }
-      break;
-    }
-
-    case OPCODE_EXTTTURNTABLE: {
-      VPIN id=operand;
-      VPIN pin=getOperand(progCounter,1);
-      int home=getOperand(progCounter,2);
-      Turntable *tto = EXTTTurntable::create(id,pin);
-      if (tto) {
-         setTurntableHiddenState(tto);
-         tto->addPosition(0,0,home);
-      } else {
-         DIAG(F("Create EXTTTURNTABLE %d %d FAILED"), id, pin);
-      }
-      break;
-    }
-
-    case OPCODE_TTADDPOSITION: {
-      VPIN id=operand;
-      int position=getOperand(progCounter,1);
-      int value=getOperand(progCounter,2);
-      int angle=getOperand(progCounter,3);
-      Turntable *tto=Turntable::get(id);
-      if (tto) tto->addPosition(position,value,angle);
-      break;
-    }
 
     case OPCODE_AUTOSTART:
       // automatically create a task from here at startup.
@@ -340,10 +285,6 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
   diag=saved_diag;
 }
 
-void RMFT2::setTurntableHiddenState(Turntable * tto) {
-  const FSH *desc = getTurntableDescription(tto->getId());
-  if (desc) tto->setHidden(GETFLASH(desc)==0x01);
-}
 
 char RMFT2::getRouteType(int16_t id) {
   int16_t progCounter=routeLookup->find(id);
@@ -491,7 +432,10 @@ void RMFT2::loop() {
 bool RMFT2::skipIf;
 
 void RMFT2::loop2() {
-  if (delayTime!=0 && millis()-delayStart < delayTime) return;
+  if (delayTime) {
+    if (millis()-delayStart < delayTime) return;  // still waiting for delay to complete
+    delayTime = 0; // delay completed
+  }
 
   // special stand alone blink task
   if (compileFeatures & FEATURE_BLINK) { 
@@ -511,7 +455,7 @@ void RMFT2::loop2() {
   
   // Normal progstep following tasks continue here.
   byte opcode = GET_OPCODE;
-  int16_t operand =  getOperand(0);
+  int32_t operand =  getOperand(0);
 
   // skipIf will get set to indicate a failing IF condition 
   skipIf=false; 
@@ -535,9 +479,7 @@ void RMFT2::loop2() {
     break;
 
   case OPCODE_ROTATE:
-    uint8_t activity;
-    activity=getOperand(2);
-    Turntable::setPosition(operand,getOperand(1),activity);
+    Turntable::setPosition(operand,getOperand(1),getOperand(2));
     break;
 
   case OPCODE_REV:
@@ -700,7 +642,7 @@ void RMFT2::loop2() {
     
   case OPCODE_ATTIMEOUT2:
     if (readSensor(operand)) break; // success without timeout
-    if (millis()-timeoutStart > 100*getOperand(1)) {
+    if (millis()-timeoutStart > getOperand(1)) {
       blinkState=at_timeout;
       break; // and drop through
     }
@@ -922,28 +864,18 @@ void RMFT2::loop2() {
     holdoverMinDelay=operand;
     delayMe(holdoverMinDelay);
     break;
-    
-  case OPCODE_DELAY:
-    holdoverMinDelay=operand*100L;
-    delayMe(holdoverMinDelay);
-    break;
-    
+      
   case OPCODE_DELAYMINS:
     holdoverMinDelay=operand*60L*1000L;
     delayMe(holdoverMinDelay);
     break;
     
-  // This randwait opcodes are only generated immediately after a delay type opcode for the mindelay 
+  // This OPCODE_RANDWAIT_MS opcode is only generated immediately after a OPCODE_DELAYMS 
+  // for the mindelay. 
   // This is changed because the former (maxdelay-mindelay) calculation
   // would compromise use of an NVS token. 
   // The operand is now the maxdelay but must have the mindelay 
   // from the previous delay subtracted.
-  case OPCODE_RANDWAIT_DS:
-    { 
-      int32_t remainingDelay=operand*100L-holdoverMinDelay;
-      if (remainingDelay>0) delayMe(micros()%remainingDelay);
-    }
-    break;
     
   case OPCODE_RANDWAIT_MS:
     { 
@@ -1011,12 +943,11 @@ void RMFT2::loop2() {
     break;
   }
    case OPCODE_ASPECT: {
-    // operand is address<<5 |  value
-    int16_t address=operand>>5;
-    byte aspect=operand & 0x1f;
+    int16_t address=operand;
+    byte aspect=getOperand(1) & 0x1f;
 
     // If we can find this address as a DCCX aspect signal and the aspect matches
-    // gtyhen do this via the signal, otherwise do it direct in DCC
+    // then do this via the signal, otherwise do it direct in DCC
     if (!Signal::setSignalByReverseAspectLookup(address,aspect))
       DCC::setExtendedAccessory(address,aspect);
     break;
@@ -1189,18 +1120,22 @@ void RMFT2::loop2() {
     }
     break;
     
-  case OPCODE_NEOPIXEL: 
-    // OPCODE_NEOPIXEL,V([-]vpin),OPCODE_PAD,V(colour_RG),OPCODE_PAD,V(colour_B),OPCODE_PAD,V(count)
+  case OPCODE_NEOPIXEL_ON:
+  case OPCODE_NEOPIXEL_OFF: 
+    // OPCODE_NEOPIXELx,V(vpin),OPCODE_PAD,V(red),OPCODE_PAD,V(green),OPCODE_PAD,V(blue),OPCODE_PAD,V(count)
     { 
-      VPIN vpin=operand>0?operand:-operand;
-      auto count=getOperand(3);
+      VPIN vpin=operand;
+      byte red=getOperand(1) &0xff;
+      byte green=getOperand(2) &0xff;
+      byte blue=getOperand(3) &0xff;
+      auto count=getOperand(4);
       killBlinkOnVpin(vpin,count);
-      IODevice::writeAnalogueRange(vpin,getOperand(1),operand>0,getOperand(2),count);
+      IODevice::writeAnalogueRange(vpin,(red<<8)|green,opcode==OPCODE_NEOPIXEL_ON,blue,count);
     }
     break;
   
   case OPCODE_WAITFORTT:  // OPCODE_WAITFOR,V(turntable_id)
-    if (Turntable::ttMoving(operand)) {
+    if (Turntable::isMoving(operand)) {
       delayMe(100);
       return;
     }
@@ -1309,6 +1244,10 @@ void RMFT2::loop2() {
 }
 
 void RMFT2::delayMe(long delay) {
+  if (delay<0) {
+    DIAG(F("EXRAIL Bad DELAY(%l)"), delay);
+    return;
+  }
   delayTime=delay;
   delayStart=millis();
 }
