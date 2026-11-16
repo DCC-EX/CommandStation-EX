@@ -211,33 +211,7 @@ void IRAM_ATTR interruptSniffer(bool state, bool negfirst) {
 }
 
 // This intrrupt is called on sync which is configured after mcpwmPulseOn()
-static void IRAM_ATTR mcpwmIsrHandler0(void* arg) {
-  if (MCPWM0.int_st.timer0_tez_int_st) {
-    MCPWM0.int_clr.timer0_tez_int_clr = 1;
-    if (cutoutFlag[0] == 0) {
-#ifdef MCPWM_DEBUG_0
-      __digitalWrite(26, 0);
-#endif
-      // The cutout has not happened yet
-      // This interrupt is on cutout start
-      // but we reset already the mcpwm into standby mode
-      MCPWM0.operators[0].gen_stmp_cfg.gen_a_upmethod = 1; // bit 1 means "TEZ = timer zero"
-      mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_GEN_A, 0);
-      mcpwm_sync_disable(MCPWM_UNIT_0, MCPWM_TIMER_0);
-      cutoutFlag[0]++;
-    } else if (cutoutFlag[0] == 1) { // the else is important
-#ifdef MCPWM_DEBUG_0
-      __digitalWrite(13 , 1);
-#endif
-      // Cutout is done
-      cutoutFlag[0]++;
-    }
-    // when cutoutFlag[n] has reached 2 this routine does nothing
-  }
-}
-
-// This intrrupt is called on sync which is configured after mcpwmPulseOn()
-static void IRAM_ATTR mcpwmIsrHandler1(void* arg) {
+static void IRAM_ATTR mcpwmIsrHandler(void* arg) {
   if (MCPWM1.int_st.timer0_tez_int_st) {
     MCPWM1.int_clr.timer0_tez_int_clr = 1;
     if (cutoutFlag[1] == 0) {
@@ -416,7 +390,7 @@ RMTChannel::RMTChannel(pinpair pins, bool isMain) {
   gpio_matrix_out(30 /*unused-silicon*/, RMT_SIG_OUT0_IDX, false, false);
   gpio_matrix_in (30 /*unused-silicon*/, PWM1_SYNC0_IN_IDX, false);
   ESP_ERROR_CHECK(mcpwm_isr_register(
-		    MCPWM_UNIT_1, mcpwmIsrHandler1, NULL,
+		    MCPWM_UNIT_1, mcpwmIsrHandler, NULL,
 		    ESP_INTR_FLAG_LOWMED|
 		    ESP_INTR_FLAG_SHARED,
 		    /*ESP_INTR_FLAG_IRAM,*/
@@ -432,16 +406,6 @@ RMTChannel::RMTChannel(pinpair pins, bool isMain) {
   mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_GEN_A, CUTOUT_PULSE);
   boostCompare = MCPWM0.operators[0].timestamp[0].val;
   gpio_matrix_in (BOOSTER_INPUT, PWM0_SYNC0_IN_IDX, false);
-#ifdef NOPE
-  ESP_ERROR_CHECK(mcpwm_isr_register(
-		    MCPWM_UNIT_0, mcpwmIsrHandler0, NULL,
-		    ESP_INTR_FLAG_LOWMED|
-		    ESP_INTR_FLAG_SHARED,
-		    /*ESP_INTR_FLAG_IRAM,*/
-		    NULL)); //Set ISR Handler
-  MCPWM0.int_clr.timer0_tez_int_clr = 1;              // Clear the interrupt flag 
-  MCPWM0.int_ena.timer0_tez_int_ena = 1;              // Enable interrupt on TEZ
-#endif
 #endif
 }
 
