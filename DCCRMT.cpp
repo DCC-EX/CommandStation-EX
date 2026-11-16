@@ -172,10 +172,6 @@ static uint32_t cutoutPhase = 0;
 // this happens at the beginning of that end packet marker (bit).
 void IRAM_ATTR interrupt(rmt_channel_t channel, void *t) {
   if (channel == 0) {
-<<<<<<< HEAD
-    MCPWM1.operators[0].gen_stmp_cfg.gen_a_upmethod = 4; // bit 4 means "on sync"
-    cutoutFlag[1] = 0;
-=======
     // The timer runs freely at 486 us. A zero before the sync, which is up
     // to 116 us away, would be taken for the cutout start. So software sync
     // the timer clear of zero first. The sync input must be off again before
@@ -185,8 +181,7 @@ void IRAM_ATTR interrupt(rmt_channel_t channel, void *t) {
     MCPWM1.timer[0].timer_sync.timer_sync_sw = ~MCPWM1.timer[0].timer_sync.timer_sync_sw;
     MCPWM1.timer[0].timer_sync.timer_synci_en = 0;
     MCPWM1.int_clr.timer0_tez_int_clr = 1;               // a zero already pending
-    cutoutFlag = 0;
->>>>>>> devel
+    cutoutFlag[1] = 0;
     // not needed here, we keep it enabled all the time
     //MCPWM1.int_ena.timer0_tez_int_ena = 1;              // Enable interrupt on TEZ
 #ifdef MCPWM_DEBUG
@@ -256,21 +251,13 @@ static void IRAM_ATTR mcpwmIsrHandler(void* arg) {
       // The cutout has not happened yet
       // This interrupt is on cutout start
       // but we reset already the mcpwm into standby mode
-<<<<<<< HEAD
-      MCPWM1.operators[0].gen_stmp_cfg.gen_a_upmethod = 1; // bit 1 means "TEZ = timer zero"
-      mcpwm_set_duty_in_us(MCPWM_UNIT_1, MCPWM_TIMER_0, MCPWM_GEN_A, 0);
-      mcpwm_sync_disable(MCPWM_UNIT_1, MCPWM_TIMER_0);
-      cutoutFlag[1]++;
-    } else if (cutoutFlag[1] == 1) { // the else is important
-=======
       // Register writes in place of mcpwm_set_duty_in_us(0) and
       // mcpwm_sync_disable(), which did exactly this
       MCPWM1.operators[0].gen_stmp_cfg.gen_a_upmethod = 3; // bits 1 and 2: on timer zero and period
       MCPWM1.operators[0].timestamp[0].val = 0;
       MCPWM1.timer[0].timer_sync.timer_synci_en = 0;
-      cutoutFlag++;
-    } else if (cutoutFlag == 1) { // the else is important
->>>>>>> devel
+      cutoutFlag[1]++;
+    } else if (cutoutFlag[1] == 1) { // the else is important
 #ifdef MCPWM_DEBUG
       __digitalWrite(13 , 1);
 #endif
@@ -326,25 +313,23 @@ static void IRAM_ATTR mcpwmPulseOn(mcpwm_unit_t mcpwm_num) {
   };
   // default is pos edge trigger, handled by mcpwm_sync_invert_gpio_synchro()
   // if neg edge needed
-<<<<<<< HEAD
   mcpwm_sync_configure(mcpwm_num, MCPWM_TIMER_0, &sync_conf);
-=======
-  mcpwm_sync_configure(MCPWM_UNIT_1, MCPWM_TIMER_0, &sync_conf);
-  // Keep the values the driver worked out, for the interrupt to write
-  cutoutPhase = MCPWM1.timer[0].timer_sync.timer_phase;
-  mcpwm_set_duty_in_us(MCPWM_UNIT_1, MCPWM_TIMER_0, MCPWM_GEN_A, CUTOUT_PULSE);
-  cutoutCompare = MCPWM1.operators[0].timestamp[0].val;
-  // Here We wanted to do with the unused silicon "virtual" pin 30.
-  // like this mcpwm_gpio_init(MCPWM_UNIT_1, MCPWM_SYNC_0, 30);
-  // But mcpwm_gpio_init() checks if the pins are real so we can't do
-  // that. Instead we use gpio_matrix_in(), see below.
-  // mux name of pwm 1 sync 0 input: PWM1_SYNC0_IN_IDX
-  // mux name of RMT 0 output: RMT_SIG_OUT0_IDX
-  // pin 30 is the output opposite of a mux input mirror like the SIG_IN_FUNC227_IDX
-  // https://docs.espressif.com/projects/rust/esp-hal/1.0.0-beta.0/esp32/src/esp_hal/soc/esp32/psram.rs.html
-  gpio_matrix_out(30 /*unused-silicon*/, RMT_SIG_OUT0_IDX, false, false);
-  gpio_matrix_in (30 /*unused-silicon*/, PWM1_SYNC0_IN_IDX, false);
->>>>>>> devel
+  if (mcpwm_num == MCPWM_UNIT_1) {
+    // Keep the values the driver worked out, for the interrupt to write
+    cutoutPhase = MCPWM1.timer[0].timer_sync.timer_phase;
+    mcpwm_set_duty_in_us(MCPWM_UNIT_1, MCPWM_TIMER_0, MCPWM_GEN_A, CUTOUT_PULSE);
+    cutoutCompare = MCPWM1.operators[0].timestamp[0].val;
+    // Here We wanted to do with the unused silicon "virtual" pin 30.
+    // like this mcpwm_gpio_init(MCPWM_UNIT_1, MCPWM_SYNC_0, 30);
+    // But mcpwm_gpio_init() checks if the pins are real so we can't do
+    // that. Instead we use gpio_matrix_in(), see below.
+    // mux name of pwm 1 sync 0 input: PWM1_SYNC0_IN_IDX
+    // mux name of RMT 0 output: RMT_SIG_OUT0_IDX
+    // pin 30 is the output opposite of a mux input mirror like the SIG_IN_FUNC227_IDX
+    // https://docs.espressif.com/projects/rust/esp-hal/1.0.0-beta.0/esp32/src/esp_hal/soc/esp32/psram.rs.html
+    gpio_matrix_out(30 /*unused-silicon*/, RMT_SIG_OUT0_IDX, false, false);
+    gpio_matrix_in (30 /*unused-silicon*/, PWM1_SYNC0_IN_IDX, false);
+  }
 }
 
 
