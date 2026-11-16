@@ -58,11 +58,18 @@
 #warning You are outside of the DCC-EX supported hardware
 #endif
 
-static const byte RMT_CHAN_PER_DCC_CHAN = 2;
 
 // Number of bits resulting out of X bytes of DCC payload data
 // Each byte has one bit extra and at the end we have one EOF marker
 #define DATA_LEN(X) ((X)*9+1)
+
+// RMT memory blocks per DCC channel: enough for the longest packet on the
+// track with the longer preamble, rounded up. See the asserts in RMTChannel().
+static const byte RMT_CHAN_PER_DCC_CHAN =
+  (DATA_LEN(MAX_PACKET_SIZE+1) + PREAMBLE_BITS_PROG + 2 + SOC_RMT_MEM_WORDS_PER_CHANNEL - 1)
+  / SOC_RMT_MEM_WORDS_PER_CHANNEL;
+static_assert(2 * RMT_CHAN_PER_DCC_CHAN <= SOC_RMT_TX_CANDIDATES_PER_GROUP,
+              "MAIN and PROG need more RMT channels than this ESP32 has for TX");
 
 #if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(4,2,0)
 #error wrong IDF version
@@ -176,7 +183,9 @@ void IRAM_ATTR interrupt(rmt_channel_t channel, void *t) {
     MCPWM1.timer[0].timer_sync.timer_phase_direction = 0;
     MCPWM1.timer[0].timer_sync.timer_synci_en = 1;
   }
-  // Last, as filling the packet takes time and the cutout must be armed
+
+  // Filling a 15 byte packet into RMT memory takes longer than
+  // the cutout arming above can wait, so do i last
   RMTChannel *tt = channelHandle[channel];
   if (tt) tt->RMTinterrupt();
 }
@@ -266,7 +275,7 @@ RMTChannel::RMTChannel(pinpair pins, bool isMain) {
   byte plen;
 
   // Below we check if the DCC packet actually fits into the RMT hardware
-  // Currently MAX_PACKET_SIZE = 5 so with checksum there are
+  // With checksum there are
   // MAX_PACKET_SIZE+1 data packets. Each need DATA_LEN (9) bits.
   // To that we add the preamble length, the fencepost DCC end bit
   // and the RMT EOF marker.

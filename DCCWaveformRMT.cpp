@@ -72,7 +72,10 @@ void DCCWaveform::begin() {
 }
 
 void DCCWaveform::schedulePacket(const byte buffer[], byte byteCount, byte repeats) {
-  if (byteCount > MAX_PACKET_SIZE) return; // allow for chksum
+  if (byteCount > MAX_PACKET_SIZE) {
+    DIAG(F("Packet of %d bytes dropped, limit %d"), byteCount, MAX_PACKET_SIZE);
+    return;
+  }
   RMTChannel *rmtchannel = (isMainTrack ? rmtMainChannel : rmtProgChannel);
   if (rmtchannel == NULL)
     return; // no idea to prepare packet if we can not send it anyway
