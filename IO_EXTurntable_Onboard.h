@@ -82,6 +82,7 @@
  * 
  *
  * @code{.cpp}
+ * #include "IO_EXTurntable_Onboard.h"
  * HAL(EXTurntable_OB, 600, 1)
  * @endcode
  * 
