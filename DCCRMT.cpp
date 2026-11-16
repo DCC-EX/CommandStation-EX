@@ -151,8 +151,10 @@ static volatile uint8_t cutoutFlag[2] = { 0, 0 };
 // Wi-Fi load on the bench, against the 58 us between arming and the sync
 // edge; a late arming missed the sync and the cutout came from the
 // free-running timer, 170 to 370 us late.
+#ifdef BOOSTER_INPUT
 static uint32_t boostCompare = 0;
 static uint32_t boostPhase = 0;
+#endif
 
 // The compare value for the cutout pulse and the sync phase, as the
 // driver works them out in mcpwmPulseOn(). The interrupt writes them to
@@ -207,6 +209,7 @@ void IRAM_ATTR interrupt(rmt_channel_t channel, void *t) {
   if (tt) tt->RMTinterrupt();
 }
 
+#ifdef BOOSTER_INPUT
 void IRAM_ATTR interruptSniffer(bool state, bool negfirst) {
 #ifdef DEBUG_SPWM
   __digitalWrite(CSBPIN11, state ? 1 : 0);
@@ -239,6 +242,7 @@ void IRAM_ATTR interruptSniffer(bool state, bool negfirst) {
     MCPWM0.timer[0].timer_sync.timer_synci_en = 0;
   }
 }
+#endif
 
 // This intrrupt is called on sync which is configured after mcpwmPulseOn()
 static void IRAM_ATTR mcpwmIsrHandler(void* arg) {
