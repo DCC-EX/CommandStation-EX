@@ -48,22 +48,30 @@
 #include "SerialUsbLog.h"
 #include "StringBuffer.h"
 #include "DCCEXParser.h"
-#include "SerialUsbLog.html.h"
-#include "SerialUsbLog.style.css.h"
-#include "SerialUsbLog.script1.js.h"
-#include "SerialUsbLog.script2.js.h"
-#include "SerialUsbLog.script3.js.h"
 #include "NVSTable.h"
 #include "EXNetworkPreferences.h"
 #include "SerialUsbLog.favicon.h"
 #include "EXNetwork.h"
-#include "EXNetworkPreferences.html.h"
 #include "Roster.h"
-#include "Roster.html.h"
 #include "SystemPreferences.h"
 
+#define _PAGE(name) \
+  extern const unsigned char name##_gz[]; \
+  extern const unsigned int name##_gz_len;
+_PAGE(SerialUsbLog_html)
+_PAGE(EXNetworkPreferences_html)
+_PAGE(Roster_html)
+_PAGE(SystemPreferences_html)
+_PAGE(SerialUsbLog_favicon_ico)
+_PAGE(SerialUsbLog_style_css)
+_PAGE(SerialUsbLog_script1_js)
+_PAGE(SerialUsbLog_script2_js)
+_PAGE(SerialUsbLog_script3_js)
+_PAGE(EXNetworkPreferences_html)
+_PAGE(Roster_html)
+_PAGE(SystemPreferences_html)
 
-  // Log buffer size. You you have RAM to spare on thyese devices, so feel free to bump this.
+// Log buffer size. You you have RAM to spare on these devices, so feel free to bump this.
   // Keep it sensible; very large buffers make /dump and filter operations heavier.
   #ifndef LOG_BUFFER
     #define LOG_BUFFER 8192
@@ -341,18 +349,32 @@ class LogPage{
     LogPage* next; 
     const String path;
     const String displayName;
-    const char * content;
-    LogPage(const String& _path,const char * _data, const String& _displayName="") : path(_path), displayName(_displayName), content(_data) {
+    const unsigned char* content;
+    size_t content_len;
+    bool is_gzipped;
+    LogPage(const String& _path, const unsigned char * _data, size_t _len = 0,
+        const String& _displayName="", bool _gzip=false) 
+  : path(_path), displayName(_displayName), content(_data), 
+    content_len(_len), is_gzipped(_gzip) {
       next=first;
       first=this;
     }
     void render(Print* targetStream) {
-      if (targetStream==nullptr) return;
-      if (path.endsWith(".css")) targetStream->print(cssHeader);
-      else if (path.endsWith(".js")) targetStream->print(jsHeader);
-      else targetStream->print(htmlHeader);
-      targetStream->print(content);
-    }
+  if (targetStream==nullptr) return;
+  
+  const char* contentType = "text/html; charset=utf-8";
+  if (path.endsWith(".css")) contentType = "text/css; charset=utf-8";
+  else if (path.endsWith(".js")) contentType = "text/javascript; charset=utf-8";
+  
+  
+  if (is_gzipped) {
+    SerialUsbLog::sendGzipped(targetStream, content, content_len, contentType);
+    return;
+  }
+  
+  
+}
+
 };
 LogPage* LogPage::first = nullptr;
 
@@ -368,18 +390,19 @@ void SerialUsbLog::loop() {
   static bool started = false;
   if (!started && EXNetwork::isUp())
    {
-    new LogPage("/style.css", SerialUsbLog_style_css);
-    new LogPage("/script1.js", SerialUsbLog_script1_js);
-    new LogPage("/script2.js", SerialUsbLog_script2_js);
-    new LogPage("/script3.js", SerialUsbLog_script3_js);
-    new LogPage("/", SerialUsbLog_html);
+    new LogPage("/style.css", SerialUsbLog_style_css_gz, SerialUsbLog_style_css_gz_len, "", true);
+new LogPage("/script1.js", SerialUsbLog_script1_js_gz, SerialUsbLog_script1_js_gz_len, "", true);
+new LogPage("/script2.js", SerialUsbLog_script2_js_gz, SerialUsbLog_script2_js_gz_len, "", true);
+new LogPage("/script3.js", SerialUsbLog_script3_js_gz, SerialUsbLog_script3_js_gz_len, "", true);
+new LogPage("/", SerialUsbLog_html_gz, SerialUsbLog_html_gz_len, "", true);
+new LogPage("/EXNetworkPreferences.html", EXNetworkPreferences_html_gz, 
+            EXNetworkPreferences_html_gz_len, "Network Preferences", true);
 
     // Add system config menu(s) 
-    new LogPage("/EXNetworkPreferences.html",EXNetworkPreferences_html,"Network Preferences");
     #ifdef MOTOR_SHIELD_TYPE
     // MAYBE new LogPage("/DCCACK.html",DCCACK_html,"DCC ACK Preferences");
-    new LogPage("/Roster.html",Roster_html,"Roster Editor");
-    #endif
+    new LogPage("/Roster.html", Roster_html_gz, Roster_html_gz_len, "Roster Editor", true);
+#endif
     // user pages may be added later with exrail
     started = true;
     return;
@@ -554,8 +577,32 @@ void SerialUsbLog::loop() {
   client.stop();
 }
 
-void SerialUsbLog::addUserPage(const String& path, const char * content, const String& displayname) {
+void SerialUsbLog::addUserPage(const String& path, const unsigned char * content,  size_t length, const String& displayname) {
   // For future expansion: allow user to add custom pages to the web server.
-  new LogPage(path, content,displayname);
+  new LogPage(path, content, length, displayname,true);
 }
+
+void SerialUsbLog::sendGzipped(Print* client, const unsigned char* gzipped_data, 
+                            size_t gzipped_len, const char* contentType) {
+    if (!client) return;
+    
+    // Send HTTP headers with gzip encoding
+    // Modern browsers will automatically decompress
+    client->print("HTTP/1.1 200 OK\r\n");
+    client->print("Content-Type: ");
+    client->print(contentType);
+    client->print("; charset=utf-8\r\n");
+    client->print("Content-Encoding: gzip\r\n");
+    client->print("Cache-Control: no-store\r\n");
+    client->print("Connection: close\r\n");
+    client->print("Content-Length: ");
+    client->print(gzipped_len);
+    client->print("\r\n\r\n");
+    
+    // Send compressed data directly
+    for (size_t i = 0; i < gzipped_len; i++) {
+        client->write(pgm_read_byte(&gzipped_data[i]));
+    }
+}
+
 // --------------------------- End of SerialUsbLog.cpp ---------------------------

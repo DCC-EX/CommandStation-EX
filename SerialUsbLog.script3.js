@@ -2,7 +2,6 @@
 configuration dialogs. It was written mostly by AI. 
 */
 
-const char SerialUsbLog_script3_js[]=R"???(
 NVSTable = [];
 function convertNvsInputs(container) {
   const nvsNodes = container.querySelectorAll('nvsinput');
@@ -308,4 +307,3 @@ function saveNvsValues() {
       console.error('Failed to save NVS values:', err);
     });
 }
-)???";

@@ -1,4 +1,3 @@
-const char SerialUsbLog_script2_js[]=R"???(
 async function tick(){
 try{
 if(!paused && logEl.selectionStart===logEl.selectionEnd){
@@ -37,4 +36,3 @@ if (hostName && hostName!="DCC-EX") {
   document.title = "DCC-EX " + showHostName.textContent;
 }
 tick();
-)???";

@@ -42,7 +42,9 @@ class SerialUsbLog : public Stream {
     virtual int read();
     virtual int peek();
     void loop();
-    static void addUserPage(const String& path, const char * content, const String& displayname);
+    static void addUserPage(const String& path, const unsigned char * content, const size_t length,const String& displayname);
+   static void sendGzipped(Print* client, const unsigned char* gzipped_data, 
+                           size_t gzipped_len, const char* contentType);
 
  private:
    int _pos_write;
@@ -52,7 +54,6 @@ class SerialUsbLog : public Stream {
    bool _timestampPending;
    // NEW
    volatile uint32_t _seq_write;
-
 };
 extern SerialUsbLog SerialLog;
 
