@@ -34,7 +34,7 @@ struct DCCEXParser
    static void parseNodeTraffic(byte * command);
    static void setFilter(FILTER_CALLBACK filter);
    static void setCamParserFilter(FILTER_CALLBACK filter);
-   static const int MAX_COMMAND_PARAMS=10;  // Must not exceed this
+   static const int MAX_COMMAND_PARAMS=18;  // Must not exceed this; <M> takes 16
    static bool funcmap(int16_t cab, byte value, byte fstart, byte fstop);
    static const FSH * matchedCommandFormat;
    static const FSH * checkFailedFormat;
