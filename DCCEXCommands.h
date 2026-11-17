@@ -613,13 +613,14 @@ ZZMANY(^) // Build consists from variable number of loco ids (negative for rever
 // ZZ(^, leadLoco,follower [,follower2..7]) // Creates a consist from up to 8 loco ids (negative for loco in reverse) 
   CHECK(DCCConsist::parse(stream,params,p),Consist failed)
 
-// ZZ(M,ignore,d0,d1,[d2,d3,d4,d5]) // Send up to 5 byte DCC packet on MAIN track (values in hex). 
+// ZZ(M,ignore,d0,d1,[d2..d14]) // Send up to 15 byte DCC packet on MAIN track (values in hex).
 /// The ignore value is for backward compatibility, use 0. 
-ZZ_nodoc(M,ignore,d0,d1,d2,d3,d4,d5) byte packet[]={(byte)d0,(byte)d1,(byte)d2,(byte)d3,(byte)d4,(byte)d5}; DCCWaveform::mainTrack.schedulePacket(packet,sizeof(packet),3);
-ZZ_nodoc(M,ignore,d0,d1,d2,d3,d4) byte packet[]={(byte)d0,(byte)d1,(byte)d2,(byte)d3,(byte)d4}; DCCWaveform::mainTrack.schedulePacket(packet,sizeof(packet),3);
-ZZ_nodoc(M,ignore,d0,d1,d2,d3) byte packet[]={(byte)d0,(byte)d1,(byte)d2,(byte)d3}; DCCWaveform::mainTrack.schedulePacket(packet,sizeof(packet),3);
-ZZ_nodoc(M,ignore,d0,d1,d2) byte packet[]={(byte)d0,(byte)d1,(byte)d2}; DCCWaveform::mainTrack.schedulePacket(packet,sizeof(packet),3);
-ZZ_nodoc(M,ignore,d0,d1) byte packet[]={(byte)d0,(byte)d1}; DCCWaveform::mainTrack.schedulePacket(packet,sizeof(packet),3);
+ZZMANY(M)
+  CHECK(params>=3 && params<=MAX_PACKET_SIZE+1, M takes 2 to 15 bytes)
+  for (byte i=1;i<params;i++) CHECK(p[i]>=0 && p[i]<=255, M byte out of range)
+  byte packet[MAX_PACKET_SIZE];
+  for (byte i=1;i<params;i++) packet[i-1]=(byte)p[i];
+  DCCWaveform::mainTrack.schedulePacket(packet,params-1,3);
 // ZZ(P,ignore,d0,d1[,d2,d3,d4,d5]) // Send up to 5 byte DCC packet on PROG track (all d values in hex).
 /// The ignore value is for backward compatibility, use 0.
 ZZ_nodoc(P,ignore,d0,d1,d2,d3,d4,d5) byte packet[]={(byte)d0,(byte)d1,(byte)d2,(byte)d3,(byte)d4,(byte)d5}; DCCWaveform::progTrack.schedulePacket(packet,sizeof(packet),3);

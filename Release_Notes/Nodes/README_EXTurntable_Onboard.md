@@ -107,6 +107,7 @@ They need to be ESP32 gpio pins and there is no check to their validity.  The de
 
 Add
 
+`#include "IO_EXTurntable_Onboard.h"`
 `HAL(EXTurntable_OB, 600, 1)`
 
 Other commands are as in the EX-Rail command reference.
