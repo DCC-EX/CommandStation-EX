@@ -219,7 +219,7 @@ bool exrailHalSetup1() {
 #define CONFIGURE_DIALOG(title,body) {\
    extern const unsigned char  body##_html_gz[];\
    extern const unsigned int body##_html_gz_len;\
-   SerialUsbLog::addUserPage("/" #body ".html",body##_html_gz,body##_html_gz_len,title);\
+   new LogPage("/" #body ".html",body##_html_gz,body##_html_gz_len,title);\
 }
 // Sensors created here 
 #undef REMOTE_SENSOR

@@ -82,7 +82,7 @@ def process_gzip_content(env):
         if not search_dir.is_dir():
             continue
             
-        for ext in ['html', 'js', 'css']:
+        for ext in ['html', 'js', 'css', 'ico']:
             for src_file in search_dir.glob(f'*.{ext}'):
                 # Generate output filename with .cpp extension
                 out_filename = src_file.stem.replace('.', '_').replace('-', '_') + f'_{ext}_gz.cpp'
