@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.9.21"
+#define VERSION "5.9.22"
+// 5.9.22 - ESP32 4MB flash: added partitions_4MB_ota.csv partition scheme to increase OTA partition size to 1.5MB, shrinking SPIFFS/LittleFS partition to 0.375MB
 // 5.9.21 - Relocated my*.example.* files to example.my*.*
 //        - EXRAIL 32bit operands and delay support
 //        - EXRAIL improved / command display
