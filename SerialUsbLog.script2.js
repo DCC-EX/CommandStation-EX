@@ -35,50 +35,23 @@ function OLED(screenNum, row, text) {
   if (!oledScreens.has(screenNum)) {
     const frame = document.createElement('div');
     frame.id = `oled-screen-${screenNum}`;
-    frame.style.cssText = `
-      background: #222;
-      border: 2px solid #0f0;
-      color: #0f0;
-      padding: 10px;
-      font-family: monospace;
-      font-size: 12px;
-      z-index: 100;
-      max-width: 350px;
-      box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      position: relative;
-    `;
+    frame.className = 'oled-screen-frame';
     
     // Create screen number label (positioned absolutely within frame)
     const screenLabel = document.createElement('div');
-    screenLabel.style.cssText = `
-      position: absolute;
-      top: 2px;
-      right: 2px;
-      background: #0f0;
-      color: #222;
-      padding: 2px 5px;
-      font-size: 10px;
-      font-weight: bold;
-      border-radius: 2px;
-      z-index: 101;
-      pointer-events: none;
-    `;
+    screenLabel.className = 'oled-screen-label';
     screenLabel.textContent = screenNum;
     frame.appendChild(screenLabel);
     
     // Create a content container for the text (separate from label)
     const contentDiv = document.createElement('div');
     contentDiv.id = `oled-screen-${screenNum}-content`;
+    contentDiv.className = 'oled-screen-content';
     frame.appendChild(contentDiv);
     
     // Create a wrapper to position both frame and label
     const wrapper = document.createElement('div');
-    wrapper.style.cssText = `
-      position: absolute;
-      overflow: visible;
-    `;
+    wrapper.className = 'oled-screen-wrapper';
     wrapper.id = `oled-screen-${screenNum}-wrapper`;
     wrapper.appendChild(frame);
     
