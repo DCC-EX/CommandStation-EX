@@ -1,5 +1,6 @@
 /*
  *  © 2026 Mathew Winters (with Github copilot)
+ *  © 2026 Herb Morton
  *
  *  All rights reserved.
  *
@@ -203,6 +204,9 @@ public:
     return exNetworkUsingEthernet ? ethernetUDP.endPacket() : wifiUDP.endPacket();
   }
   using Print::write;
+  EthernetUDP *getEthernetUDP() {
+    return exNetworkUsingEthernet ? &ethernetUDP : nullptr;
+  }
 
 private:
   WiFiUDP wifiUDP;

@@ -3,6 +3,7 @@
  *  © 2024 Paul M. Antoine
  *  © 2026 Chris Harlow (with Github copilot)
  *  © 2026 Mathew Winters (with Github copilot)
+ *  © 2026 Herb Morton
  * 
  *  All rights reserved.
  *
@@ -25,6 +26,9 @@
 #include "defines.h"
 #if defined(ARDUINO_ARCH_STM32) || defined(ARDUINO_ARCH_ESP32)
 #include <Arduino.h>
+#if defined(ETHERNET_CS_PIN)
+#include <SPI.h>
+#endif
 #include "EthernetInterface.h"
 
 #include "EXmDNS.h"
@@ -325,8 +329,32 @@ void MDNS::sendServiceAnnounce(ServiceRecord &service) {
     _udp->write(buf, 10);
     _udp->write(service.text, service.textLength);
   }
-  
-  _udp->endPacket();
+#if defined(ETHERNET_CS_PIN)
+	uint8_t mdnsSocket = ((EthernetUDP_Exposed *)_udp)->getSocketIndex();
+	if (mdnsSocket < MAX_SOCK_NUM) {
+		uint8_t mdnsMAC[6] = {0x01, 0x00, 0x5E, 0x00, 0x00, 0xFB};
+    SPI.beginTransaction(SPI_ETHERNET_SETTINGS);
+    W5100.writeSnIR(mdnsSocket, 0xFF);
+		W5100.writeSnDHAR(mdnsSocket, mdnsMAC);
+		W5100.execCmdSn(mdnsSocket, Sock_SEND_MAC);
+		uint32_t startUs = micros();
+		while ((W5100.readSnIR(mdnsSocket) & SnIR::SEND_OK) != SnIR::SEND_OK) {
+			uint8_t snir = W5100.readSnIR(mdnsSocket);
+			if (snir & SnIR::TIMEOUT) {
+				W5100.writeSnIR(mdnsSocket, (SnIR::SEND_OK | SnIR::TIMEOUT));
+				break;
+			}
+			if (micros() - startUs >= 5000UL) {
+				W5100.writeSnIR(mdnsSocket, (SnIR::SEND_OK | SnIR::TIMEOUT));
+				break;
+			}
+		}
+		W5100.writeSnIR(mdnsSocket, SnIR::SEND_OK);
+    SPI.endTransaction();
+	}
+#else
+	_udp->endPacket();
+#endif
   _udp->flush();
 }
 

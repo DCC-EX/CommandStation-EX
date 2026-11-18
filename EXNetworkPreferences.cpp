@@ -1,6 +1,7 @@
 /*
  *  © 2026 Chris Harlow
  *  © 2026 Mathew Winters
+ *  © 2026 Herb Morton
  *
  *  This file is part of CommandStation-EX
  *
@@ -27,6 +28,14 @@
 #include "SystemPreferences.h"
 #include "StringFormatter.h"
 #include "NVSTable.h"
+#include "EXNetwork.h"
+#if defined(ARDUINO_ARCH_ESP32)
+#include "EXNetworkESP32.h"
+#endif
+#include "version.h"
+#include "GITHUB_SHA.h"
+#include "DCC.h"
+
 
 // allow defined DCCHOSTNAME (eg in platformio.ini) to override the hostname
 bool EXNetworkPreferences::load() {
@@ -155,6 +164,8 @@ void EXNetworkPreferences::saveNodeGroup(byte nodeGroup) {
 void EXNetworkPreferences::dump(Print* stream) {
   StringFormatter::send(stream, 
       F("<* C HOSTNAME \"%s\" *>\n"), NVSTable::getTextNVS(SystemPreferences::hostName));
+  StringFormatter::send(stream, 
+      F("<* C NODEGROUP %d *>\n"), NVSTable::getNVS(SystemPreferences::nodeGroup,true));
   #ifdef ARDUINO_ARCH_ESP32
   StringFormatter::send(stream, 
       F("<* C WIFI %S%S *>\n"), 
@@ -169,13 +180,45 @@ void EXNetworkPreferences::dump(Print* stream) {
     if (NVSTable::getTextNVS(SystemPreferences::ssidSTA)[0]) StringFormatter::send(stream, 
       F("<* C WIFI \"%s\" \"********\" *>\n"),
         NVSTable::getTextNVS(SystemPreferences::ssidSTA));
-#else
+
+  StringFormatter::send(stream,
+    F("<* WIFI IP %s *>\n"),
+    (!exNetworkUsingEthernet && WifiESP::isUp())
+      ? WifiESP::getIPAddress().toString().c_str()
+      : "no IP");
+#endif
+#if !defined(ARDUINO_ARCH_ESP32) || defined(ETHERNET_CS_PIN)
+  bool ethEnabled = NVSTable::getNVS(SystemPreferences::enabled);
   StringFormatter::send(stream, 
       F("<* C ETHERNET %S%S *>\n"), 
-        NVSTable::getNVS(SystemPreferences::enabled)?F("ON"):F("OFF"),
+        ethEnabled?F("ON"):F("OFF"),
         NVSTable::getNVS(SystemPreferences::throttleNode,true)?F(""):F(" [NODE]"));
+  if (ethEnabled) {
+    if (EthernetInterface::isUp()) {
+      StringFormatter::send(stream,
+        F("<* ETHERNET IP %s *>\n"),
+        EthernetInterface::getIPAddress().toString().c_str());
+    } else {
+	#if defined(ETHERNET_CS_PIN)
+				StringFormatter::send(stream,
+					F("<* ETHERNET %S *>\n"),
+					(Ethernet.linkStatus() == LinkOFF) ? F("no cable") : F("no IP"));
+	#else
+				StringFormatter::send(stream, F("<* C ETHERNET no IP *>\n"));
+	#endif
+			}
+		}
+	#if defined(ETHERNET_NAME)
+		StringFormatter::send(stream, F("<* ETHERNET define %s *>\n"), ETHERNET_NAME);
+	#endif
+	#if defined(ETHERNET_CS_PIN) && defined(ARDUINO_ARCH_ESP32)
+		StringFormatter::send(stream,
+			F("<* SPI Pins: CS = %d, SCK = %d, MISO = %d, MOSI = %d, RST = %d *>\n"),
+			ETHERNET_CS_PIN, ETHERNET_SCK_PIN, ETHERNET_MISO_PIN, ETHERNET_MOSI_PIN, ETHERNET_RST_PIN);
   #endif
-  StringFormatter::send(stream, 
-      F("<* C NODEGROUP %d *>\n"), NVSTable::getNVS(SystemPreferences::nodeGroup,true));
-  
+  #endif
+	StringFormatter::send(stream,
+		F("<iDCC-EX V-%S / %S / %S G-%S >\n"), 
+		F(VERSION), F(ARDUINO_TYPE), DCC::getMotorShieldName(), F(GITHUB_SHA));
+
 }

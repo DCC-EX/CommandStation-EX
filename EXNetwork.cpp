@@ -1,6 +1,7 @@
 /*
  *  © 2026 Chris Harlow (with Github copilot)
  *  © 2026 Mathew Winters (with Github copilot)
+ *  © 2026 Herb Morton
  *
  *  All rights reserved.
  *
@@ -35,6 +36,20 @@
 #include <esp_arduino_version.h>
 #include "EthernetOTA.h"
 #endif
+#endif
+
+#if defined(ETHERNET_CS_PIN)
+#if defined(ETHERNET_LARGE_BUFFERS)
+#error "ETHERNET_LARGE_BUFFERS limits W5500 to 4 sockets; remove it so all 8 sockets are available for TCP + UDP."
+#endif
+#include <SPI.h>
+static inline EthernetUDP *rawEthernetUDP(EXNetworkUDPTx &udp) {
+#if defined(ARDUINO_ARCH_ESP32)
+  return udp.getEthernetUDP();
+#else
+  return &udp;
+#endif
+}
 #endif
 
 #ifndef NODE_GROUP
@@ -143,8 +158,13 @@ void EXNetwork::restartEthernetServices() {
   udpThrottleRx.stop();
   udpNodeRx.stop();
   const bool txStarted = udpTx.begin(0);
+#if defined(ETHERNET_CS_PIN)
+  const bool throttleStarted = startMulticastUDP(udpThrottleRx, throttleMulticastIP, IP_PORT);
+  const bool nodeStarted = startMulticastUDP(udpNodeRx, nodeMulticastIP, NODE_PORT);
+#else
   const bool throttleStarted = udpThrottleRx.beginMulticast(throttleMulticastIP, IP_PORT);
   const bool nodeStarted = udpNodeRx.beginMulticast(nodeMulticastIP, NODE_PORT);
+#endif
   DIAG(F("Ethernet socket recovery results: tx %d, throttle multicast %d, node multicast %d"),
        txStarted, throttleStarted, nodeStarted);
 
@@ -194,14 +214,22 @@ void EXNetwork::setup() {
   bool nodeFail = false;
 
   // listen for incoming throttle traffic via UDP.
+#if defined(ETHERNET_CS_PIN)
+  if (startMulticastUDP(udpThrottleRx, throttleMulticastIP, IP_PORT)) {
+#else
     if (udpThrottleRx.beginMulticast(throttleMulticastIP, IP_PORT)) {
+#endif
     DIAG(F("udpThrottleRx started on %s:%d"),
       throttleMulticastIP.toString().c_str(), IP_PORT);
   }
   
  
   // All node traffic via UDP multicast.
+#if defined(ETHERNET_CS_PIN)
+  if (startMulticastUDP(udpNodeRx, nodeMulticastIP, NODE_PORT)) {
+#else
   if (udpNodeRx.beginMulticast(nodeMulticastIP, NODE_PORT)) {
+#endif
     DIAG(F("udpNodeRx started on %s:%d"),
          nodeMulticastIP.toString().c_str(), NODE_PORT);
   } else {
@@ -278,7 +306,7 @@ void EXNetwork::processUdpPacket(EXNetworkUDPRx &udp, uint16_t localPort) {
   if (length < packetSize) {
     DIAG(F("Short UDP read: got %d of %d bytes from %s:%d; link %d, IP %s"),
          length, packetSize, remoteIP.toString().c_str(), udp.remotePort(),
-         Ethernet.linkStatus(), Ethernet.localIP().toString().c_str());
+         isUp(), _SHIM_::getIPAddress().toString().c_str());
     udp.flush();
     return;
   }
@@ -372,14 +400,39 @@ void EXNetwork::loop() {
   }
 
   // Poll and process UDP packets synchronously from the main loop.
+  bool gotPacket = false;  
+
   while (udpThrottleRx.parsePacket() > 0) {
     processUdpPacket(udpThrottleRx, IP_PORT);
   }
   
   while (udpNodeRx.parsePacket() > 0) {
     processUdpPacket(udpNodeRx, NODE_PORT);
+    gotPacket = true;
   }
 
+#if defined(ETHERNET_CS_PIN)
+  if (rawEthernetUDP(udpNodeRx) != nullptr) {
+    static uint32_t lastIncomingPacketTime = millis();
+    if (gotPacket) {
+      lastIncomingPacketTime = millis();
+    }
+    if (millis() - lastIncomingPacketTime >= 120000) {
+      lastIncomingPacketTime = millis();
+      DIAG(F("IGMP Refresh"));
+      udpThrottleRx.stop();
+      startMulticastUDP(udpThrottleRx, throttleMulticastIP, IP_PORT);
+      udpNodeRx.stop();
+      startMulticastUDP(udpNodeRx, nodeMulticastIP, NODE_PORT);
+    }
+  } else {
+    (void)gotPacket;
+  }
+#else
+  (void)gotPacket;
+#endif
+
+  // Process outbound WiThrottle / WebSocket ring buffer
   WiThrottle::loop(outboundRing); // withrottle may need to broadcast changes 
 
   // Send the next queued outbound message.
@@ -444,5 +497,83 @@ void EXNetwork::teardown() {
 }
 
 bool EXNetwork::sendUDP(const IPAddress &ip, uint16_t port, const uint8_t *data, size_t len) {
-  return isUp() && udpTx.beginPacket(ip, port) && udpTx.write(data, len) && udpTx.endPacket();
+  if (!isUp()) return false;
+  if (!udpTx.beginPacket(ip, port)) return false;
+  if (udpTx.write(data, len) != len) return false;
+#if defined(ETHERNET_CS_PIN)
+  EthernetUDP *ethUdp = rawEthernetUDP(udpTx);
+  if (ethUdp != nullptr) {
+    uint32_t raw = (uint32_t)ip;
+    uint8_t b0 = raw & 0xFF;
+    uint8_t b1 = (raw >> 8) & 0xFF;
+    uint8_t b2 = (raw >> 16) & 0xFF;
+    uint8_t b3 = (raw >> 24) & 0xFF;
+    if (b0 >= 224 && b0 <= 239) {
+      uint8_t txSocket = ((EthernetUDP_Exposed *)ethUdp)->getSocketIndex();
+      if (txSocket < MAX_SOCK_NUM) {
+        uint8_t multicastMAC[6] = {0x01, 0x00, 0x5E, (uint8_t)(b1 & 0x7F), b2, b3};
+        SPI.beginTransaction(SPI_ETHERNET_SETTINGS);
+        W5100.writeSnIR(txSocket, 0xFF);
+        W5100.writeSnDHAR(txSocket, multicastMAC);
+        W5100.execCmdSn(txSocket, Sock_SEND_MAC);
+        uint32_t startUs = micros();
+        while ((W5100.readSnIR(txSocket) & SnIR::SEND_OK) != SnIR::SEND_OK) {
+          uint8_t snir = W5100.readSnIR(txSocket);
+          if (snir & SnIR::TIMEOUT) {
+            W5100.writeSnIR(txSocket, (SnIR::SEND_OK | SnIR::TIMEOUT));
+            SPI.endTransaction();
+            return false;
+          }
+          if (micros() - startUs >= 5000UL) {
+            W5100.writeSnIR(txSocket, (SnIR::SEND_OK | SnIR::TIMEOUT));
+            SPI.endTransaction();
+            DIAG(F("W5500 Sock_SEND_MAC timeout on sock %d"), txSocket);
+            return false;
+          }
+        }
+				W5100.writeSnIR(txSocket, SnIR::SEND_OK);
+				SPI.endTransaction();
+				return true;
+			}
+			return false;
+		}
+  }
+#endif
+  return udpTx.endPacket();
 }
+
+#if defined(ETHERNET_CS_PIN)
+bool EXNetwork::startMulticastUDP(EXNetworkUDPRx &udp, const IPAddress &multicastIP, uint16_t port) {
+  if (udp.beginMulticast(multicastIP, port)) {
+    return true;
+  }
+  if (udp.begin(port)) {
+    EthernetUDP *ethUdp = rawEthernetUDP(udp);
+    if (ethUdp != nullptr) {
+      uint8_t udpSocket = ((EthernetUDP_Exposed *)ethUdp)->getSocketIndex();
+      if (udpSocket < MAX_SOCK_NUM) {
+        SPI.beginTransaction(SPI_ETHERNET_SETTINGS);
+        W5100.writeSnMR(udpSocket, 0x02 | 0x80);
+        uint8_t multicastMAC[6];
+        multicastMAC[0] = 0x01;
+        multicastMAC[1] = 0x00;
+        multicastMAC[2] = 0x5E;
+        multicastMAC[3] = (uint8_t)(multicastIP[1] & 0x7F);
+        multicastMAC[4] = multicastIP[2];
+        multicastMAC[5] = multicastIP[3];
+        W5100.writeSnDHAR(udpSocket, multicastMAC);
+        uint8_t ipBuf[4];
+        ipBuf[0] = multicastIP[0];
+        ipBuf[1] = multicastIP[1];
+        ipBuf[2] = multicastIP[2];
+        ipBuf[3] = multicastIP[3];
+        W5100.writeSnDIPR(udpSocket, ipBuf);
+        W5100.writeSnDPORT(udpSocket, port);
+        SPI.endTransaction();
+        return true;
+      }
+    }
+  }
+  return false;
+}
+#endif

@@ -1,6 +1,7 @@
 /*
  *  © 2026 Chris Harlow (with Github copilot)
  *  © 2026 Mathew Winters (with Github copilot)
+ *  © 2026 Herb Morton
  *
  *  All rights reserved.
  *
@@ -47,6 +48,9 @@ public:
 private:
   static bool sendUDP(const IPAddress &ip, uint16_t port, const uint8_t *data, size_t len);
   static void processUdpPacket(EXNetworkUDPRx &udp, uint16_t localPort);
+#if defined(ETHERNET_CS_PIN)
+  static bool startMulticastUDP(EXNetworkUDPRx &udp, const IPAddress &multicastIP, uint16_t port);
+#endif
 #if defined(ARDUINO_ARCH_ESP32)
   static void restartEthernetServices();
 #endif

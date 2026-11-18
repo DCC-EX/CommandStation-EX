@@ -1,5 +1,6 @@
 /*
  *  © 2026 Mathew Winters (with Github copilot)
+ *  © 2026 Herb Morton
  *  © 2023-2024 Paul M. Antoine
  *  © 2021 Neil McKechnie
  *  © 2021 Mike S
@@ -62,13 +63,27 @@ class EthernetServerESP32 : public EthernetServer {
 #else
   //Nucleo devices with external ethernet module
   // Refer to platformio.ini library configs
-  #define ETHERNET_CS_PIN 10
+  #ifndef ETHERNET_CS_PIN
+    #ifdef PIN_SPI_SS
+      #define ETHERNET_CS_PIN PIN_SPI_SS
+    #else
+      #define ETHERNET_CS_PIN 10
+    #endif
+  #endif
   #include <Ethernet.h>
 #endif
 
 #endif
 
 #include <EthernetUdp.h>
+
+#if defined(ETHERNET_CS_PIN)
+#include <utility/w5100.h>
+class EthernetUDP_Exposed : public EthernetUDP {
+public:
+  uint8_t getSocketIndex() const { return sockindex; }
+};
+#endif
 
 extern "C" struct netif gnetif;
 
