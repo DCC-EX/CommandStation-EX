@@ -1,15 +1,69 @@
-"""
-Build script to gzip web UI content at compile time.
-Generates .h files containing gzipped data.
-
-Usage in platformio.ini:
-  extra_scripts = pre:scripts/gzip_webui.py
-"""
-
 import os
+import re
 import gzip
 from pathlib import Path
 from SCons.Script import Import
+
+INCLUDE_PATTERN = re.compile(r'<!--%%%INCLUDE\s+(.+?)\s+INCLUDE%%%-->')
+
+
+def get_included_files(html_path):
+    """Return a list of Path objects for all valid files referenced by %%%INCLUDE ... INCLUDE%%%."""
+    included_paths = []
+    try:
+        content = html_path.read_text(encoding='utf-8')
+    except UnicodeDecodeError:
+        return included_paths
+
+    for match in INCLUDE_PATTERN.finditer(content):
+        requested_file = match.group(1).strip()
+        include_path = (html_path.parent / requested_file).resolve()
+        if include_path.is_file():
+            included_paths.append(include_path)
+
+    return included_paths
+
+
+def find_all_embedded_js(search_dirs):
+    """Return a set of resolved Path objects for all .js files embedded in any HTML file."""
+    embedded_js = set()
+
+    for search_dir in search_dirs:
+        if not search_dir.is_dir():
+            continue
+
+        for html_file in search_dir.glob('*.html'):
+            for inc_path in get_included_files(html_file):
+                if inc_path.suffix.lower() == '.js':
+                    embedded_js.add(inc_path)
+
+    return embedded_js
+
+
+def resolve_includes(input_path, raw_bytes):
+    """Replace %%%INCLUDE filename.js INCLUDE%%% with the contents of the referenced file."""
+    input_p = Path(input_path)
+    if input_p.suffix.lower() not in ['.html', '.js', '.css']:
+        return raw_bytes
+
+    try:
+        text = raw_bytes.decode('utf-8')
+    except UnicodeDecodeError:
+        return raw_bytes
+
+    def replacer(match):
+        requested_file = match.group(1).strip()
+        include_path = (input_p.parent / requested_file).resolve()
+
+        if include_path.is_file():
+            print(f'   + Including {requested_file} into {input_p.name}')
+            return include_path.read_text(encoding='utf-8')
+        else:
+            print(f'   ! Warning: Included file not found: {include_path}')
+            return match.group(0)
+
+    processed_text = INCLUDE_PATTERN.sub(replacer, text)
+    return processed_text.encode('utf-8')
 
 
 def gzip_file(input_path, output_path):
@@ -17,20 +71,23 @@ def gzip_file(input_path, output_path):
     try:
         with open(input_path, 'rb') as f_in:
             data = f_in.read()
-        
+
+        # Process %%%INCLUDE ... INCLUDE%%% directives before compressing
+        data = resolve_includes(input_path, data)
+
         # Gzip compress
         compressed = gzip.compress(data, compresslevel=9)
-        
+
         # Get file info for header
         filename = Path(input_path).name
         target_name = Path(output_path).name
         original_size = len(data)
         compressed_size = len(compressed)
         ratio = (1 - compressed_size / original_size) * 100 if original_size > 0 else 0
-        
+
         # Generate C++ variable name from output filename (without .cpp extension)
         var_name = Path(output_path).stem
-        
+
         cpp_code = f'''// Auto-generated gzipped content
 // Original: {filename} ({original_size} bytes)
 // Compressed: {compressed_size} bytes ({ratio:.1f}% reduction)
@@ -41,7 +98,7 @@ def gzip_file(input_path, output_path):
 // Gzipped content of {filename}
 extern const unsigned char {var_name}[] = {{
 '''
-        
+
         # Write hex bytes (16 per line)
         for i in range(0, len(compressed), 16):
             chunk = compressed[i:i+16]
@@ -49,19 +106,20 @@ extern const unsigned char {var_name}[] = {{
             # Add comma only if there are more chunks
             has_more = (i + 16) < len(compressed)
             comma = ',' if has_more else ''
-            cpp_code += f'  {hex_values}{comma}\n'
-        
+            cpp_code += f'    {hex_values}{comma}\n'
+
         cpp_code += f'''}};
+
 extern const size_t {var_name}_len = {compressed_size};
 '''
-        
+
         # Write source file
         with open(output_path, 'w') as f:
             f.write(cpp_code)
-        
+
         print(f'  ✓ {filename:30} → {target_name:35} {original_size:6} → {compressed_size:6} bytes ({ratio:5.1f}%)')
         return True
-        
+
     except Exception as e:
         print(f'  ✗ Error processing {input_path}: {e}')
         return False
@@ -69,51 +127,62 @@ extern const size_t {var_name}_len = {compressed_size};
 
 def process_gzip_content(env):
     """Main build script entry point."""
-    
-    # Discover html, js, and css files in root and subdirectories starting with "my"
     project_dir = Path(env['PROJECT_DIR'])
     files_to_gzip = []
-    
+
     # Search patterns: root directory and my* subdirectories
     search_dirs = [project_dir]
     search_dirs.extend(project_dir.glob('my*'))
-    
+
+    # Identify all .js files embedded into any HTML file
+    embedded_js_files = find_all_embedded_js(search_dirs)
+
+    print('\n[Gzip Web UI Content]')
+
     for search_dir in search_dirs:
         if not search_dir.is_dir():
             continue
-            
+
         for ext in ['html', 'js', 'css', 'ico']:
             for src_file in search_dir.glob(f'*.{ext}'):
-                # Generate output filename with .cpp extension
                 out_filename = src_file.stem.replace('.', '_').replace('-', '_') + f'_{ext}_gz.cpp'
-                
-                # Preserve subdirectory structure
+
+                # Skip standalone .js compilation if it is embedded in an HTML file
+                if ext == 'js' and src_file.resolve() in embedded_js_files:
+                    stale_out_path = src_file.parent / out_filename
+                    if stale_out_path.exists():
+                        stale_out_path.unlink()
+                        print(f'  - Removed stale standalone file: {stale_out_path.name}')
+                    continue
+
                 if src_file.parent != project_dir:
                     rel_dir = src_file.parent.relative_to(project_dir)
                     files_to_gzip.append((str(src_file.relative_to(project_dir)), str(rel_dir / out_filename)))
                 else:
                     files_to_gzip.append((src_file.name, out_filename))
-    
-    # Sort for consistent output
+
     files_to_gzip.sort()
-    
-    print('\n[Gzip Web UI Content]')
     processed = 0
-    
+
     for src_file, out_file in files_to_gzip:
-        src_path = os.path.join(project_dir, src_file)
-        out_path = os.path.join(project_dir, out_file)
-        
-        # Only regenerate if source is newer than output
-        if os.path.exists(out_path):
-            src_mtime = os.path.getmtime(src_path)
-            out_mtime = os.path.getmtime(out_path)
-            if src_mtime < out_mtime:
+        src_path = Path(project_dir) / src_file
+        out_path = Path(project_dir) / out_file
+
+        # Only regenerate if source or any of its included files is newer than output
+        if out_path.exists():
+            out_mtime = out_path.stat().st_mtime
+            latest_src_mtime = src_path.stat().st_mtime
+
+            if src_path.suffix.lower() == '.html':
+                for inc_path in get_included_files(src_path):
+                    latest_src_mtime = max(latest_src_mtime, inc_path.stat().st_mtime)
+
+            if latest_src_mtime < out_mtime:
                 continue
-        
+
         if gzip_file(src_path, out_path):
             processed += 1
-    
+
     if processed > 0:
         print(f'\nGenerated {processed} gzipped content file(s)\n')
     else:
