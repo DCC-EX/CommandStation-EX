@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.9.22"
+#define VERSION "5.9.23"
+// 5.9.23 - Gzipped browser pages (breaking change for existing config dialogs)
 // 5.9.22 - ESP32 4MB flash: added partitions_4MB_ota.csv partition scheme to increase OTA partition size to 1.5MB, shrinking SPIFFS/LittleFS partition to 0.375MB
 // 5.9.21 - Relocated my*.example.* files to example.my*.*
 //        - EXRAIL 32bit operands and delay support

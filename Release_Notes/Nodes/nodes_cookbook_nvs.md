@@ -145,17 +145,15 @@ User dialogs can be created in my* files and referenced from EXRAIL so that no b
 
 First we need to create a dialog file with the name format Like this:
 
-```myRunAround.html.h```
+```myRunAround.html```
 
-The `RunAround` part is your choice but the `my` and `.html.h` must be fixed.
+The `RunAround` part is your choice but the `my` and `.html` must be fixed.
 
-In this file create code like this: Notice correct use of ```RunAround``` in the header.
+In this file create code the HTML code for the dialog. Do not add headers.
 
-file: 'myRunAround.html.h'
+For example file: 'myRunAround.html'
 
 ```html
-#include <Arduino.h>
-extern const char * myRunAround_html[]=R"???(
 Loco starting speed <nvsinput nvs=24 min=2 max=127 />
 <br>
 Loco driving speed <nvsinput nvs=21 min=2 max=127 />
@@ -165,12 +163,9 @@ Delay at station <nvsinput nvs=23 min=1000 max=32000 /> mS
 Delay to clear station sensor <nvsinput nvs=23 min=1000 max=32000 /> mS
 <br>
 Message to output when train arrives <nvsinput nvs=22 length=20 /> 
-)???";
 ```
 
-Note the file is .h because that is required by the build process, and is essentially a single C++ string definition using the extended R format so the header and trailing ```)???";``` are important.
-
-If you are using PlatformIo as your editor, you can click the language type in the bottom toolbar and select HTML, this makes the html easier to read and check.
+Note the file is .html but will be automatically gzipped into a temporaray file at build time and compiled into the CS flash.
 
 Of course this embedded html can contain all kinds of display and logic but the ```<nvsinput``` tags will automatically fill with the current NVS values and automate the Save button handling. They will also provide a reboot warning if they were used by exrail at startup time.
 
