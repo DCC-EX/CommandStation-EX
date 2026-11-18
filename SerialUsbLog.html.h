@@ -1,3 +1,4 @@
+const char SerialUsbLog_html[]=R"???(
 <!doctype html><html><head>
       <meta name=viewport content='width=device-width,initial-scale=1'>
       <title>DCC-EX Server Log</title>
@@ -37,3 +38,4 @@
       <script src="/script3.js" defer></script>
       <script src="/configs.js" defer></script>
 </body></html>
+)???";
