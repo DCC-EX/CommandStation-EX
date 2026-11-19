@@ -122,7 +122,12 @@ ZZ(?,S)  // CS requests list of signals
   Signal::shareNodesToCS();
 ZZ(?,I)  // CS requests list of turntables
   Turntable::shareNodesToCS();
-
+ZZ(?,N)  // CS requests node name
+  NodeManager::shareNodeNameToCS();
+ZZ(N,name,ipAddress) // Node name and IP address from CS
+  CHECKQ(name)
+  CHECKQ(ipAddress)
+  NodeManager::addOtherNode(q_name,q_ipAddress);
 
 ZZ(i,id,position,action) // Turntable position update from node (lower i to avoid clash with shared) 
   Turntable::setPosition(id,position,action,false);

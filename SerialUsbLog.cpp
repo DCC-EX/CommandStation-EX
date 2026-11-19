@@ -53,6 +53,7 @@
 #include "EXNetwork.h"
 #include "Roster.h"
 #include "SystemPreferences.h"
+#include "NodeManager.h"
 
 
 // Log buffer size. You you have RAM to spare on these devices, so feel free to bump this.
@@ -512,6 +513,16 @@ void SerialUsbLog::loop() {
         client.print(page->displayName);
         client.print("\", \"");
         client.print(page->path);
+        client.print("\");\n");
+      }
+    }
+    for (OtherNode * node = NodeManager::firstOtherNode; node != nullptr; node = node->next) {
+      if (node->name && node->name[0] != '\0') {
+        // window.addNodeMenuItem('Node Name', '192.168.1.100');
+        client.print("window.addNodeMenuItem(\"");
+        client.print(node->name);
+        client.print("\", \"");
+        client.print(node->ipAddress);
         client.print("\");\n");
       }
     }

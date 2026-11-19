@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.9.23"
+#define VERSION "5.9.24"
+// 5.9.24 - removed sensor created messages. <D SENSORS> remains.
+//        - Nodes menu on browser page  
 // 5.9.23 - Oled displays on browser page
 //        - Gzipped browser pages (breaking change for existing config dialogs)
 //        - Mergeing browser pages
