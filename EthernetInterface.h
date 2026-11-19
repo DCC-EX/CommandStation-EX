@@ -47,6 +47,7 @@
 #endif
 
 #include <EthernetUdp.h>
+#include "EXNetworkUdp.h"
 
 extern "C" struct netif gnetif;
 
@@ -63,6 +64,8 @@ class EthernetInterface {
   static void addServiceTxt(const char *name, const char *proto, const char *key, const char *value);
   static void teardown();
   static bool startUDPListener(const IPAddress &ip, uint16_t port);
+  static void stopUDPListeners();
+  static bool receiveUDPPacket(EXNetworkUdpPacket &packet);
    
  private:
     static bool connected;
