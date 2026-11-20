@@ -523,7 +523,6 @@ void ArduinoPins::_write(VPIN vpin, int value) {
   uint8_t mask = 1 << ((pin-_firstVpin) % 8);
   uint8_t index = (pin-_firstVpin) / 8;
   // First update the output state, then set into write mode if not already.
-  fastWriteDigital(pin, value);
   if (!(_pinModes[index] & mask)) {
     // Currently in read mode, change to write mode
     _pinModes[index] |= mask;
@@ -531,6 +530,7 @@ void ArduinoPins::_write(VPIN vpin, int value) {
     pinMode(pin, OUTPUT);
     _pinInUse[index] |= mask;
   }
+  fastWriteDigital(pin, value);
 }
 
 // Device-specific read function (digital input).
