@@ -63,6 +63,11 @@
 // Each byte has one bit extra and at the end we have one EOF marker
 #define DATA_LEN(X) ((X)*9+1)
 
+#define CSBPIN11 16
+#define CSBPIN13  4
+#define CSBPIN8  12
+#define CSBPINA1 39
+
 // RMT memory blocks per DCC channel: enough for the longest packet on the
 // track with the longer preamble, rounded up. See the asserts in RMTChannel().
 static const byte RMT_CHAN_PER_DCC_CHAN =
@@ -102,7 +107,7 @@ void setEOT(rmt_item32_t* item) {
 }
 
 // Special for debug, this can be called from interrupt.
-#ifdef MCPWM_DEBUG
+#if defined(MCPWM_DEBUG) || defined(DEBUG_SPWM)
 static void IRAM_ATTR __digitalWrite(uint8_t pin, uint8_t val) {
   if(val) {
     if(pin < 32) 
@@ -133,9 +138,23 @@ static void IRAM_ATTR __digitalWrite(uint8_t pin, uint8_t val) {
 // is only ONE common ISR routine for all channels.
 RMTChannel *channelHandle[8] = { 0 };
 
-// When cutoutFlag == 0 then it is the first
+// When cutoutFlag[n] == 0 then it is the first
 // interrupt and we do the cutout
-static volatile uint8_t cutoutFlag = 0;
+// cutoutFlag[0] for railsync/booster cutout
+// cutoutFlag[1] for RMT/main cutout
+static volatile uint8_t cutoutFlag[2] = { 0, 0 };
+
+// FIX (bench-tested 2026-11-08, same pattern as #573 on the main track):
+// compare and phase as the driver worked them out at start-up, written to
+// the registers by interruptSniffer() instead of calling the driver from
+// the ISR. The driver calls run from flash and took up to 136 us under
+// Wi-Fi load on the bench, against the 58 us between arming and the sync
+// edge; a late arming missed the sync and the cutout came from the
+// free-running timer, 170 to 370 us late.
+#ifdef BOOSTER_INPUT
+static uint32_t boostCompare = 0;
+static uint32_t boostPhase = 0;
+#endif
 
 // The compare value for the cutout pulse and the sync phase, as the
 // driver works them out in mcpwmPulseOn(). The interrupt writes them to
@@ -146,9 +165,9 @@ static uint32_t cutoutCompare = 0;
 static uint32_t cutoutPhase = 0;
 
 // define time values for cutout
-#define CUTOUT_TOTAL                486  // usec
+#define CUTOUT_TOTAL                484  // usec
 #define CUTOUT_BASE_FREQ           2057  //1000*1000/CUTOUT_TOTAL Hz
-#define CUTOUT_PULSE                459  //CUTOUT_TOTAL-27
+#define CUTOUT_PULSE                457  //CUTOUT_TOTAL-27
 #define CUTOUT_OFFSET_IN_PROMILLE   944  //CUTOUT_PULSE*1000/CUTOUT_TOTAL // 1-(28/488)
 #define CUTOUT_OFFSET_IN_PERCENT   94.4  //CUTOUT_OFFSET_IN_PROMILLE/10.0 // float please
 // As the DCC packet end marker was moved to the next preamble
@@ -164,7 +183,7 @@ void IRAM_ATTR interrupt(rmt_channel_t channel, void *t) {
     MCPWM1.timer[0].timer_sync.timer_sync_sw = ~MCPWM1.timer[0].timer_sync.timer_sync_sw;
     MCPWM1.timer[0].timer_sync.timer_synci_en = 0;
     MCPWM1.int_clr.timer0_tez_int_clr = 1;               // a zero already pending
-    cutoutFlag = 0;
+    cutoutFlag[1] = 0;
     // not needed here, we keep it enabled all the time
     //MCPWM1.int_ena.timer0_tez_int_ena = 1;              // Enable interrupt on TEZ
 #ifdef MCPWM_DEBUG
@@ -190,11 +209,46 @@ void IRAM_ATTR interrupt(rmt_channel_t channel, void *t) {
   if (tt) tt->RMTinterrupt();
 }
 
-// This intrrupt is called on sync which is configured on mcpwmPulseOn()
+#ifdef BOOSTER_INPUT
+void IRAM_ATTR interruptSniffer(bool state, bool negfirst) {
+#ifdef DEBUG_SPWM
+  __digitalWrite(CSBPIN11, state ? 1 : 0);
+#endif
+  if (state == 1) {
+    // The sync input is off here (disarmed at the preamble), so rerouting
+    // the input cannot fire it.
+    gpio_matrix_in (BOOSTER_INPUT, PWM0_SYNC0_IN_IDX, negfirst); // invert if negative is first
+    // Register writes in place of mcpwm_set_duty_in_us() and
+    // mcpwm_sync_configure(), see boostCompare above. Software-sync the
+    // free-running timer clear of zero first, so no free timer zero can
+    // fall between here and the sync edge, and drop any zero pending.
+    MCPWM0.timer[0].timer_sync.timer_phase = 10;
+    MCPWM0.timer[0].timer_sync.timer_synci_en = 1;
+    MCPWM0.timer[0].timer_sync.timer_sync_sw = ~MCPWM0.timer[0].timer_sync.timer_sync_sw;
+    MCPWM0.timer[0].timer_sync.timer_synci_en = 0;
+    MCPWM0.int_clr.timer0_tez_int_clr = 1;
+    cutoutFlag[0] = 0;
+    MCPWM0.operators[0].gen_stmp_cfg.gen_a_upmethod = 4; // bit 4 means "on sync"
+    MCPWM0.operators[0].timestamp[0].val = boostCompare;  // taken at the sync only
+    MCPWM0.timer[0].timer_sync.timer_phase = boostPhase;
+    MCPWM0.timer[0].timer_sync.timer_phase_direction = 0;
+    MCPWM0.timer[0].timer_sync.timer_synci_en = 1;
+  }
+  if (state == 0) {
+    // Register writes in place of mcpwm_set_duty_in_us(0) and
+    // mcpwm_sync_disable(), which did exactly this
+    MCPWM0.operators[0].gen_stmp_cfg.gen_a_upmethod = 3; // bits 1 and 2: on timer zero and period
+    MCPWM0.operators[0].timestamp[0].val = 0;
+    MCPWM0.timer[0].timer_sync.timer_synci_en = 0;
+  }
+}
+#endif
+
+// This intrrupt is called on sync which is configured after mcpwmPulseOn()
 static void IRAM_ATTR mcpwmIsrHandler(void* arg) {
   if (MCPWM1.int_st.timer0_tez_int_st) {
     MCPWM1.int_clr.timer0_tez_int_clr = 1;
-    if (cutoutFlag == 0) {
+    if (cutoutFlag[1] == 0) {
 #ifdef MCPWM_DEBUG
       __digitalWrite(26, 0);
 #endif
@@ -206,18 +260,18 @@ static void IRAM_ATTR mcpwmIsrHandler(void* arg) {
       MCPWM1.operators[0].gen_stmp_cfg.gen_a_upmethod = 3; // bits 1 and 2: on timer zero and period
       MCPWM1.operators[0].timestamp[0].val = 0;
       MCPWM1.timer[0].timer_sync.timer_synci_en = 0;
-      cutoutFlag++;
-    } else if (cutoutFlag == 1) { // the else is important
+      cutoutFlag[1]++;
+    } else if (cutoutFlag[1] == 1) { // the else is important
 #ifdef MCPWM_DEBUG
       __digitalWrite(13 , 1);
 #endif
       // Cutout is done
       Railcom::incCutout();
-      cutoutFlag++;
+      cutoutFlag[1]++;
       // this does not work as the enable does not go into effect immidiately
       // MCPWM1.int_ena.timer0_tez_int_ena = 0;              // Disable interrupt on TEZ
     }
-    // when cutoutFlag has reached 2 this routine does nothing
+    // when cutoutFlag[n] has reached 2 this routine does nothing
   }
 }
 
@@ -227,12 +281,22 @@ static void IRAM_ATTR mcpwmIsrHandler(void* arg) {
 // Connect Operator 0 output A PWM0A to pin XXX   (this should go to brake then)
 // Connect Timer0 input sync 0 SYNC0 from pin YYY (this should connect to RMT channel 0 output
 // pin through the mux)
-static void IRAM_ATTR mcpwmPulseOn() {
+static void IRAM_ATTR mcpwmPulseOn(mcpwm_unit_t mcpwm_num) {
 
+#ifdef DEBUG_SPWM
+  pinMode(CSBPIN11, OUTPUT);
+#endif
   //DEBUG pinMode(13, OUTPUT);
   //DEBUG pinMode(26, OUTPUT);
 
   DCCWaveform::setRailcomPossible(true);
+  // FIX (bench-tested 2026-11-08): a 100 ns tick for both cutout
+  // timers. At the default 1 us tick the sync reload and a prescaled
+  // increment can land in the same 10 MHz cycle, and the cutout then
+  // starts one tick early on about one packet in ten from an unrelated
+  // source. With the tick equal to the group clock every cycle is an
+  // increment, so the offset is constant. Must precede mcpwm_init().
+  mcpwm_timer_set_resolution(MCPWM_UNIT_0, MCPWM_TIMER_0, 10000000);
   mcpwm_config_t pwm_config = {
     .frequency = CUTOUT_BASE_FREQ,      // calculation see above
     .cmpr_a = CUTOUT_OFFSET_IN_PERCENT, // duty cycle of PWMxA (float in %)
@@ -240,7 +304,7 @@ static void IRAM_ATTR mcpwmPulseOn() {
     .duty_mode = MCPWM_DUTY_MODE_0,
     .counter_mode = MCPWM_UP_COUNTER,
   };
-  mcpwm_init(MCPWM_UNIT_1, MCPWM_TIMER_0, &pwm_config);
+  mcpwm_init(mcpwm_num, MCPWM_TIMER_0, &pwm_config);
   // We do not connect the mcpwm output anywhere here
   // like with mcpwm_gpio_init(MCPWM_UNIT_1, MCPWM0A, somepin)
   // but we do that with gpio_matrix_out() later at another place.
@@ -252,21 +316,23 @@ static void IRAM_ATTR mcpwmPulseOn() {
   };
   // default is pos edge trigger, handled by mcpwm_sync_invert_gpio_synchro()
   // if neg edge needed
-  mcpwm_sync_configure(MCPWM_UNIT_1, MCPWM_TIMER_0, &sync_conf);
-  // Keep the values the driver worked out, for the interrupt to write
-  cutoutPhase = MCPWM1.timer[0].timer_sync.timer_phase;
-  mcpwm_set_duty_in_us(MCPWM_UNIT_1, MCPWM_TIMER_0, MCPWM_GEN_A, CUTOUT_PULSE);
-  cutoutCompare = MCPWM1.operators[0].timestamp[0].val;
-  // Here We wanted to do with the unused silicon "virtual" pin 30.
-  // like this mcpwm_gpio_init(MCPWM_UNIT_1, MCPWM_SYNC_0, 30);
-  // But mcpwm_gpio_init() checks if the pins are real so we can't do
-  // that. Instead we use gpio_matrix_in(), see below.
-  // mux name of pwm 1 sync 0 input: PWM1_SYNC0_IN_IDX
-  // mux name of RMT 0 output: RMT_SIG_OUT0_IDX
-  // pin 30 is the output opposite of a mux input mirror like the SIG_IN_FUNC227_IDX
-  // https://docs.espressif.com/projects/rust/esp-hal/1.0.0-beta.0/esp32/src/esp_hal/soc/esp32/psram.rs.html
-  gpio_matrix_out(30 /*unused-silicon*/, RMT_SIG_OUT0_IDX, false, false);
-  gpio_matrix_in (30 /*unused-silicon*/, PWM1_SYNC0_IN_IDX, false);
+  mcpwm_sync_configure(mcpwm_num, MCPWM_TIMER_0, &sync_conf);
+  if (mcpwm_num == MCPWM_UNIT_1) {
+    // Keep the values the driver worked out, for the interrupt to write
+    cutoutPhase = MCPWM1.timer[0].timer_sync.timer_phase;
+    mcpwm_set_duty_in_us(MCPWM_UNIT_1, MCPWM_TIMER_0, MCPWM_GEN_A, CUTOUT_PULSE);
+    cutoutCompare = MCPWM1.operators[0].timestamp[0].val;
+    // Here We wanted to do with the unused silicon "virtual" pin 30.
+    // like this mcpwm_gpio_init(MCPWM_UNIT_1, MCPWM_SYNC_0, 30);
+    // But mcpwm_gpio_init() checks if the pins are real so we can't do
+    // that. Instead we use gpio_matrix_in(), see below.
+    // mux name of pwm 1 sync 0 input: PWM1_SYNC0_IN_IDX
+    // mux name of RMT 0 output: RMT_SIG_OUT0_IDX
+    // pin 30 is the output opposite of a mux input mirror like the SIG_IN_FUNC227_IDX
+    // https://docs.espressif.com/projects/rust/esp-hal/1.0.0-beta.0/esp32/src/esp_hal/soc/esp32/psram.rs.html
+    gpio_matrix_out(30 /*unused-silicon*/, RMT_SIG_OUT0_IDX, false, false);
+    gpio_matrix_in (30 /*unused-silicon*/, PWM1_SYNC0_IN_IDX, false);
+  }
 }
 
 
@@ -359,8 +425,21 @@ RMTChannel::RMTChannel(pinpair pins, bool isMain) {
   //rmt_write_items(channel, preamble, preambleLen, false);
   RMTprefill();
   dataReady = false;
-  // test with mcpwm
-  mcpwmPulseOn();
+
+  // Configure MCPWM_UNIT_1 for cutout driven by the "DCC MAIN" RMT channel
+  mcpwmPulseOn(MCPWM_UNIT_1);
+  // Here we wanted to use the unused silicon "virtual" pin 30
+  // like this:
+  // mcpwm_gpio_init(MCPWM_UNIT_1, MCPWM_SYNC_0, 30);
+  //
+  // But mcpwm_gpio_init() checks if the pins are real so we can't do
+  // that. Instead we use gpio_matrix_in(), see below.
+  // mux name of pwm 1 sync 0 input: PWM1_SYNC0_IN_IDX
+  // mux name of RMT 0 output: RMT_SIG_OUT0_IDX
+  // pin 30 is the output opposite of a mux input mirror like the SIG_IN_FUNC227_IDX
+  // https://docs.espressif.com/projects/rust/esp-hal/1.0.0-beta.0/esp32/src/esp_hal/soc/esp32/psram.rs.html
+  gpio_matrix_out(30 /*unused-silicon*/, RMT_SIG_OUT0_IDX, false, false);
+  gpio_matrix_in (30 /*unused-silicon*/, PWM1_SYNC0_IN_IDX, false);
   ESP_ERROR_CHECK(mcpwm_isr_register(
 		    MCPWM_UNIT_1, mcpwmIsrHandler, NULL,
 		    ESP_INTR_FLAG_LOWMED|
@@ -370,6 +449,15 @@ RMTChannel::RMTChannel(pinpair pins, bool isMain) {
   MCPWM1.int_clr.timer0_tez_int_clr = 1;              // Clear the interrupt flag 
   MCPWM1.int_ena.timer0_tez_int_ena = 1;              // Enable interrupt on TEZ
 
+#ifdef BOOSTER_INPUT
+  // Configure MCPWM_UNIT_0 for cutout driven by the BOOSTER input
+  mcpwmPulseOn(MCPWM_UNIT_0);
+  // Keep the values the driver worked out, for interruptSniffer() to write
+  boostPhase = MCPWM0.timer[0].timer_sync.timer_phase;
+  mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_GEN_A, CUTOUT_PULSE);
+  boostCompare = MCPWM0.operators[0].timestamp[0].val;
+  gpio_matrix_in (BOOSTER_INPUT, PWM0_SYNC0_IN_IDX, false);
+#endif
 }
 
 void RMTChannel::RMTprefill() {
@@ -454,7 +542,7 @@ bool RMTChannel::addPin(pinpair pins) {
   return addPin(pins.pin) && addPin(pins.invpin, true);
 }
 // and we can not yet take away what we giweth
-bool RMTChannel::addRCPin(int16_t brakePin) {
+bool RMTChannel::addRCPin(int16_t brakePin, bool boosterPwmChannel) {
   bool inverted = false;
   if (brakePin<0) {
     inverted = true;
@@ -469,7 +557,7 @@ bool RMTChannel::addRCPin(int16_t brakePin) {
   PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[gpioNum], PIN_FUNC_GPIO);
   err = gpio_set_direction(gpioNum, GPIO_MODE_OUTPUT);
   if (err != ESP_OK) return false;
-  gpio_matrix_out(gpioNum, PWM1_OUT0A_IDX, inverted, 0);
+  gpio_matrix_out(gpioNum, boosterPwmChannel ? PWM0_OUT0A_IDX : PWM1_OUT0A_IDX, inverted, 0);
   if (err != ESP_OK) return false;
   return true;
 
