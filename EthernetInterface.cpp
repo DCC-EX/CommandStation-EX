@@ -209,9 +209,13 @@ void EthernetInterface::loop()
 #include <SPI.h>
 #include <Ethernet.h>
 #include <EthernetUdp.h>
+#if __has_include(<esp_mac.h>)
+#include <esp_mac.h>
+#else
+#include <esp_system.h>
+#endif
 
 #include "DIAG.h"
-#include "DCCTimer.h"
 #include "EXmDNS.h"
 #include "EXNetworkPreferences.h"
 
@@ -236,11 +240,78 @@ void EthernetInterface::loop()
 EthernetUDP udpMdns;
 MDNS mdns(udpMdns);
 
+struct UdpListener {
+  EthernetUDP udp;
+  IPAddress group;
+  uint16_t port = 0;
+};
+static UdpListener udpListeners[2];
+
 bool EthernetInterface::connected = false;
 static bool ethernetLinkLost = false;
 static bool ethernetLinkRestored = false;
 bool EthernetInterface::isUp() {
   return connected;
+}
+
+bool EthernetInterface::startUDPListener(const IPAddress &group, uint16_t port) {
+  for (auto &listener : udpListeners) {
+    if (listener.port) continue;
+    if (!listener.udp.beginMulticast(group, port)) {
+      listener.udp.stop();
+      return false;
+    }
+    listener.group = group;
+    listener.port = port;
+    return true;
+  }
+  DIAG(F("No free UDP listener for port %d"), port);
+  return false;
+}
+
+void EthernetInterface::stopUDPListeners() {
+  for (auto &listener : udpListeners) {
+    listener.udp.stop();
+    listener.port = 0;
+  }
+}
+
+bool EthernetInterface::receiveUDPPacket(EXNetworkUdpPacket &packet) {
+  for (auto &listener : udpListeners) {
+    if (!listener.port) continue;
+    while (listener.udp.parsePacket() > 0) {
+      int packetSize = listener.udp.available();
+      if (packetSize <= 2) {
+        listener.udp.flush();
+        continue;
+      }
+      int length = listener.udp.read(packet.data, EXNETWORK_UDP_MAX_SIZE);
+      packet.remoteIP = listener.udp.remoteIP();
+      if (length < packetSize) {
+        DIAG(F("Short UDP packet read %d < %d from %s"), length, packetSize,
+             packet.remoteIP.toString().c_str());
+        listener.udp.flush();
+        continue;
+      }
+      packet.length = length;
+      packet.data[length] = 0;
+      packet.localPort = listener.port;
+      return true;
+    }
+  }
+  return false;
+}
+
+bool EthernetInterface::sendUDPMulticast(const IPAddress &group, uint16_t port, const uint8_t *data, size_t len) {
+  for (auto &listener : udpListeners) {
+    if (!listener.port || listener.port != port || listener.group != group) continue;
+    // Keep the W5500 socket's multicast destination and MAC paired.
+    return listener.udp.beginPacket(group, port)
+      && listener.udp.write(data, len) == len
+      && listener.udp.endPacket();
+  }
+  DIAG(F("Ethernet: no multicast socket for %s:%d"), group.toString().c_str(), port);
+  return false;
 }
 
 bool EthernetInterface::setup()
@@ -293,7 +364,11 @@ bool EthernetInterface::setup()
 
   DIAG(F("Ethernet: Link Found"));
   byte mac[6];
-  DCCTimer::getSimulatedMacAddress(mac);
+  const esp_err_t macResult = esp_read_mac(mac, ESP_MAC_ETH);
+  if (macResult != ESP_OK) {
+    DIAG(F("Ethernet: cannot read ESP32 Ethernet MAC (%d), falling back to WiFi"), macResult);
+    return false;
+  }
 
   #ifdef IP_ADDRESS
     static IPAddress myIP(IP_ADDRESS);

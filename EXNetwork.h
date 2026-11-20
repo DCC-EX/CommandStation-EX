@@ -46,7 +46,6 @@ public:
   static IPAddress getMyIPAddress();
 private:
   static bool sendUDP(const IPAddress &ip, uint16_t port, const uint8_t *data, size_t len);
-  static void processUdpPacket(EXNetworkUDPRx &udp, uint16_t localPort);
 #if defined(ARDUINO_ARCH_ESP32)
   static void restartEthernetServices();
 #endif

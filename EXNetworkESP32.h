@@ -40,6 +40,9 @@ public:
   static void loop();
   static bool isUp();
   static IPAddress getIPAddress();
+  static bool startUDPListener(const IPAddress &group, uint16_t port);
+  static void stopUDPListeners();
+  static bool receiveUDPPacket(EXNetworkUdpPacket &packet);
   static void setupMDNS();
   static void addService(const char *name, const char *proto, uint16_t port);
   static void addServiceTxt(const char *name, const char *proto, const char *key, const char *value);

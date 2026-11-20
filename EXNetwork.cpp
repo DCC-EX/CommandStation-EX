@@ -134,11 +134,10 @@ void EXNetwork::restartEthernetServices() {
   udpDiscoveryClients.clear();
 
   udpTx.stop();
-  udpThrottleRx.stop();
-  udpNodeRx.stop();
+  _SHIM_::stopUDPListeners();
   const bool txStarted = udpTx.begin(0);
-  const bool throttleStarted = udpThrottleRx.beginMulticast(throttleMulticastIP, IP_PORT);
-  const bool nodeStarted = udpNodeRx.beginMulticast(nodeMulticastIP, NODE_PORT);
+  const bool throttleStarted = _SHIM_::startUDPListener(throttleMulticastIP, IP_PORT);
+  const bool nodeStarted = _SHIM_::startUDPListener(nodeMulticastIP, NODE_PORT);
   DIAG(F("Ethernet socket recovery results: tx %d, throttle multicast %d, node multicast %d"),
        txStarted, throttleStarted, nodeStarted);
 
@@ -206,9 +205,6 @@ void EXNetwork::setup() {
   _SHIM_::addService("http", "tcp", 80);
   _SHIM_::addServiceTxt("http", "tcp", "path", "/");
 
-  _SHIM_::addServiceTxt("dcc-ex", "udp", "multicast", "true");
-  _SHIM_::addServiceTxt("dcc-ex", "udp", "group", throttleMulticastIP.toString().c_str());
-  _SHIM_::addServiceTxt("dcc-ex", "udp", "port", String(IP_PORT).c_str());
 #ifdef ARDUINO_ARCH_ESP32
   EthernetOTA.begin<_SHIM_>();
 #endif
@@ -263,34 +259,6 @@ EXNetworkClient EXNetwork::acceptWebInput() {
   return acceptNetworkClient(webServer);
 }
 
-
-void EXNetwork::processUdpPacket(EXNetworkUDPRx &udp, uint16_t localPort) {
-  int packetSize = udp.available();
-  if (packetSize <= 2) {
-    // Packet smaller than smallest DCCEX payload
-    udp.flush();
-    return;
-  }
-
-  // Read the incoming UDP packet into a buffer.
-  byte data[UDP_COMMAND_MAX + 1];
-  int length = udp.read(data, UDP_COMMAND_MAX);
-  IPAddress remoteIP = udp.remoteIP();
-  if (length < packetSize) {
-    DIAG(F("Short UDP read: got %d of %d bytes from %s:%d; link %d, IP %s"),
-         length, packetSize, remoteIP.toString().c_str(), udp.remotePort(),
-         Ethernet.linkStatus(), Ethernet.localIP().toString().c_str());
-    udp.flush();
-    return;
-  }
-  // Null terminate incoming data
-  data[length] = 0;
-
-  if (remoteIP == myipaddress) {
-    // we do not want to hear ourselves
-    udp.flush();
-    return;
-  }
 void EXNetwork::processUdpPacket(byte *data, size_t length, const IPAddress &remoteIP, uint16_t localPort) {
   if (remoteIP == myipaddress) return;
   // Pass node traffic to NodeManager
@@ -446,5 +414,11 @@ void EXNetwork::teardown() {
 }
 
 bool EXNetwork::sendUDP(const IPAddress &ip, uint16_t port, const uint8_t *data, size_t len) {
-  return isUp() && udpTx.beginPacket(ip, port) && udpTx.write(data, len) && udpTx.endPacket();
+  if (!isUp()) return false;
+#ifdef ARDUINO_ARCH_ESP32
+  if (exNetworkUsingEthernet && ip[0] >= 224 && ip[0] <= 239) {
+    return EthernetInterface::sendUDPMulticast(ip, port, data, len);
+  }
+#endif
+  return udpTx.beginPacket(ip, port) && udpTx.write(data, len) && udpTx.endPacket();
 }
