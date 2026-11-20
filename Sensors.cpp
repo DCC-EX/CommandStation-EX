@@ -222,7 +222,7 @@ Sensor::Sensor(int id, VPIN vpin, bool pullUp){
   active = 0;
   inputState = 0;
   latchDelay = minReadCount;
-  DIAG(F("Sensor created: id=%d, vpin=%d%S"), id, vpin, pullUp ? F("") : F(" NOPULLUP"));
+  // DIAG(F("Sensor created: id=%d, vpin=%d%S"), id, vpin, pullUp ? F("") : F(" NOPULLUP"));
 }
 
 // Create multiple jmri sensors based on id and vpin
