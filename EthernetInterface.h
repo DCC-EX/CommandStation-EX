@@ -63,6 +63,7 @@ class EthernetServerESP32 : public EthernetServer {
 #else
   //Nucleo devices with external ethernet module
   // Refer to platformio.ini library configs
+/*
   #ifndef ETHERNET_CS_PIN
     #ifdef PIN_SPI_SS
       #define ETHERNET_CS_PIN PIN_SPI_SS
@@ -70,6 +71,7 @@ class EthernetServerESP32 : public EthernetServer {
       #define ETHERNET_CS_PIN 10
     #endif
   #endif
+ */
   #include <Ethernet.h>
 #endif
 

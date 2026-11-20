@@ -2,7 +2,7 @@
  *  © 2022 Paul M Antoine
  *  © 2021 Neil McKechnie
  *  © 2021 Mike S
- *  © 2021-2025 Herb Morton
+ *  © 2021-2026 Herb Morton
  *  © 2020-2023 Harald Barth
  *  © 2020-2021 M Steve Todd
  *  © 2020-2021 Fred Decker
@@ -445,15 +445,20 @@ ZZ(C,WIFI,HIDDENAP,ssid,password,channel) // @V6 Set WiFi to hidden AP mode with
 
 ZZ(D,WIFI,SHOW) // @V6 Show WiFi status
   EXNetworkPreferences::dump(stream);
- 
+
+#undef DEFAULT
+ZZ(C,NETWORK,DEFAULT) // @V6Set WiFi and Ethernet to default settings
+  EXNetworkPreferences::clear();
+  EXNetwork::setup();
+
 // ZZ(C,ETHERNET,onoff) // Enable ethernet ON or OFF 
 ZZ_nodoc(C,ETHERNET,OFF) // Disable Ethernet
         CHECK(stream==&USB_SERIAL, Ethernet can only be disabled from USB Serial)
-        EXNetworkPreferences::enable(false);
+        EXNetworkPreferences::enableEthernet(false);
         EXNetwork::teardown();
         EXNetwork::setup();
 ZZ_nodoc(C,ETHERNET,ON) // Enable Ethernet
-        EXNetworkPreferences::enable(true);
+        EXNetworkPreferences::enableEthernet(true);
         EXNetworkPreferences::saveThrottleNode(true);
         EXNetwork::setup();
 ZZ(D,ETHERNET,SHOW) // @V6 Show Ethernet status

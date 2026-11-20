@@ -25,12 +25,17 @@
 
 #if defined(ARDUINO_ARCH_ESP32)
 #include "DIAG.h"
+#include "EXNetworkPreferences.h"
 
 bool exNetworkUsingEthernet = false;
 
 bool EXNetworkShimESP32::setup() {
   exNetworkUsingEthernet = EthernetInterface::setup();
   if (!exNetworkUsingEthernet) {
+    if (!EXNetworkPreferences::getEnabled()) {
+      DIAG(F(" Ethernet unavailable and WiFi disabled in preferences"));
+      return false;
+    }
     DIAG(F("Ethernet unavailable; trying WiFi"));
     if (!WifiESP::setup()) {
       DIAG(F("Network setup failed"));

@@ -59,6 +59,11 @@ bool EthernetInterface::setup()
   connected=false;
   DIAG(F("Ethernet starting (with mDNS). Please be patient, especially if no cable is connected!"));
 
+	if (!EXNetworkPreferences::getEthernetEnabled()) {
+		DIAG(F(" Ethernet disabled in preferences "));
+		return false;
+	}
+
   byte mac[6];
   DCCTimer::getSimulatedMacAddress(mac);
   DIAG(F("Generated MAC Address: %02X:%02X:%02X:%02X:%02X:%02X"),
@@ -66,14 +71,13 @@ bool EthernetInterface::setup()
 
 #ifdef ETHERNET_CS_PIN
   // Remap STM32 SPI peripheral pins when using an external SPI Ethernet controller (e.g., W5500)
-#if defined(PIN_SPI_MOSI) && defined(PIN_SPI_MISO) && defined(PIN_SPI_SCK)
-  DIAG(F("PIN_SPI_MOSI:%d PIN_SPI_MISO:%d PIN_SPI_SCK:%d"), PIN_SPI_MOSI, PIN_SPI_MISO, PIN_SPI_SCK);
-  SPI.setMOSI(PIN_SPI_MOSI);
-  SPI.setMISO(PIN_SPI_MISO);
-  SPI.setSCLK(PIN_SPI_SCK);
-#endif
-#if defined(PIN_SPI_SS)
-  DIAG(F("PIN_SPI_SS:%d"), PIN_SPI_SS);
+#if defined(ETHERNET_MOSI_PIN) && defined(ETHERNET_MISO_PIN) && defined(ETHERNET_SCK_PIN)
+  DIAG(F(" SPI Pins: CS = %d, SCK = %d, MISO = %d, MOSI = %d "),
+         ETHERNET_CS_PIN, ETHERNET_SCK_PIN, ETHERNET_MISO_PIN, ETHERNET_MOSI_PIN);
+  //DIAG(F("ETHERNET_MOSI_PIN:%d ETHERNET_MISO_PIN:%d ETHERNET_SCK_PIN:%d"), ETHERNET_MOSI_PIN, ETHERNET_MISO_PIN, ETHERNET_SCK_PIN);
+  SPI.setMOSI(ETHERNET_MOSI_PIN);
+  SPI.setMISO(ETHERNET_MISO_PIN);
+  SPI.setSCLK(ETHERNET_SCK_PIN);
 #endif
   SPI.begin();
   DIAG(F("CS:%d"), ETHERNET_CS_PIN);
@@ -187,6 +191,7 @@ void EthernetInterface::loop()
 
 // Sensible defaults for a bare ESP32 + W5500 module wired to the default VSPI pins.
 // Override any of these with -D build flags if your board wires the module differently.
+/*
 #ifndef ETHERNET_CS_PIN
 #define ETHERNET_CS_PIN 5
 #endif
@@ -202,6 +207,7 @@ void EthernetInterface::loop()
 #ifndef ETHERNET_RST_PIN
 #define ETHERNET_RST_PIN 4
 #endif
+*/
 
 EthernetUDP udpMdns;
 MDNS mdns(udpMdns);
@@ -218,6 +224,10 @@ bool EthernetInterface::setup()
   connected=false;
   ethernetLinkLost = false;
   ethernetLinkRestored = false;
+	if (!EXNetworkPreferences::getEthernetEnabled()) {
+		DIAG(F("Ethernet disabled in preferences"));
+		return false;
+	}
   DIAG(F("Ethernet (W5500) starting (with mDNS). Please be patient, especially if no cable is connected!"));
   DIAG(F("SPI Pins: CS = %d, SCK = %d, MISO = %d, MOSI = %d, RST = %d"), ETHERNET_CS_PIN,ETHERNET_SCK_PIN,ETHERNET_MISO_PIN,ETHERNET_MOSI_PIN,ETHERNET_RST_PIN);
   #if defined(ETHERNET_RST_PIN) && ETHERNET_RST_PIN >= 0

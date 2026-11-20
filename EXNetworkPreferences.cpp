@@ -52,6 +52,9 @@ bool EXNetworkPreferences::load() {
     NVSTable::setNVS(SystemPreferences::channelAP, 11,false);
     NVSTable::setNVS(SystemPreferences::hiddenAP, false,false);
     NVSTable::setNVS(SystemPreferences::throttleNode, true,false);
+    NVSTable::setNVS(SystemPreferences::ethernetEnabled, false, false);
+  #else
+    NVSTable::setNVS(SystemPreferences::ethernetEnabled, true, false);
   #endif
     NVSTable::setNVS(SystemPreferences::nodeGroup, 254,false); // default node group
     NVSTable::save();
@@ -136,6 +139,10 @@ void EXNetworkPreferences::enable(bool enable) {
   NVSTable::setNVS(SystemPreferences::enabled, enable, true);
 }
 
+void EXNetworkPreferences::enableEthernet(bool enable) {
+  NVSTable::setNVS(SystemPreferences::ethernetEnabled, enable, true);
+}
+
 void EXNetworkPreferences::saveThrottleNode(bool _throttleNode) {
   NVSTable::setNVS(SystemPreferences::throttleNode, _throttleNode, true);
 }
@@ -143,6 +150,10 @@ void EXNetworkPreferences::saveThrottleNode(bool _throttleNode) {
 // getters
 bool EXNetworkPreferences::getEnabled() {
    return NVSTable::getNVS(SystemPreferences::enabled,true);
+}
+
+bool EXNetworkPreferences::getEthernetEnabled() {
+  return NVSTable::getNVS(SystemPreferences::ethernetEnabled, true);
 }
 
 const char *EXNetworkPreferences::getHostName() {
@@ -188,7 +199,8 @@ void EXNetworkPreferences::dump(Print* stream) {
       : "no IP");
 #endif
 #if !defined(ARDUINO_ARCH_ESP32) || defined(ETHERNET_CS_PIN)
-  bool ethEnabled = NVSTable::getNVS(SystemPreferences::enabled);
+  //bool ethEnabled = NVSTable::getNVS(SystemPreferences::enabled);
+  bool ethEnabled = NVSTable::getNVS(SystemPreferences::ethernetEnabled, true);
   StringFormatter::send(stream, 
       F("<* C ETHERNET %S%S *>\n"), 
         ethEnabled?F("ON"):F("OFF"),
@@ -208,13 +220,19 @@ void EXNetworkPreferences::dump(Print* stream) {
 	#endif
 			}
 		}
-	#if defined(ETHERNET_NAME)
-		StringFormatter::send(stream, F("<* ETHERNET define %s *>\n"), ETHERNET_NAME);
+	#if defined(ETHERNET_PNAME)
+		StringFormatter::send(stream, F("<* ETHERNET_PINS %s *>\n"), ETHERNET_PNAME);
 	#endif
-	#if defined(ETHERNET_CS_PIN) && defined(ARDUINO_ARCH_ESP32)
+	#if defined(ETHERNET_CS_PIN)
+  #if defined(ARDUINO_ARCH_ESP32)
 		StringFormatter::send(stream,
 			F("<* SPI Pins: CS = %d, SCK = %d, MISO = %d, MOSI = %d, RST = %d *>\n"),
 			ETHERNET_CS_PIN, ETHERNET_SCK_PIN, ETHERNET_MISO_PIN, ETHERNET_MOSI_PIN, ETHERNET_RST_PIN);
+  #else
+		StringFormatter::send(stream,
+			F("<* SPI Pins: CS = %d, SCK = %d, MISO = %d, MOSI = %d, RST = NRST *>\n"),
+			ETHERNET_CS_PIN, ETHERNET_SCK_PIN, ETHERNET_MISO_PIN, ETHERNET_MOSI_PIN);
+  #endif
   #endif
   #endif
 	StringFormatter::send(stream,
