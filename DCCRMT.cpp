@@ -165,9 +165,9 @@ static uint32_t cutoutCompare = 0;
 static uint32_t cutoutPhase = 0;
 
 // define time values for cutout
-#define CUTOUT_TOTAL                486  // usec
+#define CUTOUT_TOTAL                484  // usec
 #define CUTOUT_BASE_FREQ           2057  //1000*1000/CUTOUT_TOTAL Hz
-#define CUTOUT_PULSE                459  //CUTOUT_TOTAL-27
+#define CUTOUT_PULSE                457  //CUTOUT_TOTAL-27
 #define CUTOUT_OFFSET_IN_PROMILLE   944  //CUTOUT_PULSE*1000/CUTOUT_TOTAL // 1-(28/488)
 #define CUTOUT_OFFSET_IN_PERCENT   94.4  //CUTOUT_OFFSET_IN_PROMILLE/10.0 // float please
 // As the DCC packet end marker was moved to the next preamble
