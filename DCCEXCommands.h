@@ -368,7 +368,8 @@ ZZ(D,ACK,RETRY,value) // Set ACK retry count
 ZZ(C,HOSTNAME,hostname) // @V6 set Wifi/eth hostname (in quotes)
   CHECKQ(hostname)
   EXNetworkPreferences::saveHostName(q_hostname); 
-  EXNetwork::setup();
+	EXNetwork::teardown();
+	EXNetwork::setup();
 
 ZZ(C,NODEGROUP,group)   // @V6 Set the node group (1..254)
   CHECK(group>=1 && group<=254)
@@ -377,7 +378,8 @@ ZZ(C,NODEGROUP,group)   // @V6 Set the node group (1..254)
 ZZ(C,NODE,ON) // @V6 (testing only) Enable Node mode without throttle support
         EXNetworkPreferences::enable(true);
         EXNetworkPreferences::saveThrottleNode(false);
-        EXNetwork::setup();
+				EXNetwork::teardown();
+				EXNetwork::setup();
 
 #if defined(ARDUINO_ARCH_ESP32)
 // WIFI and similar ESP32 - only stuff 
@@ -392,55 +394,83 @@ ZZ_nodoc(C,SNIFFER,OFF) // Turn sniffer output off
 ZZ_nodoc(C,WIFI,OFF) // Disable WiFi
         CHECK(stream==&USB_SERIAL, WiFi can only be disabled from USB Serial)
         EXNetworkPreferences::enable(false);
-        if (!exNetworkUsingEthernet) EXNetwork::setup();
+        if (!exNetworkUsingEthernet) {
+					EXNetwork::teardown();
+					EXNetwork::setup();
+				}
 ZZ_nodoc(C,WIFI,ON) // Enable Wifi
         EXNetworkPreferences::enable(true);
         EXNetworkPreferences::saveThrottleNode(true);
-        if (!exNetworkUsingEthernet) EXNetwork::setup();
-        
+        if (!exNetworkUsingEthernet) {
+					EXNetwork::teardown();
+					EXNetwork::setup();
+				}
 ZZ(C,WIFI,HOSTNAME,hostname) // (deprecated, use C,HOSTNAME,hostname instead)
   CHECKQ(hostname)
   EXNetworkPreferences::saveHostName(q_hostname); 
-  EXNetwork::setup();
-
+		if (!exNetworkUsingEthernet) {
+			EXNetwork::teardown();
+			EXNetwork::setup();
+		}
 #undef DEFAULT
 ZZ(C,WIFI,DEFAULT) // @V6Set WiFi to default credentials
   EXNetworkPreferences::clear(); 
-  if (!exNetworkUsingEthernet) EXNetwork::setup();
+  if (!exNetworkUsingEthernet) {
+		EXNetwork::teardown();
+		EXNetwork::setup();
+	}
 ZZ(C,WIFI,ssid,password) // @V6 Set WiFi ssid and password (in quotes, like "mySSID" and "myPassword")
   CHECKQ(ssid)
   CHECKQ(password)
   EXNetworkPreferences::saveSTA(q_ssid, q_password,true); 
-  if (!exNetworkUsingEthernet) EXNetwork::setup();
+  if (!exNetworkUsingEthernet) {
+		EXNetwork::teardown();
+		EXNetwork::setup();
+	}
 ZZ(C,WIFI,TEMP,ssid,password) // @V6 Set WiFi ssid and password temporarily (in quotes)
   CHECKQ(ssid)
   CHECKQ(password)
   EXNetworkPreferences::saveSTA(q_ssid, q_password,false); 
-  if (!exNetworkUsingEthernet) EXNetwork::setup();
+  if (!exNetworkUsingEthernet) {
+		EXNetwork::teardown();
+		EXNetwork::setup();
+	}
 ZZ(C,WIFI,AP,ssid,password) // @V6 Set WiFi to AP mode with given ssid and password (in quotes)
   CHECK(stream==&USB_SERIAL, WiFi AP can only be set from USB Serial)
   CHECKQ(ssid)
   CHECKQ(password)
   EXNetworkPreferences::saveAP(q_ssid, q_password,11,false); 
-  if (!exNetworkUsingEthernet) EXNetwork::setup();
+  if (!exNetworkUsingEthernet) {
+		EXNetwork::teardown();
+		EXNetwork::setup();
+	}
 ZZ(C,WIFI,AP,ssid,password,channel) // @V6 Set WiFi to AP mode with given ssid and password (in quotes)
   CHECK(stream==&USB_SERIAL, WiFi AP can only be set from USB Serial)
   CHECKQ(ssid)
   CHECKQ(password)
   EXNetworkPreferences::saveAP(q_ssid, q_password,channel,false); 
-  if (!exNetworkUsingEthernet) EXNetwork::setup();
+  if (!exNetworkUsingEthernet) {
+		EXNetwork::teardown();
+		EXNetwork::setup();
+	}
 ZZ(C,WIFI,HIDDENAP,ssid,password) // @V6 Set WiFi to hidden AP mode with given ssid and password (in quotes)
   CHECK(stream==&USB_SERIAL, WiFi AP can only be set from USB Serial)
   CHECKQ(ssid)
   CHECKQ(password)
   EXNetworkPreferences::saveAP(q_ssid, q_password,11,true); 
-  if (!exNetworkUsingEthernet) EXNetwork::setup();
+  if (!exNetworkUsingEthernet) {
+		EXNetwork::teardown();
+		EXNetwork::setup();
+	}
 ZZ(C,WIFI,HIDDENAP,ssid,password,channel) // @V6 Set WiFi to hidden AP mode with given ssid and password (in quotes)
   CHECK(stream==&USB_SERIAL, WiFi AP can only be set from USB Serial)
   CHECKQ(ssid)
   CHECKQ(password)
   EXNetworkPreferences::saveAP(q_ssid, q_password,channel,true); 
-  if (!exNetworkUsingEthernet) EXNetwork::setup();
+  if (!exNetworkUsingEthernet) {
+		EXNetwork::teardown();
+		EXNetwork::setup();
+	}
 #endif
 
 ZZ(D,WIFI,SHOW) // @V6 Show WiFi status
@@ -449,17 +479,19 @@ ZZ(D,WIFI,SHOW) // @V6 Show WiFi status
 #undef DEFAULT
 ZZ(C,NETWORK,DEFAULT) // @V6Set WiFi and Ethernet to default settings
   EXNetworkPreferences::clear();
+	EXNetwork::teardown();
   EXNetwork::setup();
 
 // ZZ(C,ETHERNET,onoff) // Enable ethernet ON or OFF 
 ZZ_nodoc(C,ETHERNET,OFF) // Disable Ethernet
         CHECK(stream==&USB_SERIAL, Ethernet can only be disabled from USB Serial)
         EXNetworkPreferences::enableEthernet(false);
-        EXNetwork::teardown();
-        EXNetwork::setup();
+				EXNetwork::teardown();
+				EXNetwork::setup();
 ZZ_nodoc(C,ETHERNET,ON) // Enable Ethernet
         EXNetworkPreferences::enableEthernet(true);
         EXNetworkPreferences::saveThrottleNode(true);
+        EXNetwork::teardown();
         EXNetwork::setup();
 ZZ(D,ETHERNET,SHOW) // @V6 Show Ethernet status
   EXNetworkPreferences::dump(stream);
@@ -658,12 +690,17 @@ ZZ(J,P,id) // List turntable positions
 ZZ(=) // List track manager states
         TrackManager::list(stream); 
 // ZZ(=,track,tracktype)   // Set track to MAIN, MAIN_INV, MAIN_AUTO, PROG, OFF, NONE, EXT, BOOST, BOOST_INV, BOOST_AUTO
+// setTrackMode() sets base setting and modifiers
 ZZ_nodoc(=,track,MAIN) // Set track to MAIN
         CHECK(TrackManager::setTrackMode(track,TRACK_MODE_MAIN))
 ZZ_nodoc(=,track,MAIN_INV) // Set track to MAIN inverted polarity
         CHECK(TrackManager::setTrackMode(track,TRACK_MODE_MAIN_INV))
 ZZ_nodoc(=,track,MAIN_AUTO) // Set track to MAIN with auto reversing
         CHECK(TrackManager::setTrackMode(track,TRACK_MODE_MAIN_AUTO))
+ZZ_nodoc(=,track,MAIN_RAILCOM)
+        CHECK(TrackManager::setTrackMode(track,TRACK_MODE_MAIN_RAILCOM))
+ZZ_nodoc(=,track,MAIN_RAILCOM_AUTO)
+        CHECK(TrackManager::setTrackMode(track,TRACK_MODE_MAIN_RAILCOM_AUTO))
 ZZ_nodoc(=,track,PROG) // Set track to PROG
         CHECK(TrackManager::setTrackMode(track,TRACK_MODE_PROG)) 
 ZZ_nodoc(=,track,OFF) // Set track power OFF
@@ -674,18 +711,12 @@ ZZ_nodoc(=,track,EXT)  // Set track to use external sync
         CHECK(TrackManager::setTrackMode(track,TRACK_MODE_EXT))      
 
 #ifdef BOOSTER_INPUT
-ZZ_nodoc(=,track,BOOST)      CHECK(TrackManager::setTrackMode(track,TRACK_MODE_BOOST))
-ZZ_nodoc(=,track,BOOST_INV)  CHECK(TrackManager::setTrackMode(track,TRACK_MODE_BOOST_INV))
-ZZ_nodoc(=,track,BOOST_AUTO) CHECK(TrackManager::setTrackMode(track,TRACK_MODE_BOOST_AUTO))
+ZZ_nodoc(=,track,BOOST)              CHECK(TrackManager::setTrackMode(track,TRACK_MODE_BOOST))
+ZZ_nodoc(=,track,BOOST_INV)          CHECK(TrackManager::setTrackMode(track,TRACK_MODE_BOOST_INV))
+ZZ_nodoc(=,track,BOOST_AUTO)         CHECK(TrackManager::setTrackMode(track,TRACK_MODE_BOOST_AUTO))
+ZZ_nodoc(=,track,BOOST_RAILCOM)      CHECK(TrackManager::setTrackMode(track,TRACK_MODE_BOOST_RAILCOM))
+ZZ_nodoc(=,track,BOOST_RAILCOM_AUTO) CHECK(TrackManager::setTrackMode(track,TRACK_MODE_BOOST_RAILCOM_AUTO))
 #endif
-
-// Z(=,track,update) // Update track setting to AUTO, INV, RAILCOM
-ZZ_nodoc(=,track,AUTO)  // Update track to auto reverse
-        CHECK(TrackManager::orTrackMode(track, TRACK_MODIFIER_AUTO))
-ZZ_nodoc(=,track,INV) // Update track to inverse polarity
-        CHECK(TrackManager::orTrackMode(track, TRACK_MODIFIER_INV))
-ZZ_nodoc(=,track,RAILCOM) // Update track to add cutout
-        CHECK(TrackManager::orTrackMode(track, TRACK_MODIFIER_RAILCOM))
 
 ZZ(=,track,DC,loco) // Set track to DC
         CHECK(TrackManager::setTrackMode(track, TRACK_MODE_DC, loco))
@@ -693,6 +724,15 @@ ZZ(=,track,DC_INV,loco) // Set track to DC with inverted polarity
         CHECK(TrackManager::setTrackMode(track, TRACK_MODE_DC_INV, loco))
 ZZ(=,track,DCX,loco) // Set track to DC with inverted polarity
         CHECK(TrackManager::setTrackMode(track, TRACK_MODE_DC_INV, loco))
+
+// Z(=,track,update) // Update track setting to AUTO, INV, RAILCOM
+// orTackMode() keeps base setting, adds modifier
+ZZ_nodoc(=,track,AUTO)  // Update track to auto reverse
+        CHECK(TrackManager::orTrackMode(track, TRACK_MODIFIER_AUTO))
+ZZ_nodoc(=,track,INV) // Update track to inverse polarity
+        CHECK(TrackManager::orTrackMode(track, TRACK_MODIFIER_INV))
+ZZ_nodoc(=,track,RAILCOM) // Update track to add cutout
+        CHECK(TrackManager::orTrackMode(track, TRACK_MODIFIER_RAILCOM))
 
 #ifdef EXRAIL_ACTIVE
 // ZZ(D,EXRAIL,ON) // EXRAIL diagnostics ON or OFF

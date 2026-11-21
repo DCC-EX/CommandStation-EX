@@ -77,7 +77,29 @@ void EXNetworkShimESP32::addServiceTxt(
 }
 
 void EXNetworkShimESP32::teardown() {
-  if (exNetworkUsingEthernet) EthernetInterface::teardown();
-  else WifiESP::teardown();
+  if (exNetworkUsingEthernet) {
+    EthernetInterface::teardown();
+    exNetworkUsingEthernet = false;
+  } else {
+    WifiESP::teardown();
+  }
 }
+
+bool EXNetworkShimESP32::startUDPListener(const IPAddress &group, uint16_t port) {
+  return exNetworkUsingEthernet
+	  ? EthernetInterface::startUDPListener(group, port)
+	  : WifiESP::startUDPListener(group, port);
+}
+
+void EXNetworkShimESP32::stopUDPListeners() {
+  if (exNetworkUsingEthernet) EthernetInterface::stopUDPListeners();
+  else WifiESP::stopUDPListeners();
+}
+
+bool EXNetworkShimESP32::receiveUDPPacket(EXNetworkUdpPacket &packet) {
+  return exNetworkUsingEthernet
+    ? EthernetInterface::receiveUDPPacket(packet)
+    : WifiESP::receiveUDPPacket(packet);
+}
+
 #endif

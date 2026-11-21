@@ -83,6 +83,21 @@ MDNS::~MDNS() {
     free(_services[i].text);
   }
 }
+
+void MDNS::end() {
+  if (_udp) _udp->stop();
+  if (_name) {
+    free(_name);
+    _name = NULL;
+  }
+  for (uint8_t i = 0; i < _serviceCount; i++) {
+    free(_services[i].name);
+    free(_services[i].text);
+    _services[i] = {NULL, MDNSServiceTCP, 0, NULL, 0};
+  }
+  _serviceCount = 0;
+}
+
 int MDNS::begin(const IPAddress& ip, const char* name) {
   // if we were called very soon after the board was booted, we need to give the
   // EthernetShield (WIZnet) some time to come up. Hence, we delay until millis() is at

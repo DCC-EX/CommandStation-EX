@@ -24,13 +24,13 @@
 #ifndef EXNetwork_h
 #define EXNetwork_h
 #include "defines.h"
+
 #if defined(ARDUINO_ARCH_ESP32)
 #include "EXNetworkESP32.h"
 #else
 #include "EthernetInterface.h"
 typedef EthernetClient EXNetworkClient;
 typedef EthernetServer EXNetworkServer;
-typedef EthernetUDP EXNetworkUDPRx;
 typedef EthernetUDP EXNetworkUDPTx;
 #define _SHIM_ EthernetInterface
 #endif
@@ -44,13 +44,11 @@ public:
   static void udpMulticast(const char *buffer);
   static void udpNodeMulticast(const char *buffer);
   static EXNetworkClient acceptWebInput();
+  static IPAddress getMyIPAddress();
   
 private:
   static bool sendUDP(const IPAddress &ip, uint16_t port, const uint8_t *data, size_t len);
-  static void processUdpPacket(EXNetworkUDPRx &udp, uint16_t localPort);
-#if defined(ETHERNET_CS_PIN)
-  static bool startMulticastUDP(EXNetworkUDPRx &udp, const IPAddress &multicastIP, uint16_t port);
-#endif
+  static void processUdpPacket(byte *data, size_t length, const IPAddress &remoteIP, uint16_t localPort);
 #if defined(ARDUINO_ARCH_ESP32)
   static void restartEthernetServices();
 #endif

@@ -3,7 +3,12 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.9.23"
+#define VERSION "5.9.25"
+// 5.9.25 - Railcom for booster track outputs
+//        - Async UDP queues 
+//        - no mdns for throttle traffic if motor shield not defined
+// 5.9.24 - removed sensor created messages. <D SENSORS> remains.
+//        - Nodes menu on browser page  
 // 5.9.23 - Oled displays on browser page
 //        - Gzipped browser pages (breaking change for existing config dialogs)
 //        - Mergeing browser pages

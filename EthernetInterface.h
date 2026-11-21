@@ -78,6 +78,7 @@ class EthernetServerESP32 : public EthernetServer {
 #endif
 
 #include <EthernetUdp.h>
+#include "EXNetworkUdp.h"
 
 #if defined(ETHERNET_CS_PIN)
 #include <utility/w5100.h>
@@ -106,6 +107,9 @@ class EthernetInterface {
   static void restartMDNS();
 #endif
   static void teardown();
+ static bool startUDPListener(const IPAddress &ip, uint16_t port);
+  static void stopUDPListeners();
+  static bool receiveUDPPacket(EXNetworkUdpPacket &packet);
    
  private:
     static bool connected;

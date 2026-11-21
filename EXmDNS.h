@@ -40,6 +40,7 @@ public:
   MDNS(EthernetUDP& udp);
   ~MDNS();
   int begin(const IPAddress& ip,  const char* name);
+  void end();
   int addServiceRecord(const char* name, uint16_t port, MDNSServiceProtocol_t proto);
   int addTextRecord(const char* name, MDNSServiceProtocol_t proto,
                     const char* key, const char* value);

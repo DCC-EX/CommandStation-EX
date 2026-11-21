@@ -195,6 +195,13 @@ void EthernetOTAClass::networkRestored() {
   state = IDLE;
 }
 
+void EthernetOTAClass::end() {
+  if (!initialized) return;
+  udp.stop();
+  initialized = false;
+  state = IDLE;
+}
+
 void EthernetOTAClass::sendResponse(const char* response) {
   udp.beginPacket(remoteIP, remotePort);
   udp.print(response);

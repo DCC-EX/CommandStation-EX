@@ -6,7 +6,7 @@
  *  © 2022 Bruno Sanches
  *  © 2021 Fred Decker
  *  © 2020-2022 Harald Barth
- *  © 2020-2024 Chris Harlow
+ *  © 2020-2026 Chris Harlow
  *  © 2020 Gregor Baues
  * 
  *  All rights reserved.
@@ -32,15 +32,102 @@
 #define DHCP_CHECK_RENEW_FAIL   (1)
 #define DHCP_CHECK_REBIND_FAIL  (3)
 
-
-#ifdef ARDUINO_ARCH_STM32
+#if defined(ARDUINO_ARCH_STM32) || defined(ARDUINO_ARCH_ESP32)
+#include <SPI.h>
 #include "EthernetInterface.h"
 #include "EXNetworkPreferences.h"
-#include <SPI.h>
-
 #include "DIAG.h"
 #include "DCCTimer.h"
 #include "EXmDNS.h"
+
+struct UdpListener {
+  EthernetUDP udp;
+  IPAddress group;
+  uint16_t port = 0;
+};
+static UdpListener udpListeners[2];
+
+static bool bindW5500Multicast(EthernetUDP &udp, const IPAddress &multicastIP, uint16_t port) {
+  if (udp.beginMulticast(multicastIP, port)) return true;
+#if defined(ETHERNET_CS_PIN)
+  if (udp.begin(port)) {
+    uint8_t sock = ((EthernetUDP_Exposed *)&udp)->getSocketIndex();
+    if (sock < MAX_SOCK_NUM) {
+      uint8_t mac[6] = {0x01, 0x00, 0x5E, (uint8_t)(multicastIP[1] & 0x7F), multicastIP[2], multicastIP[3]};
+      uint8_t ipBuf[4] = {multicastIP[0], multicastIP[1], multicastIP[2], multicastIP[3]};
+      SPI.beginTransaction(SPI_ETHERNET_SETTINGS);
+      W5100.writeSnMR(sock, 0x02 | 0x80);
+      W5100.writeSnDHAR(sock, mac);
+      W5100.writeSnDIPR(sock, ipBuf);
+      W5100.writeSnDPORT(sock, port);
+      SPI.endTransaction();
+      return true;
+    }
+  }
+#endif
+  return false;
+}
+
+bool EthernetInterface::startUDPListener(const IPAddress &group, uint16_t port) {
+  for (auto &listener : udpListeners) {
+    if (listener.port) continue;
+    if (!bindW5500Multicast(listener.udp, group, port)) {
+      listener.udp.stop();
+      return false;
+    }
+    listener.group = group;
+    listener.port = port;
+    return true;
+  }
+  DIAG(F("No free UDP listener for port %d"), port);
+  return false;
+}
+
+void EthernetInterface::stopUDPListeners() {
+  for (auto &listener : udpListeners) {
+    listener.udp.stop();
+    listener.port = 0;
+  }
+}
+
+bool EthernetInterface::receiveUDPPacket(EXNetworkUdpPacket &packet) {
+  bool gotPacket = false;
+  for (auto &listener : udpListeners) {
+    if (!listener.port) continue;
+    while (listener.udp.parsePacket() > 0) {
+      int packetSize = listener.udp.available();
+      if (packetSize <= 2) { listener.udp.flush(); continue; }
+      int length = listener.udp.read(packet.data, EXNETWORK_UDP_MAX_SIZE);
+      packet.remoteIP = listener.udp.remoteIP();
+      if (length < packetSize) { listener.udp.flush(); continue; }
+      packet.data[length] = 0;
+      packet.localPort = listener.port;
+      packet.length = length;
+      gotPacket = true;
+      break;
+    }
+    if (gotPacket) break;
+  }
+
+#if defined(ETHERNET_CS_PIN)
+  static uint32_t lastIncomingPacketTime = millis();
+  if (gotPacket) {
+    lastIncomingPacketTime = millis();
+  } else if (millis() - lastIncomingPacketTime >= 120000) {
+    lastIncomingPacketTime = millis();
+    DIAG(F("IGMP Refresh"));
+    for (auto &listener : udpListeners) {
+      if (!listener.port) continue;
+      listener.udp.stop();
+      bindW5500Multicast(listener.udp, listener.group, listener.port);
+    }
+  }
+#endif
+  return gotPacket;
+}
+
+
+#ifdef ARDUINO_ARCH_STM32
 
 #ifndef ETHERNET_CS_PIN
 extern "C" struct netif gnetif;
@@ -106,6 +193,11 @@ bool EthernetInterface::setup()
   // This does not enable promiscuous unicast reception.
   ETH->MACFFR |= (1UL << 4);
 #endif
+
+  #ifndef ETHERNET_CS_PIN
+  // The link-state handler enables IGMP before multicast listeners are started.
+  Ethernet.schedule();
+  #endif
 
   LCD(7, F("IP: %s"), Ethernet.localIP().toString().c_str());
   connected=true;
@@ -178,16 +270,6 @@ void EthernetInterface::loop()
 }
 
 #elif defined(ARDUINO_ARCH_ESP32)
-#include "defines.h"
-#include "EthernetInterface.h"
-#include <SPI.h>
-#include <Ethernet.h>
-#include <EthernetUdp.h>
-
-#include "DIAG.h"
-#include "DCCTimer.h"
-#include "EXmDNS.h"
-#include "EXNetworkPreferences.h"
 
 // Sensible defaults for a bare ESP32 + W5500 module wired to the default VSPI pins.
 // Override any of these with -D build flags if your board wires the module differently.
@@ -351,7 +433,18 @@ IPAddress EthernetInterface::getIPAddress() {
 }
 
 void EthernetInterface::teardown() {
+  mdns.end();
   connected = false;
+	#if defined(ETHERNET_RST_PIN) && ETHERNET_RST_PIN >= 0
+		pinMode(ETHERNET_RST_PIN, OUTPUT);
+		digitalWrite(ETHERNET_RST_PIN, LOW);
+		delay(10);
+		digitalWrite(ETHERNET_RST_PIN, HIGH);
+		delay(50);
+	#endif
+  #if defined(ARDUINO_ARCH_ESP32) && defined(ETHERNET_CS_PIN)
+    SPI.end();
+  #endif
 }
 
 void EthernetInterface::loop()
@@ -457,5 +550,7 @@ void EthernetInterface::loop()
         break;
     }
 }
+
+#endif
 
 #endif
