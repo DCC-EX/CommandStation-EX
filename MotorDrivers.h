@@ -128,7 +128,7 @@
 // The shield must be eiter the 3.3V compatible R3 version or it has to be modified to not
 // supply more than 3.3V to the analog inputs. The numbers below are the actual GPIO numbers.
 // In comments the numbers the pins have on an Uno.
-#define STANDARD_MOTOR_SHIELD F("ACEBOTT_WITH_STANDARD_MOTOR_SHIELD"), \
+#define ACEBOTT_WITH_STANDARD_MOTOR_SHIELD F("STANDARD_MOTOR_SHIELD on ACEBOTT ESP32-Max-V1.0"), \
  new MotorDriver(26/* 3*/, 16/*12*/, UNUSED_PIN, 19/*9*/, 32/*A2*/, 0.70, 1500, UNUSED_PIN), \
  new MotorDriver(17/*11*/, 05/*13*/, UNUSED_PIN, 23/*8*/, 33/*A3*/, 0.70, 1500, UNUSED_PIN)
 
