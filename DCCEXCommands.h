@@ -475,6 +475,22 @@ ZZ(D,NVS) // @V6 Show all non-zero NVS values (Not Loco CVs)
 ZZ(D,NVS,value) // @V6 Show specific NVS value
   NVSTable::dump(stream,value);
 
+#if defined(ARDUINO_ARCH_ESP32)
+ZZ(o,vpin,CHASE,count,brightness) // Run a NeoPixel RMT chase over a VPIN range
+        CHECK(vpin>=0,first vpin must be positive)
+        CHECK(count>0,count must be positive)
+        CHECK(brightness>=0 && brightness<=255,brightness value range 0..255)
+        CHECK(NeoPixelRMT::startChase((VPIN)vpin,count,brightness),NeoPixel RMT range not ready or invalid)
+// FLASH is also a storage macro, so preserve it while registering this keyword.
+#pragma push_macro("FLASH")
+#undef FLASH
+ZZ(o,vpin,FLASH,count,brightness) // Cycle a NeoPixel RMT range through white, red, green, blue and off
+        CHECK(vpin>=0,first vpin must be positive)
+        CHECK(count>0,count must be positive)
+        CHECK(brightness>=0 && brightness<=255,brightness value range 0..255)
+        CHECK(NeoPixelRMT::startFlash((VPIN)vpin,count,brightness),NeoPixel RMT range not ready or invalid)
+#pragma pop_macro("FLASH")
+#endif
 ZZ(o,vpin) // Set neopixel on(vpin>0) or off(vpin<0)
         IODevice::write(abs(vpin),vpin>0);
 ZZ(o,vpin,count)  // Set multiple neopixels on(vpin>0) or off(vpin<0)
@@ -484,6 +500,14 @@ ZZ(o,vpin,r,g,b)  // Set neopixel colour
         IODevice::writeAnalogueRange(abs(vpin),r<<8 | g,vpin>0?1:0,b,1);
 ZZ(o,vpin,r,g,b,count) // Set multiple neopixels colour 
         CHECK(r>=0 && r<=0xff && g>=0 && g<=0xff && b>=0 && b<=0xff, r,g,b values range 0..255) 
+        IODevice::writeAnalogueRange(abs(vpin),r<<8 | g,vpin>0?1:0,b,count);
+ZZ(o,vpin,r,g,b,count,brightness) // Set neopixel colour and brightness
+        CHECK(r>=0 && r<=0xff && g>=0 && g<=0xff && b>=0 && b<=0xff, r,g,b values range 0..255)
+        CHECK(count>0, count must be positive)
+        CHECK(brightness>=0 && brightness<=0xff, brightness value range 0..255)
+        r=(r*brightness+127)/255;
+        g=(g*brightness+127)/255;
+        b=(b*brightness+127)/255;
         IODevice::writeAnalogueRange(abs(vpin),r<<8 | g,vpin>0?1:0,b,count);
 
 ZZ(1)  // Power ON all tracks
