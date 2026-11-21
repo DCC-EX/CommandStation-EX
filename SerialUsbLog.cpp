@@ -48,22 +48,15 @@
 #include "SerialUsbLog.h"
 #include "StringBuffer.h"
 #include "DCCEXParser.h"
-#include "SerialUsbLog.html.h"
-#include "SerialUsbLog.style.css.h"
-#include "SerialUsbLog.script1.js.h"
-#include "SerialUsbLog.script2.js.h"
-#include "SerialUsbLog.script3.js.h"
 #include "NVSTable.h"
 #include "EXNetworkPreferences.h"
-#include "SerialUsbLog.favicon.h"
 #include "EXNetwork.h"
-#include "EXNetworkPreferences.html.h"
 #include "Roster.h"
-#include "Roster.html.h"
 #include "SystemPreferences.h"
+#include "NodeManager.h"
 
 
-  // Log buffer size. You you have RAM to spare on thyese devices, so feel free to bump this.
+// Log buffer size. You you have RAM to spare on these devices, so feel free to bump this.
   // Keep it sensible; very large buffers make /dump and filter operations heavier.
   #ifndef LOG_BUFFER
     #define LOG_BUFFER 8192
@@ -167,6 +160,26 @@ SerialUsbLog::SerialUsbLog(const uint16_t len) {
   // Monotonic write sequence counter (increments per byte stored into the ring).
   _seq_write = 0;
   _timestampPending = true; // first write will trigger timestamp
+
+  // Add static pages to the log page list
+  #define _PAGE(href,name,displayName ...) \
+  extern const unsigned char name##_gz[]; \
+  extern const unsigned int name##_gz_len; \
+  new LogPage(href, name##_gz, name##_gz_len, "" displayName);
+
+    _PAGE("/style.css",SerialUsbLog_style_css)
+    _PAGE("/script1.js",SerialUsbLog_script1_js)
+    _PAGE("/script2.js",SerialUsbLog_script2_js)
+    _PAGE("/script3.js",SerialUsbLog_script3_js)
+    _PAGE("/favicon.ico",SerialUsbLog_favicon_ico)
+    _PAGE("/",SerialUsbLog_html)
+
+    // config dialog sub-pages 
+    _PAGE("/EXNetworkPreferences.html",EXNetworkPreferences_html,"Network Preferences")
+    #ifdef MOTOR_SHIELD_TYPE
+      _PAGE("/Roster.html",Roster_html,"Roster Editor")
+    #endif
+
 }
 
 /**
@@ -310,51 +323,58 @@ int SerialUsbLog::peek() {
   return Serial.peek();
 }
 
-const char htmlHeader[] PROGMEM = 
-  "HTTP/1.1 200 OK\r\n"
-  "Content-Type: text/html; charset=utf-8\r\n"
-  "Cache-Control: no-store\r\n"
-  "Connection: close\r\n\r\n"
-;
 const char jsHeader[] PROGMEM = 
   "HTTP/1.1 200 OK\r\n"
   "Content-Type: text/javascript; charset=utf-8\r\n"
   "Cache-Control: no-store\r\n"
   "Connection: close\r\n\r\n"
   ;
-const char cssHeader[] PROGMEM = 
-  "HTTP/1.1 200 OK\r\n"
-  "Content-Type: text/css; charset=utf-8\r\n"
-  "Cache-Control: no-store\r\n"
-  "Connection: close\r\n\r\n"
-  ;
-const char faviconHeader[] PROGMEM = 
-  "HTTP/1.1 200 OK\r\n"
-  "Content-Type: image/x-icon\r\n"
-  "Cache-Control: public, max-age=86400\r\n"
-  "Connection: close\r\n\r\n"
-  ;
 
-class LogPage{
-  public:
-    static LogPage* first;
-    LogPage* next; 
-    const String path;
-    const String displayName;
-    const char * content;
-    LogPage(const String& _path,const char * _data, const String& _displayName="") : path(_path), displayName(_displayName), content(_data) {
-      next=first;
-      first=this;
-    }
-    void render(Print* targetStream) {
-      if (targetStream==nullptr) return;
-      if (path.endsWith(".css")) targetStream->print(cssHeader);
-      else if (path.endsWith(".js")) targetStream->print(jsHeader);
-      else targetStream->print(htmlHeader);
-      targetStream->print(content);
-    }
-};
-LogPage* LogPage::first = nullptr;
+LogPage::LogPage(const String& _path, const unsigned char * _data, size_t _len,
+    const String& _displayName) 
+  : path(_path), displayName(_displayName), content(_data), content_len(_len) {
+  
+  // pre-calculate the content type based on the file extension
+  contentType = "text/html; charset=utf-8";
+  cacheControl="no-store";
+
+  if (path.endsWith(".css")) contentType = "text/css; charset=utf-8";
+  else if (path.endsWith(".js")) contentType = "text/javascript; charset=utf-8";
+  else if (path.endsWith(".ico")) {
+    contentType = "image/x-icon";
+    cacheControl = "public, max-age=86400";
+  }
+
+  next=first;
+  first=this;
+}
+
+void LogPage::render(Print* stream) {
+  if (stream==nullptr) return;
+  
+  // Send HTTP headers with gzip encoding
+  // Modern browsers will automatically decompress
+  stream->print("HTTP/1.1 200 OK\r\n");
+  stream->print("Content-Type: ");
+  stream->print(contentType);
+  stream->print("; charset=utf-8\r\n");
+  stream->print("Content-Encoding: gzip\r\n");
+  stream->print("Cache-Control: ");
+  stream->print(cacheControl);
+  stream->print("\r\n");
+  stream->print("Connection: close\r\n");
+  stream->print("Content-Length: ");
+  stream->print(content_len);
+  stream->print("\r\n\r\n");
+  
+  // Send compressed data directly
+  for (size_t i = 0; i < content_len; i++) {
+      stream->write(pgm_read_byte(&content[i]));
+  }
+}
+
+
+LogPage * LogPage::first = nullptr;
 
 /**
  * Lightweight HTTP server loop 
@@ -363,24 +383,12 @@ LogPage* LogPage::first = nullptr;
  *  - GET /                : HTML log console (polling)
  *  - GET /log?from=N&chunk=M : returns text/plain chunk and X-Next-Seq header
  */
+
+
 void SerialUsbLog::loop() {
 
   static bool started = false;
-  if (!started && EXNetwork::isUp())
-   {
-    new LogPage("/style.css", SerialUsbLog_style_css);
-    new LogPage("/script1.js", SerialUsbLog_script1_js);
-    new LogPage("/script2.js", SerialUsbLog_script2_js);
-    new LogPage("/script3.js", SerialUsbLog_script3_js);
-    new LogPage("/", SerialUsbLog_html);
-
-    // Add system config menu(s) 
-    new LogPage("/EXNetworkPreferences.html",EXNetworkPreferences_html,"Network Preferences");
-    #ifdef MOTOR_SHIELD_TYPE
-    // MAYBE new LogPage("/DCCACK.html",DCCACK_html,"DCC ACK Preferences");
-    new LogPage("/Roster.html",Roster_html,"Roster Editor");
-    #endif
-    // user pages may be added later with exrail
+  if (!started && EXNetwork::isUp()) { 
     started = true;
     return;
   }
@@ -508,6 +516,16 @@ void SerialUsbLog::loop() {
         client.print("\");\n");
       }
     }
+    for (OtherNode * node = NodeManager::firstOtherNode; node != nullptr; node = node->next) {
+      if (node->name && node->name[0] != '\0') {
+        // window.addNodeMenuItem('Node Name', '192.168.1.100');
+        client.print("window.addNodeMenuItem(\"");
+        client.print(node->name);
+        client.print("\", \"");
+        client.print(node->ipAddress);
+        client.print("\");\n");
+      }
+    }
     client.stop();
     return;
   }
@@ -527,14 +545,7 @@ void SerialUsbLog::loop() {
     return;
   }
 
-  if (path == "/favicon.ico") {
-    client.print(faviconHeader);
-    client.write(favicon_ico, sizeof(favicon_ico));
-    client.stop();
-    return;
-  }
-
-    // try for registered page 
+  // try for registered static pages 
   for (auto page = LogPage::first; page != nullptr; page = page->next) {
     // DIAG(F("SerialUsbLog: %s checking page %s"), path.c_str(), page->path.c_str());
     if (path == page->path) {
@@ -554,8 +565,5 @@ void SerialUsbLog::loop() {
   client.stop();
 }
 
-void SerialUsbLog::addUserPage(const String& path, const char * content, const String& displayname) {
-  // For future expansion: allow user to add custom pages to the web server.
-  new LogPage(path, content,displayname);
-}
+
 // --------------------------- End of SerialUsbLog.cpp ---------------------------

@@ -4,7 +4,7 @@
  *  © 2022 Bruno Sanches
  *  © 2021 Fred Decker
  *  © 2020-2022 Harald Barth
- *  © 2020-2024 Chris Harlow
+ *  © 2020-2026 Chris Harlow
  *  © 2020 Gregor Baues
  *  All rights reserved.
  *  
@@ -38,6 +38,59 @@ extern "C" struct netif gnetif;
 EthernetUDP udpMdns;
 MDNS mdns(udpMdns);
 
+struct UdpListener {
+  EthernetUDP udp;
+  uint16_t port = 0;
+};
+static UdpListener udpListeners[2];
+
+bool EthernetInterface::startUDPListener(const IPAddress &group, uint16_t port) {
+  for (auto &listener : udpListeners) {
+    if (listener.port) continue;
+    if (!listener.udp.beginMulticast(group, port)) {
+      listener.udp.stop();
+      return false;
+    }
+    listener.port = port;
+    return true;
+  }
+  DIAG(F("No free UDP listener for port %d"), port);
+  return false;
+}
+
+void EthernetInterface::stopUDPListeners() {
+  for (auto &listener : udpListeners) {
+    listener.udp.stop();
+    listener.port = 0;
+  }
+}
+
+bool EthernetInterface::receiveUDPPacket(EXNetworkUdpPacket &packet) {
+  for (auto &listener : udpListeners) {
+    if (!listener.port) continue;
+    while (listener.udp.parsePacket() > 0) {
+      int packetSize = listener.udp.available();
+      if (packetSize <= 2) {
+        listener.udp.flush();
+        continue;
+      }
+      int length = listener.udp.read(packet.data, EXNETWORK_UDP_MAX_SIZE);
+      packet.remoteIP = listener.udp.remoteIP();
+      if (length < packetSize) {
+        DIAG(F("Short UDP packet read %d < %d from %s"), length, packetSize,
+             packet.remoteIP.toString().c_str());
+        listener.udp.flush();
+        continue;
+      }
+      packet.length = length;
+      packet.data[length] = 0;
+      packet.localPort = listener.port;
+      return true;
+    }
+  }
+  return false;
+}
+
 bool EthernetInterface::connected=false;
 bool EthernetInterface::isUp() { 
   return connected;
@@ -70,6 +123,11 @@ bool EthernetInterface::setup()
   // but its hash-filter path is unreliable on this MAC. This does not enable
   // promiscuous unicast reception.
   ETH->MACFFR |= (1UL << 4);
+  #endif
+
+  #ifndef ETHERNET_CS_PIN
+  // The link-state handler enables IGMP before multicast listeners are started.
+  Ethernet.schedule();
   #endif
 
   LCD(7, F("IP: %s"), Ethernet.localIP().toString().c_str());

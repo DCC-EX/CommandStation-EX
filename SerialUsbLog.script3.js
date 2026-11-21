@@ -2,7 +2,8 @@
 configuration dialogs. It was written mostly by AI. 
 */
 
-const char SerialUsbLog_script3_js[]=R"???(
+window.name = 'node_' + window.location.hostname;
+
 NVSTable = [];
 function convertNvsInputs(container) {
   const nvsNodes = container.querySelectorAll('nvsinput');
@@ -267,13 +268,76 @@ window.addConfig = function(label, path) {
   });
 };
 
+(function() {
+  const nodesBtn = document.getElementById('nodesBtn');
+  const nodesMenu = document.getElementById('nodesMenu');
+
+  if (!nodesBtn || !nodesMenu) return;
+
+  function setMenuVisible(visible) {
+    nodesMenu.hidden = !visible;
+    nodesBtn.setAttribute('aria-expanded', visible ? 'true' : 'false');
+  }
+
+  nodesBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    setMenuVisible(nodesMenu.hidden);
+  });
+
+  document.addEventListener('click', function() {
+    setMenuVisible(false);
+  });
+
+  nodesMenu.addEventListener('click', function(e) {
+    e.stopPropagation();
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      setMenuVisible(false);
+    }
+  });
+
+  window.addNodeMenuItem = function(nodeName, ipAddress) {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'menu-item';
+    item.textContent = nodeName + ' (' + ipAddress + ')';
+
+    item.addEventListener('click', function(e) {
+      e.stopPropagation();
+      setMenuVisible(false);
+
+      const windowName = 'node_' + nodeName;
+      const openedWindow = window.open('http://' + nodeName, windowName);
+      if (openedWindow) {
+        openedWindow.focus();
+      }
+    });
+
+    nodesMenu.appendChild(item);
+    nodesBtn.hidden = false;
+    return item;
+  };
+
+  window.clearNodesMenu = function() {
+    nodesMenu.innerHTML = '';
+    setMenuVisible(false);
+    nodesBtn.hidden = true;
+  };
+
+  window.setNodesMenuVisible = function(visible) {
+    setMenuVisible(visible);
+  };
+})();
+
 function saveNvsValues() {
   // create a string of nvs id=value from NVSTable up to the last one thats different to NVSTableBefore
   let result = '';
   for (let i = 0; i < NVSTable.length; i++) {
     if (NVSTable[i] !== NVSTableBefore[i]) {
-    result += (i+'=')
-     if (NVSTable[i] === null || NVSTable[i] === undefined) {
+      result += (i+'=');
+      if (NVSTable[i] === null || NVSTable[i] === undefined) {
         result += '0,';
       } else if (typeof NVSTable[i] === 'string') {
         result += '"' + NVSTable[i].replace(/"/g, '\\"') + '",';
@@ -308,4 +372,3 @@ function saveNvsValues() {
       console.error('Failed to save NVS values:', err);
     });
 }
-)???";

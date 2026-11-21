@@ -1069,6 +1069,15 @@ inline int EXTurntable_OB::_read(VPIN vpin) {
   return _stepperStatus;
 }
 
+
+inline void EXTurntable_OB::_broadcastStatus(VPIN vpin, uint8_t status, uint8_t activity) {
+  const uint16_t turntableId = Turntable::getByVpin(vpin);
+  if (turntableId && activity < 4) {
+    Turntable::setMoving(turntableId, status != 0);
+  }
+}
+
+/*
 inline void EXTurntable_OB::_broadcastStatus(VPIN vpin, uint8_t status, uint8_t activity) {
   Turntable *turntable = Turntable::getByVpin(vpin);
   if (turntable && activity < 4) {
@@ -1077,6 +1086,7 @@ inline void EXTurntable_OB::_broadcastStatus(VPIN vpin, uint8_t status, uint8_t 
         turntable->getId(), turntable->getPosition(), status);
   }
 }
+*/
 
 inline void EXTurntable_OB::_writeAnalogue(
     VPIN vpin, int value, uint8_t activity, uint16_t duration) {

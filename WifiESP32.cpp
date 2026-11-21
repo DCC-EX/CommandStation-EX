@@ -28,6 +28,11 @@
 #include "WifiESP32.h"
 #include "DIAG.h"
 #include "EXNetworkPreferences.h"
+extern "C" {
+#include <lwip/igmp.h>
+#include <lwip/priv/tcpip_priv.h>
+#include <lwip/udp.h>
+}
 
 #if __has_include ( "soc/rtc_wdt.h")
 #include <rtc_wdt.h>
@@ -86,6 +91,187 @@ void feedTheDog0(){
 
 static bool APmode = false;
 bool WifiESP::wifiUp = false;
+
+// lwIP invokes UDP callbacks on its TCP/IP task, not from an interrupt.
+struct QueuedUdpPacket {
+  EXNetworkUdpPacket packet;
+  uint32_t generation;
+};
+
+struct UdpListener {
+  udp_pcb *pcb;
+  ip4_addr_t group;
+  uint16_t port;
+};
+
+constexpr size_t UDP_QUEUE_SIZE = 4;
+static QueuedUdpPacket udpPackets[UDP_QUEUE_SIZE];
+static UdpListener udpListeners[2] = {};
+static QueueHandle_t udpFreePackets = nullptr;
+static QueueHandle_t udpPendingPackets = nullptr;
+static portMUX_TYPE udpQueueMux = portMUX_INITIALIZER_UNLOCKED;
+static uint32_t udpGeneration = 0;
+static uint32_t udpDroppedPackets = 0;
+static uint32_t udpLocalAddress = 0;
+static bool udpReceiving = false;
+
+static bool setupUdpQueue() {
+  if (udpFreePackets) return true;
+  udpFreePackets = xQueueCreate(UDP_QUEUE_SIZE, sizeof(QueuedUdpPacket *));
+  udpPendingPackets = xQueueCreate(UDP_QUEUE_SIZE, sizeof(QueuedUdpPacket *));
+  if (!udpFreePackets || !udpPendingPackets) {
+    if (udpFreePackets) vQueueDelete(udpFreePackets);
+    if (udpPendingPackets) vQueueDelete(udpPendingPackets);
+    udpFreePackets = nullptr;
+    udpPendingPackets = nullptr;
+    DIAG(F("UDP receive queue allocation failed"));
+    return false;
+  }
+  for (auto &packet : udpPackets) {
+    QueuedUdpPacket *slot = &packet;
+    xQueueSend(udpFreePackets, &slot, 0);
+  }
+  return true;
+}
+
+static void queueUdpPacket(void *arg, udp_pcb *, pbuf *packet, const ip_addr_t *remoteIP, u16_t) {
+  portENTER_CRITICAL(&udpQueueMux);
+  bool receiving = udpReceiving;
+  uint32_t generation = udpGeneration;
+  uint32_t localAddress = udpLocalAddress;
+  portEXIT_CRITICAL(&udpQueueMux);
+  if (!receiving || packet->tot_len <= 2 || !IP_IS_V4(remoteIP) ||
+      ip4_addr_get_u32(ip_2_ip4(remoteIP)) == localAddress) {
+    pbuf_free(packet);
+    return;
+  }
+
+  QueuedUdpPacket *slot;
+  if (packet->tot_len > EXNETWORK_UDP_MAX_SIZE ||
+      xQueueReceive(udpFreePackets, &slot, 0) != pdTRUE) {
+    portENTER_CRITICAL(&udpQueueMux);
+    ++udpDroppedPackets;
+    portEXIT_CRITICAL(&udpQueueMux);
+    pbuf_free(packet);
+    return;
+  }
+  slot->packet.length = packet->tot_len;
+  slot->packet.remoteIP = IPAddress(ip4_addr_get_u32(ip_2_ip4(remoteIP)));
+  u16_t copied = pbuf_copy_partial(packet, slot->packet.data, slot->packet.length, 0);
+  pbuf_free(packet);
+  if (copied != slot->packet.length) {
+    xQueueSend(udpFreePackets, &slot, 0);
+    portENTER_CRITICAL(&udpQueueMux);
+    ++udpDroppedPackets;
+    portEXIT_CRITICAL(&udpQueueMux);
+    return;
+  }
+  slot->packet.data[slot->packet.length] = 0;
+  slot->packet.localPort = static_cast<UdpListener *>(arg)->port;
+  slot->generation = generation;
+  if (xQueueSend(udpPendingPackets, &slot, 0) != pdTRUE) {
+    xQueueSend(udpFreePackets, &slot, 0);
+    portENTER_CRITICAL(&udpQueueMux);
+    ++udpDroppedPackets;
+    portEXIT_CRITICAL(&udpQueueMux);
+  }
+}
+
+struct UdpListenerCall {
+  tcpip_api_call_data call;
+  UdpListener *listener;
+  ip4_addr_t group;
+};
+
+static err_t startUdpListenerOnTcpip(tcpip_api_call_data *call) {
+  auto *request = reinterpret_cast<UdpListenerCall *>(call);
+  UdpListener *listener = request->listener;
+  listener->pcb = udp_new();
+  if (!listener->pcb) return ERR_MEM;
+  err_t result = udp_bind(listener->pcb, IP_ADDR_ANY, listener->port);
+  ip4_addr_t anyAddress;
+  ip4_addr_set_any(&anyAddress);
+  if (result == ERR_OK) result = igmp_joingroup(&anyAddress, &request->group);
+  if (result != ERR_OK) {
+    udp_remove(listener->pcb);
+    listener->pcb = nullptr;
+    return result;
+  }
+  listener->group = request->group;
+  udp_recv(listener->pcb, queueUdpPacket, listener);
+  return ERR_OK;
+}
+
+bool WifiESP::startUDPListener(const IPAddress &group, uint16_t port) {
+  if (!setupUdpQueue()) return false;
+  UdpListener *listener = nullptr;
+  for (auto &candidate : udpListeners) {
+    if (!candidate.pcb) {
+      listener = &candidate;
+      break;
+    }
+  }
+  if (!listener) {
+    DIAG(F("No free UDP listener for port %d"), port);
+    return false;
+  }
+  listener->port = port;
+  uint32_t localAddress = static_cast<uint32_t>(getIPAddress());
+  portENTER_CRITICAL(&udpQueueMux);
+  udpLocalAddress = localAddress;
+  udpReceiving = true;
+  portEXIT_CRITICAL(&udpQueueMux);
+  UdpListenerCall request = {};
+  request.listener = listener;
+  IP4_ADDR(&request.group, group[0], group[1], group[2], group[3]);
+  return tcpip_api_call(startUdpListenerOnTcpip, &request.call) == ERR_OK;
+}
+
+static err_t stopUdpListenersOnTcpip(tcpip_api_call_data *) {
+  err_t result = ERR_OK;
+  ip4_addr_t anyAddress;
+  ip4_addr_set_any(&anyAddress);
+  for (auto &listener : udpListeners) {
+    if (!listener.pcb) continue;
+    err_t leaveResult = igmp_leavegroup(&anyAddress, &listener.group);
+    if (leaveResult != ERR_OK) result = leaveResult;
+    udp_remove(listener.pcb);
+    listener.pcb = nullptr;
+  }
+  return result;
+}
+
+void WifiESP::stopUDPListeners() {
+  portENTER_CRITICAL(&udpQueueMux);
+  udpReceiving = false;
+  ++udpGeneration;
+  portEXIT_CRITICAL(&udpQueueMux);
+  if (udpListeners[0].pcb || udpListeners[1].pcb) {
+    tcpip_api_call_data request = {};
+    if (tcpip_api_call(stopUdpListenersOnTcpip, &request) != ERR_OK) {
+      DIAG(F("UDP multicast leave failed"));
+    }
+  }
+}
+
+bool WifiESP::receiveUDPPacket(EXNetworkUdpPacket &packet) {
+  portENTER_CRITICAL(&udpQueueMux);
+  uint32_t dropped = udpDroppedPackets;
+  udpDroppedPackets = 0;
+  portEXIT_CRITICAL(&udpQueueMux);
+  if (dropped) DIAG(F("UDP receiver dropped %L packets (invalid or queue full)"), (unsigned long)dropped);
+
+  QueuedUdpPacket *slot;
+  while (udpPendingPackets && xQueueReceive(udpPendingPackets, &slot, 0) == pdTRUE) {
+    portENTER_CRITICAL(&udpQueueMux);
+    bool current = udpReceiving && slot->generation == udpGeneration;
+    portEXIT_CRITICAL(&udpQueueMux);
+    if (current) packet = slot->packet;
+    xQueueSend(udpFreePackets, &slot, 0);
+    if (current) return true;
+  }
+  return false;
+}
 
 #ifdef WIFI_LED
 int16_t WifiESP::wifiLed = WIFI_LED;
