@@ -63,6 +63,7 @@ class TrackManager {
     static MotorDriver * getProgDriver();
 #ifdef ARDUINO_ARCH_ESP32
     static std::vector<MotorDriver *>getMainDrivers();
+    static std::vector<MotorDriver *>getBoostDrivers();
 #endif
   
     static void setPower(POWERMODE mode) {setMainPower(mode); setProgPower(mode);}

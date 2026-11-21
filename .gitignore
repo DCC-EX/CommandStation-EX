@@ -14,4 +14,4 @@ UserAddin.txt
 _build
 venv
 .DS_Store
-.pio-mcp-workspace
+*_gz.cpp

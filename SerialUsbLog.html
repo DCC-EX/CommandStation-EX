@@ -1,4 +1,3 @@
-const char SerialUsbLog_html[]=R"???(
 <!doctype html><html><head>
       <meta name=viewport content='width=device-width,initial-scale=1'>
       <title>DCC-EX Server Log</title>
@@ -11,6 +10,11 @@ const char SerialUsbLog_html[]=R"???(
         <div class="menu-wrap">
           <button id=configsBtn type="button" aria-haspopup="true" aria-expanded="false">Configs</button>
           <div id=configsMenu class="menu" role="menu" hidden></div>
+        </div>
+
+        <div class="menu-wrap">
+          <button id=nodesBtn type="button" aria-haspopup="true" aria-expanded="false" hidden>Nodes</button>
+          <div id=nodesMenu class="menu" role="menu" hidden></div>
         </div>
 
         <button id=pause>Pause</button>
@@ -38,4 +42,3 @@ const char SerialUsbLog_html[]=R"???(
       <script src="/script3.js" defer></script>
       <script src="/configs.js" defer></script>
 </body></html>
-)???";

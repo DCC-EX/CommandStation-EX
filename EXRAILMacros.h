@@ -221,9 +221,21 @@ bool exrailHalSetup1() {
 #define VIRTUAL_TURNOUT(id,description...) VpinTurnout::create(id,0)->setRamDescription(S_DESC(description));
 #undef CONFIGURE_DIALOG
 #define CONFIGURE_DIALOG(title,body) {\
-   extern const char  body##_html[];\
-   SerialUsbLog::addUserPage("/" #body ".html",body##_html,title);\
-}
+  extern const unsigned char  body##_html_gz[];\
+  extern const unsigned int body##_html_gz_len;\
+  new LogPage("/" #body ".html",body##_html_gz,body##_html_gz_len,title);\
+  extern __attribute__((weak)) const unsigned char  body##_css_gz[];\
+  if (&body##_css_gz != nullptr) {\
+    extern __attribute__((weak)) const unsigned int body##_css_gz_len;\
+    new LogPage("/" #body ".css",body##_css_gz,body##_css_gz_len);\
+  }\
+  extern __attribute__((weak)) const unsigned char  body##_js_gz[];\
+  if (&body##_js_gz != nullptr) {\
+    extern __attribute__((weak)) const unsigned int body##_js_gz_len;\
+    new LogPage("/" #body ".js",body##_js_gz,body##_js_gz_len);\
+  }\
+  }
+
 // Sensors created here 
 #undef REMOTE_SENSOR
 #define REMOTE_SENSOR(sharedVpin,count) \

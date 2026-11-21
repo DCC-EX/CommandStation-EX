@@ -23,9 +23,36 @@
 #include "StringFormatter.h"
 #include "DIAG.h"
 #include "Turnouts.h"
+#include "EXNetworkPreferences.h"
 
 
 bool NodeManager::enabled = false;
+OtherNode * NodeManager::firstOtherNode = nullptr;
+
+void NodeManager::addOtherNode(const char * name, const char * ipAddress) {
+    for (OtherNode * node = firstOtherNode; node != nullptr; node = node->next) {
+        if (strcmp(node->name, name) == 0 && strcmp(node->ipAddress, ipAddress) == 0) {
+            return; // Node already exists
+        }
+    }
+
+    OtherNode * node = new OtherNode();
+    strncpy(node->name, name, sizeof(node->name) - 1);
+    node->name[sizeof(node->name) - 1] = '\0';
+    strncpy(node->ipAddress, ipAddress, sizeof(node->ipAddress) - 1);
+    node->ipAddress[sizeof(node->ipAddress) - 1] = '\0';
+    node->next = firstOtherNode;
+    firstOtherNode = node;
+}
+
+void NodeManager::shareNodeNameToCS() {
+    cast(F("<N \"%s\" \"%d.%d.%d.%d\">"), 
+         EXNetworkPreferences::getHostName(),
+         EXNetwork::getMyIPAddress()[0], EXNetwork::getMyIPAddress()[1],
+         EXNetwork::getMyIPAddress()[2], EXNetwork::getMyIPAddress()[3]);
+}
+
+
 void NodeManager::setup(bool enabledFlag) {
     enabled = enabledFlag;
 }

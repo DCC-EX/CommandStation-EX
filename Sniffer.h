@@ -1,5 +1,5 @@
 /*
- *  © 2025 Harald Barth
+ *  © 2025-2026 Harald Barth
  *  
  *  This file is part of CommandStation-EX
  *
@@ -20,7 +20,12 @@
 #include <Arduino.h>
 #include <list>
 
-#define MAXDCCPACKETLEN 8
+// Long packet (15+checksum instead of 7+checksum) sniffing needed to
+// detect end packet bit on long packets so we can put a cutout into
+// the next packet after a long one. The bitfield is still 64 bits so
+// we can not decode the long packet even if we see that we have
+// received one. That's a "todo" if necessary.
+#define MAXDCCPACKETLEN 16
 #include "DCCPacket.h"
 
 class Sniffer {

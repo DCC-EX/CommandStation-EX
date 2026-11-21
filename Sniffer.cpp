@@ -157,6 +157,8 @@ bool Sniffer::inputActive(){
   return false;
 }
 
+extern void IRAM_ATTR interruptSniffer(bool state, bool negfirst);
+
 void IRAM_ATTR Sniffer::processInterrupt(uint32_t capticks, bool posedge) {
   byte bit = 0;
   diffticks = capticks - lastticks;
@@ -196,8 +198,25 @@ void IRAM_ATTR Sniffer::processInterrupt(uint32_t capticks, bool posedge) {
       halfbitcounter = 18; // count 18 steps from 17 to 0 and then look at the byte
       return;
     }
+    if (!inpacket) {
+      halfbitcounter++;
+      if (halfbitcounter == 1)
+	interruptSniffer(false, posedge /*don't care if first arg is false*/);
+    }
     if (inpacket) {
       halfbitcounter--;
+      if (halfbitcounter == 1) {
+	// now we are in the middle of either the
+	// byte end bit or the packet end bit
+	// if posedge is false here then the first
+	// half of the bit was positive
+	// if posedge is true then the first
+        // half of the bit was negative/zero
+	if (bitfield & 1) {
+	  // next flank should be start of second half of end packet bit
+	  interruptSniffer(true, posedge);
+	}
+      }
       if (halfbitcounter) {
 	return; // wait until we have full byte
       } else {

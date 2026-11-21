@@ -203,7 +203,7 @@ bool TrackManager::orTrackMode(byte trackToSet,TRACK_MODE mode) {
   if (trackToSet>lastTrack || track[trackToSet]==NULL) return false;
   TRACK_MODE oldmode = track[trackToSet]->getMode();
   // sanity checks what can be added on
-  if ((mode & TRACK_MODIFIER_RAILCOM) && !(oldmode & (TRACK_MODE_MAIN))) // todo BOOST
+  if ((mode & TRACK_MODIFIER_RAILCOM) && !(oldmode & (TRACK_MODE_MAIN|TRACK_MODE_BOOST)))
     return false;
   if ((mode & TRACK_MODIFIER_AUTO) && !(oldmode & (TRACK_MODE_MAIN|TRACK_MODE_BOOST)))
     return false;
@@ -492,6 +492,12 @@ std::vector<MotorDriver *>TrackManager::getMainDrivers() {
   std::vector<MotorDriver *>  v;
   FOR_EACH_TRACK(t)
     if (track[t]->getMode() & TRACK_MODE_MAIN) v.push_back(track[t]);
+  return v;
+}
+std::vector<MotorDriver *>TrackManager::getBoostDrivers() {
+  std::vector<MotorDriver *>  v;
+  FOR_EACH_TRACK(t)
+    if (track[t]->getMode() & TRACK_MODE_BOOST) v.push_back(track[t]);
   return v;
 }
 #endif
