@@ -128,6 +128,18 @@ The active state of the relay
 default is active high
 
 
+Turntable full step count, this can be set on the brower configuration page.  Not really needed as calibration function does this.
+
+`EX_TURNTABLE_FULL_STEP_COUNT`
+
+default 0
+
+
+
+
+The following can all be set via the browser configuration page.
+
+
 The maximum speed for the stepper motor
 
 `EX_TURNTABLE_MAX_SPEED`
@@ -135,7 +147,7 @@ The maximum speed for the stepper motor
 defalut is 200, for a direct drive stepper motor this is a scale realistic value if you are using a geared turntable you probably want to increase this.
 
 
-The acceleration rate fo the stepper motor
+The acceleration rate for the stepper motor
 
 `EX_TURNTABLE_ACCELERATION`
 
@@ -170,33 +182,26 @@ For geared turntables, this is included as it is part of the original EX-Turntab
 default 1
 
 
-Led slow flash rate in milliseconds, this can be set on the browser configuration page
+Led slow flash rate in milliseconds
 
 `EX_TURNTABLE_LED_SLOW_MS`
 
 default 500mS
 
 
-Led fast flash rate in milliseconds, this can be set on the browser configuration page
+Led fast flash rate in milliseconds
 
 `EX_TURNTABLE_LED_FAST_MS`
 
 default 100mS
 
 
-Home/Limit sensor debounce time in milliseconds, this can be set on the browser configuration page.
+Home/Limit sensor debounce time in milliseconds
 
 `EX_TURNTABLE_DEBOUNCE_MS`
 
 default 0  for turntable mode
 default 10  for traverser mode
-
-Turntable full step count, this can be set on the brower configuration page.  Not really needed as calibration function does this.
-
-`EX_TURNTABLE_FULL_STEP_COUNT`
-
-default 0
-
 
 
 Traverser mode
@@ -218,6 +223,7 @@ Turntable move forward (clockwise) only
 `EX_TURNTABLE_ROTATE_FORWARD_ONLY`
 
 default not defined
+
 
 Turntable move reverse (anti-clockwise) only
 
