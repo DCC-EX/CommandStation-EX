@@ -1,5 +1,6 @@
 /*
  *  © 2026 Chris Harlow
+ *  © 2026 Mathew Winters
  *
  *  This file is part of CommandStation-EX
  *
@@ -30,8 +31,12 @@
 bool EXNetworkPreferences::load() {
   auto hostName=NVSTable::getTextNVS(SystemPreferences::hostName);
   if (hostName[0]==0) {
+#ifdef DCCHOSTNAME
+    NVSTable::setNVS(SystemPreferences::hostName, DCCHOSTNAME,false);
+#else
     // We have not been here before, set all non ""/0 defaults 
     NVSTable::setNVS(SystemPreferences::hostName, "DCC-EX",false);
+#endif
     NVSTable::setNVS(SystemPreferences::enabled, true,false);
   #ifdef ARDUINO_ARCH_ESP32
     NVSTable::setNVS(SystemPreferences::channelAP, 11,false);
@@ -41,6 +46,10 @@ bool EXNetworkPreferences::load() {
     NVSTable::setNVS(SystemPreferences::nodeGroup, 254,false); // default node group
     NVSTable::save();
   }
+#ifdef DCCHOSTNAME
+  NVSTable::setNVS(SystemPreferences::hostName, DCCHOSTNAME,false);
+  NVSTable::save();
+#endif
   if (NVSTable::getNVS(SystemPreferences::nodeGroup,true) == 0) {
     NVSTable::setNVS(SystemPreferences::nodeGroup, 254,false);
     NVSTable::save();
