@@ -300,7 +300,7 @@ until restart and should instead be supplied through `FULL_STEP_COUNT` or
 
 | NVS ID | Setting | Value |
 | --- | --- | --- |
-| 0 | EX-Turntable address | Virtual pin (vpin) where the device is located |
+| 0 | EX-Turntable address | id for the turntable in EX-Rail |
 | 1 | Step pin | Step/ pulse output pin |
 | 2 | Direction pin | Direction output pin |
 | 3 | Enable pin | Stepper driver enable pin |
@@ -331,6 +331,7 @@ until restart and should instead be supplied through `FULL_STEP_COUNT` or
 | 31 | Invert enable | 1 = enabled, 2 = disabled |
 | 32 | Keep stepper outputs enabled at idle | 1 = enabled, 2 = disabled |
 | 33 | Extra outputs enabled | 1 = enabled, 2 = disabled |
+| 34 | Turntable description | Description used in EX-Rail |
 
 Boolean settings use 1/2 rather than 1/0 because the NVS table does not retain zero-valued entries.
 
