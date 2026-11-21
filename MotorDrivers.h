@@ -124,6 +124,14 @@
  new MotorDriver(25/* 3*/, 19/*12*/, UNUSED_PIN, 13/*9*/, 35/*A2*/, 0.70, 1500, UNUSED_PIN), \
  new MotorDriver(23/*11*/, 18/*13*/, UNUSED_PIN, 12/*8*/, 34/*A3*/, 0.70, 1500, UNUSED_PIN)
 
+// STANDARD shield on an ACEBOTT ESP32-Max-V1.0 (another ESP32 in Uno form factor).
+// The shield must be eiter the 3.3V compatible R3 version or it has to be modified to not
+// supply more than 3.3V to the analog inputs. The numbers below are the actual GPIO numbers.
+// In comments the numbers the pins have on an Uno.
+#define ACEBOTT_WITH_STANDARD_MOTOR_SHIELD F("STANDARD_MOTOR_SHIELD on ACEBOTT ESP32-Max-V1.0"), \
+ new MotorDriver(26/* 3*/, 16/*12*/, UNUSED_PIN, 19/*9*/, 32/*A2*/, 0.70, 1500, UNUSED_PIN), \
+ new MotorDriver(17/*11*/, 05/*13*/, UNUSED_PIN, 23/*8*/, 33/*A3*/, 0.70, 1500, UNUSED_PIN)
+
 // EX 8874 based shield connected to a 3.3V system (like ESP32) and 12bit (4096) ADC
 // numbers are GPIO numbers. comments are UNO form factor shield pin numbers
 #define EX8874_SHIELD F("EX8874"),\
