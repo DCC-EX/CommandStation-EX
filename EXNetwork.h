@@ -1,5 +1,7 @@
 /*
  *  © 2026 Chris Harlow
+ *  © 2026 Mathew Winters
+ * 
  *  All rights reserved.
  *  
  *  This file is part of CommandStation-EX
@@ -19,20 +21,16 @@
  */
 #ifndef EXNetwork_h
 #define EXNetwork_h
-#ifdef ARDUINO_ARCH_ESP32
-  #include "WifiESP32.h"
-  #include <WiFiUdp.h>
-  typedef WiFiClient EXNetworkClient;
-  typedef WiFiServer EXNetworkServer;
-  typedef WiFiUDP EXNetworkUDPTx;
-  #define _SHIM_ WifiESP
-  #else 
-  #include "EthernetInterface.h"
-  typedef EthernetClient EXNetworkClient;
-  typedef EthernetServer EXNetworkServer;
-  typedef EthernetUDP  EXNetworkUDPTx;
-  #define _SHIM_ EthernetInterface
-  #endif
+#include "defines.h"
+#if defined(ARDUINO_ARCH_ESP32)
+#include "EXNetworkESP32.h"
+#else
+#include "EthernetInterface.h"
+typedef EthernetClient EXNetworkClient;
+typedef EthernetServer EXNetworkServer;
+typedef EthernetUDP EXNetworkUDPTx;
+#define _SHIM_ EthernetInterface
+#endif
 
 class EXNetwork {
 public:
@@ -46,6 +44,9 @@ public:
   static IPAddress getMyIPAddress();
 private:
   static bool sendUDP(const IPAddress &ip, uint16_t port, const uint8_t *data, size_t len);
+#if defined(ARDUINO_ARCH_ESP32)
+  static void restartEthernetServices();
+#endif
   static void processUdpPacket(byte *data, size_t length, const IPAddress &remoteIP, uint16_t localPort);
   static IPAddress myipaddress;
 };

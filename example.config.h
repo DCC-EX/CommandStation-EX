@@ -304,4 +304,31 @@ The configuration file for DCC-EX Command Station
 // For smoother power-up, when using the CAM, you may need a STARTUP_DELAY.
 // That is described further above.
 //
+
+/////////////////////////////////////////////////////////////////////////////////////
+//
+// ESP32 probes for a W5500 before starting WiFi. These pins default to the
+// EX-CSB1 wiring and can be overridden for other ESP32/W5500 boards.
+#if defined(ARDUINO_ARCH_ESP32)
+  #ifndef ETHERNET_CS_PIN
+    #define ETHERNET_CS_PIN   5
+  #endif
+  #ifndef ETHERNET_SCK_PIN
+    #define ETHERNET_SCK_PIN  18
+  #endif
+  #ifndef ETHERNET_MISO_PIN
+    #define ETHERNET_MISO_PIN 16
+  #endif
+  #ifndef ETHERNET_MOSI_PIN
+    #define ETHERNET_MOSI_PIN 17
+  #endif
+  #ifndef ETHERNET_RST_PIN
+    #define ETHERNET_RST_PIN  4
+  #endif
+  // Disable hardware reset handling with -DETHERNET_RST_PIN=-1.
+#endif
+
+// Set OTA_AUTH to a password to secure OTA updates. Update the upload --auth
+// flag in your PlatformIO environment to match, or comment both out to disable authorization.
+#define OTA_AUTH "dccex-ota"
 /////////////////////////////////////////////////////////////////////////////////////

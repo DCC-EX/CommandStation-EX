@@ -1,5 +1,7 @@
 /*
  *  © 2026 Chris Harlow with help from AI
+ *  © 2026 Mathew Winters
+ * 
  *  All rights reserved.
  *  
  *  This file is part of CommandStation-EX
@@ -26,6 +28,12 @@
 #include "WiThrottle.h"
 #include "Websockets.h"
 #include "EXNetworkPreferences.h"
+#ifdef ARDUINO_ARCH_ESP32
+#if __has_include(<esp_arduino_version.h>)
+#include <esp_arduino_version.h>
+#endif
+#include "EthernetOTA.h"
+#endif
 
 #ifndef IP_PORT
 #define IP_PORT 2560
@@ -82,7 +90,7 @@ public:
     return true;
   }
   bool recycle(EXNetworkClient c) {
-    if (client == c) {
+    if (client.operator==(c)) {
       // ESP32: caller will warn about duplicate clients/recycling
       // STM32: this is normal behavior due to .available() returning clients with unread data.
       inUse = true;
@@ -102,6 +110,34 @@ private:
   bool inUse;
 };
 static std::vector<exNetworkClient> throttleClients; // A list to hold all clients.
+
+#ifdef ARDUINO_ARCH_ESP32
+void EXNetwork::restartEthernetServices() {
+  DIAG(F("Ethernet service recovery starting: hardware %d, IP %s"),
+       Ethernet.hardwareStatus(), EthernetInterface::getIPAddress().toString().c_str());
+  while (!throttleClients.empty()) {
+    const auto clientId = static_cast<byte>(throttleClients.size() - 1);
+    CommandDistributor::forget(clientId);
+    throttleClients.pop_back();
+  }
+
+  myipaddress = EthernetInterface::getIPAddress();
+  throttleMulticastIP[3] = myipaddress[3];
+  udpDiscoveryClients.clear();
+
+  udpTx.stop();
+  const bool txStarted = udpTx.begin(0);
+  const bool throttleStarted = _SHIM_::startUDPListener(throttleMulticastIP, IP_PORT);
+  const bool nodeStarted = _SHIM_::startUDPListener(nodeMulticastIP, NODE_PORT);
+  DIAG(F("Ethernet socket recovery results: tx %d, throttle multicast %d, node multicast %d"),
+       txStarted, throttleStarted, nodeStarted);
+
+  EthernetInterface::restartMDNS();
+  EthernetOTA.networkRestored();
+  DIAG(F("Ethernet service recovery complete: IP %s"),
+       EthernetInterface::getIPAddress().toString().c_str());
+}
+#endif
 
 IPAddress EXNetwork::myipaddress = { 0 , 0 , 0 , 0 };
 
@@ -170,6 +206,9 @@ void EXNetwork::setup() {
     _SHIM_::addServiceTxt("dcc-ex", "udp", "group", throttleMulticastIP.toString().c_str());
     _SHIM_::addServiceTxt("dcc-ex", "udp", "port", String(IP_PORT).c_str());
   #endif
+#ifdef ARDUINO_ARCH_ESP32
+  EthernetOTA.begin<_SHIM_>();
+#endif
 }
 
 bool EXNetwork::isUp() { return _SHIM_::isUp(); }
@@ -235,6 +274,20 @@ void EXNetwork::processUdpPacket(byte *data, size_t length, const IPAddress &rem
 
 void EXNetwork::loop() {
   _SHIM_::loop(); // Wi-Fi/Ethernet continuous support.
+#ifdef ARDUINO_ARCH_ESP32
+  if (exNetworkUsingEthernet) {
+    if (EthernetInterface::takeLinkLost()) {
+      DIAG(F("Ethernet link down confirmed; emergency-stopping all locos"));
+      DCC::estopAll();
+      // W5500 sends IGMP leaves on close. Close while the link is down so
+      // recovery sends fresh joins without first sending leaves on the restored link.
+      _SHIM_::stopUDPListeners();
+    }
+    if (EthernetInterface::takeLinkRestored()) {
+      restartEthernetServices();
+    }
+  }
+#endif
   if (!isUp()) return;
   
   // Track new socket clients. 
@@ -243,7 +296,7 @@ void EXNetwork::loop() {
 
   size_t clientId; // internal id to be used in ringstream operations.
   EXNetworkClient client;
-  if (client = throttleServer.available()) {
+  if ((client = throttleServer.available())) {
 
     // Work out the clientId for this client and recycle or create a new throttleClients entry as needed.
     // ESP32: recycling a client happens only once per client connect.
@@ -326,6 +379,10 @@ void EXNetwork::loop() {
       DIAG(F("Non existent client %d has message: %s"), clientId, buffer + wsHeaderLen);
     }
   }
+
+#ifdef ARDUINO_ARCH_ESP32
+  EthernetOTA.loop();
+#endif
 }
 
 
@@ -351,5 +408,11 @@ void EXNetwork::teardown() {
 }
 
 bool EXNetwork::sendUDP(const IPAddress &ip, uint16_t port, const uint8_t *data, size_t len) {
-  return isUp() && udpTx.beginPacket(ip, port) && udpTx.write(data, len) && udpTx.endPacket();
+  if (!isUp()) return false;
+#ifdef ARDUINO_ARCH_ESP32
+  if (exNetworkUsingEthernet && ip[0] >= 224 && ip[0] <= 239) {
+    return EthernetInterface::sendUDPMulticast(ip, port, data, len);
+  }
+#endif
+  return udpTx.beginPacket(ip, port) && udpTx.write(data, len) && udpTx.endPacket();
 }

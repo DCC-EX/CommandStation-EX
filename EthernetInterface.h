@@ -1,4 +1,5 @@
 /*
+ *  © 2026 Mathew Winters
  *  © 2023-2024 Paul M. Antoine
  *  © 2021 Neil McKechnie
  *  © 2021 Mike S
@@ -29,10 +30,23 @@
 
 #ifndef EthernetInterface_h
 #define EthernetInterface_h
-#if defined (ARDUINO_ARCH_STM32)
+#if defined(ARDUINO_ARCH_STM32) || defined(ARDUINO_ARCH_ESP32)
 #include "defines.h"
 #include <Arduino.h>
 
+#if defined(ARDUINO_ARCH_ESP32)
+#include <SPI.h>
+#include <Ethernet.h>
+#include <EthernetUdp.h>
+
+class EthernetServerESP32 : public EthernetServer {
+ public:
+  explicit EthernetServerESP32(uint16_t port) : EthernetServer(port) {}
+  using EthernetServer::begin;
+  void begin(uint16_t) { EthernetServer::begin(); }
+  void end() {}
+};
+#else
 #if __has_include ( "STM32Ethernet.h")
   // Nucleo devices with builtin ethernet
   // Refer to platformio.ini library configs
@@ -45,11 +59,14 @@
   #define ETHERNET_CS_PIN 10
   #include <Ethernet.h>
 #endif
+#endif
 
 #include <EthernetUdp.h>
 #include "EXNetworkUdp.h"
 
+#if defined(ARDUINO_ARCH_STM32)
 extern "C" struct netif gnetif;
+#endif
 
 class EthernetInterface {
 
@@ -62,6 +79,12 @@ class EthernetInterface {
   static void setupMDNS();
   static void addService(const char *name, const char *proto, uint16_t port);
   static void addServiceTxt(const char *name, const char *proto, const char *key, const char *value);
+#if defined(ARDUINO_ARCH_ESP32)
+  static bool takeLinkLost();
+  static bool takeLinkRestored();
+  static void restartMDNS();
+  static bool sendUDPMulticast(const IPAddress &group, uint16_t port, const uint8_t *data, size_t len);
+#endif
   static void teardown();
   static bool startUDPListener(const IPAddress &ip, uint16_t port);
   static void stopUDPListeners();
@@ -71,5 +94,5 @@ class EthernetInterface {
     static bool connected;
     
 };
-#endif // ETHERNET_ON
+#endif // ARDUINO_ARCH_STM32 || ARDUINO_ARCH_ESP32
 #endif
