@@ -27,6 +27,7 @@
 #include <WiFi.h>
 #include <AsyncUDP.h>
 #include "FSH.h"
+#include "EXNetworkUdp.h"
 
 class WifiESP
 {
@@ -39,6 +40,9 @@ public:
   static void addService(const char *name, const char *proto, uint16_t port);
   static void addServiceTxt(const char *name, const char *proto, const char *key, const char *value);
   static void teardown();
+  static bool startUDPListener(const IPAddress &group, uint16_t port);
+  static void stopUDPListeners();
+  static bool receiveUDPPacket(EXNetworkUdpPacket &packet);
   
   private:
   static bool setupFromPreferences();

@@ -55,7 +55,13 @@ void DCCWaveform::begin() {
     // if RC and so on XXX
     TRACK_MODE m = md->getMode();
     if (m & TRACK_MODIFIER_RAILCOM) {
-      rmtMainChannel->addRCPin(md->getBrakePinSigned());
+      rmtMainChannel->addRCPin(md->getBrakePinSigned(), false /* not booster */);
+    }
+  }
+  for(const auto& md: TrackManager::getBoostDrivers()) {   // not sure if this should be here
+    TRACK_MODE m = md->getMode();
+    if (m & TRACK_MODIFIER_RAILCOM) {
+      rmtMainChannel->addRCPin(md->getBrakePinSigned(), true /* booster */);
     }
   }
   MotorDriver *md = TrackManager::getProgDriver();

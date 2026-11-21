@@ -25,6 +25,13 @@
 #include "StringBuffer.h"
 #include "IODevice.h"
 
+class OtherNode {
+    public:
+        char name[32];
+        char ipAddress[16];
+        OtherNode * next;
+};
+
 class NodeManager {
     public:
         static void setup(bool enabled);
@@ -35,7 +42,11 @@ class NodeManager {
         static void castSensorChange(char cmd, VPIN vpin);
         static void parse(byte * cmd);
         static bool isEnabled();
+        static OtherNode * firstOtherNode;
+        static void shareNodeNameToCS();
+        static void addOtherNode(const char * name, const char * ipAddress);
    private:
         static bool enabled;
+
 };
 #endif // NODEMANAGER_H
