@@ -1,7 +1,7 @@
 /* this is the first attempt at managing a popup menu to list available 
 configuration dialogs. It was written mostly by AI. 
 */
-
+const char SerialUsbLog_script3_js[] = R"???(
 window.name = 'node_' + window.location.hostname;
 
 NVSTable = [];
@@ -372,3 +372,4 @@ function saveNvsValues() {
       console.error('Failed to save NVS values:', err);
     });
 }
+)???";
