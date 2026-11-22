@@ -46,7 +46,7 @@ fi
 if [ x$DISPLAY != x ] ; then
     # we have DISPLAY, do the graphic thing
     need python3-tk
-    need python3.8-venv
+    need python3-venv
     mkdir -p ~/ex-installer/venv
     python3 -m venv ~/ex-installer/venv
     cd ~/ex-installer/venv || exit 255
