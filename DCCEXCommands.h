@@ -44,6 +44,7 @@ The REPLY( format, ...) macro sends a formatted string to the stream.
 These macros are included into the DCCEXParser::execute function so
   stream, ringStream and other DCCEXParser variables are available in context. */
  
+extern int startupLoopCounter;
 
 ZZBEGIN
 ZZ(#) // Request number of simultaneously supported locos
@@ -404,6 +405,7 @@ ZZ_nodoc(C,WIFI,ON) // Enable Wifi
         if (!exNetworkUsingEthernet) {
 					EXNetwork::teardown();
 					EXNetwork::setup();
+          if (EXNetwork::isUp()) startupLoopCounter = 0;
 				}
 ZZ(C,WIFI,HOSTNAME,hostname) // (deprecated, use C,HOSTNAME,hostname instead)
   CHECKQ(hostname)
@@ -493,6 +495,7 @@ ZZ_nodoc(C,ETHERNET,ON) // Enable Ethernet
         EXNetworkPreferences::saveThrottleNode(true);
         EXNetwork::teardown();
         EXNetwork::setup();
+        if (EXNetwork::isUp()) startupLoopCounter = 0;
 ZZ(D,ETHERNET,SHOW) // @V6 Show Ethernet status
   EXNetworkPreferences::dump(stream);
 

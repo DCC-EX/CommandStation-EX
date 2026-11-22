@@ -25,7 +25,9 @@
 #define EXmDNS_h
 
 #include "defines.h"
-#if defined(ARDUINO_ARCH_STM32) || defined(ARDUINO_ARCH_ESP32)
+#include "EthernetInterface.h"
+
+#if defined(HAS_ETHERNET)
 #define BROADCASTTIME 15 //seconds
 
 // We do this ourselves because every library is different and/or broken...
@@ -66,6 +68,6 @@ private:
   void sendServiceAnnounce(ServiceRecord &service);
   void processQueries();
 };
-#endif // ARDUINO_ARCH_STM32 || ARDUINO_ARCH_ESP32
+#endif // HAS_ETHERNET
 
 #endif

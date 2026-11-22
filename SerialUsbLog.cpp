@@ -72,6 +72,7 @@
 SerialUsbLog SerialLog(LOG_BUFFER);
 StringBuffer dummyClient(2048); // buffering client for response construction
 
+#ifdef HAS_EXNETWORK
 // --------------------------- Small helpers (ESP32 only) ---------------------------
 
 static inline bool startsWithNoCase(const String& s, const char* prefix) {
@@ -157,6 +158,7 @@ static inline void finishHttpClient(Client& client) {
 #endif
   client.stop();
 }
+#endif // HAS_EXNETWORK
 
 /**
  * Constructor
@@ -171,6 +173,7 @@ SerialUsbLog::SerialUsbLog(const uint16_t len) {
   _seq_write = 0;
   _timestampPending = true; // first write will trigger timestamp
 
+#ifdef HAS_EXNETWORK
   // Add static pages to the log page list
   #define _PAGE(href,name,displayName ...) \
   extern const unsigned char name##_gz[]; \
@@ -189,7 +192,7 @@ SerialUsbLog::SerialUsbLog(const uint16_t len) {
     #ifdef MOTOR_SHIELD_TYPE
       _PAGE("/Roster.html",Roster_html,"Roster Editor")
     #endif
-
+#endif  // HAS_EXNETWORK
 }
 
 /**
@@ -333,6 +336,7 @@ int SerialUsbLog::peek() {
   return Serial.peek();
 }
 
+#ifdef HAS_EXNETWORK
 const char jsHeader[] PROGMEM = 
   "HTTP/1.1 200 OK\r\n"
   "Content-Type: text/javascript; charset=utf-8\r\n"
@@ -542,7 +546,7 @@ void SerialUsbLog::loop() {
       }
     }
     for (OtherNode * node = NodeManager::firstOtherNode; node != nullptr; node = node->next) {
-      if (node->name && node->name[0] != '\0') {
+      if (node->name[0] != '\0') {
         // window.addNodeMenuItem('Node Name', '192.168.1.100');
         client.print("window.addNodeMenuItem(\"");
         client.print(node->name);
@@ -589,6 +593,8 @@ void SerialUsbLog::loop() {
   );
   finishHttpClient(client);
 }
-
+#else
+  void SerialUsbLog::loop() {}
+#endif // HAS_EXNETWORK
 
 // --------------------------- End of SerialUsbLog.cpp ---------------------------

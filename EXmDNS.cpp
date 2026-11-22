@@ -24,12 +24,13 @@
  */
 
 #include "defines.h"
-#if defined(ARDUINO_ARCH_STM32) || defined(ARDUINO_ARCH_ESP32)
+#include "EthernetInterface.h"
+
+#if defined(HAS_ETHERNET)
 #include <Arduino.h>
 #if defined(ETHERNET_CS_PIN)
 #include <SPI.h>
 #endif
-#include "EthernetInterface.h"
 
 #include "EXmDNS.h"
 
@@ -482,4 +483,5 @@ void MDNS::run() {
     sendServiceAnnounce(_services[s]);
   }
 }
-#endif // ARDUINO_ARCH_STM32 || ARDUINO_ARCH_ESP32
+
+#endif // HAS_ETHERNET

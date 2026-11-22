@@ -32,9 +32,15 @@
 
 #ifndef EthernetInterface_h
 #define EthernetInterface_h
-#if defined(ARDUINO_ARCH_STM32) || defined(ARDUINO_ARCH_ESP32)
+
 #include "defines.h"
 #include <Arduino.h>
+
+#if defined(ETHERNET_CS_PIN) || (defined(ARDUINO_ARCH_STM32) && __has_include("STM32Ethernet.h"))
+#define HAS_ETHERNET
+#endif
+
+#ifdef HAS_ETHERNET
 
 #if defined(ARDUINO_ARCH_ESP32)
 #include <SPI.h>
@@ -48,29 +54,18 @@ class EthernetServerESP32 : public EthernetServer {
   void begin(uint16_t) { EthernetServer::begin(); }
   void end() {}
 };
-#else
-#if __has_include ( "STM32Ethernet.h")
+#elif __has_include("STM32Ethernet.h") && !defined(ETHERNET_CS_PIN)
   // Nucleo devices with builtin ethernet
   // Refer to platformio.ini library configs
   #include <LwIP.h>
   #include <STM32Ethernet.h>
   #include <lwip/netif.h>
+  extern "C" struct netif gnetif;
 #else
   //Nucleo devices with external ethernet module
   // Refer to platformio.ini library configs
-/*
-  #ifndef ETHERNET_CS_PIN
-    #ifdef PIN_SPI_SS
-      #define ETHERNET_CS_PIN PIN_SPI_SS
-    #else
-      #define ETHERNET_CS_PIN 10
-    #endif
-  #endif
- */
   #include <Ethernet.h>
 #endif
-#endif
-
 #endif
 
 #include <EthernetUdp.h>
@@ -83,9 +78,6 @@ public:
   uint8_t getSocketIndex() const { return sockindex; }
 };
 #endif
-
-extern "C" struct netif gnetif;
-
 
 class EthernetInterface {
 
@@ -113,5 +105,5 @@ class EthernetInterface {
     static bool connected;
     
 };
-#endif // ARDUINO_ARCH_STM32 || ARDUINO_ARCH_ESP32
 
+#endif

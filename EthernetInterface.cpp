@@ -32,9 +32,9 @@
 #define DHCP_CHECK_RENEW_FAIL   (1)
 #define DHCP_CHECK_REBIND_FAIL  (3)
 
-#if defined(ARDUINO_ARCH_STM32) || defined(ARDUINO_ARCH_ESP32)
-#include <SPI.h>
 #include "EthernetInterface.h"
+#ifdef HAS_ETHERNET
+#include <SPI.h>
 #include "EXNetworkPreferences.h"
 #include "DIAG.h"
 #include "EXmDNS.h"
@@ -122,7 +122,7 @@ bool EthernetInterface::receiveUDPPacket(EXNetworkUdpPacket &packet) {
 
 #ifdef ARDUINO_ARCH_STM32
 
-#ifndef ETHERNET_CS_PIN
+#if __has_include("STM32Ethernet.h") && !defined(ETHERNET_CS_PIN)
 extern "C" struct netif gnetif;
 #endif
 
@@ -130,6 +130,7 @@ EthernetUDP udpMdns;
 MDNS mdns(udpMdns);
 
 bool EthernetInterface::connected=false;
+static bool ethernetInitialized = false;
 bool EthernetInterface::isUp() { 
   return connected;
 }
@@ -162,6 +163,7 @@ bool EthernetInterface::setup()
   SPI.begin();
   DIAG(F("CS:%d"), ETHERNET_CS_PIN);
   Ethernet.init(ETHERNET_CS_PIN);
+  bool ethernetInitialized = true;
 #endif
 
 #ifdef IP_ADDRESS
@@ -179,7 +181,7 @@ bool EthernetInterface::setup()
   }
 #endif
 
-#ifndef ETHERNET_CS_PIN
+#if __has_include("STM32Ethernet.h") && !defined(ETHERNET_CS_PIN)
   // Native STM32 MAC (F429ZI/F439ZI): Accept all multicast frames.
   // STM32Ethernet registers multicast MAC hashes, but its
   // multicast hash-filter path is unreliable on this MAC.
@@ -187,7 +189,7 @@ bool EthernetInterface::setup()
   ETH->MACFFR |= (1UL << 4);
 #endif
 
-  #ifndef ETHERNET_CS_PIN
+#if __has_include("STM32Ethernet.h") && !defined(ETHERNET_CS_PIN)
   // The link-state handler enables IGMP before multicast listeners are started.
   Ethernet.schedule();
   #endif
@@ -225,6 +227,20 @@ IPAddress EthernetInterface::getIPAddress() {
 
 void EthernetInterface::teardown() {
   connected = false;
+#if defined(ETHERNET_CS_PIN)
+  if (ethernetInitialized) {
+    mdns.end();
+  }
+#else
+  mdns.end();
+#endif
+#if defined(ETHERNET_RST_PIN) && ETHERNET_RST_PIN >= 0
+  pinMode(ETHERNET_RST_PIN, OUTPUT);
+  digitalWrite(ETHERNET_RST_PIN, LOW);
+  delay(10);
+  digitalWrite(ETHERNET_RST_PIN, HIGH);
+  delay(50);
+#endif
 }
 
 void EthernetInterface::loop()
