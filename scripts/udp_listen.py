@@ -68,7 +68,7 @@ def main():
                     name = sender_name(ip)
                     if name:
                         sender += f" ({name})"
-                print(f"{sender}\t{len(payload)}\t{payload.hex(' ')}", flush=True)
+                print(f"{sender}\t{len(payload)}\t{payload}", flush=True)
     except KeyboardInterrupt:
         return 0
     except OSError as exc:
