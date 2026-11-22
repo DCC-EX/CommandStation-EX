@@ -1124,13 +1124,42 @@ void RMFT2::loop2() {
   case OPCODE_NEOPIXEL_OFF: 
     // OPCODE_NEOPIXELx,V(vpin),OPCODE_PAD,V(red),OPCODE_PAD,V(green),OPCODE_PAD,V(blue),OPCODE_PAD,V(count)
     { 
-      VPIN vpin=operand;
-      byte red=getOperand(1) &0xff;
-      byte green=getOperand(2) &0xff;
-      byte blue=getOperand(3) &0xff;
-      auto count=getOperand(4);
+      if(operand < 0) {
+        DIAG(F("NEOPIXEL invalid VPIN:%d "), operand);
+      }
+      VPIN vpin = operand;
+      int16_t value = static_cast<int16_t>(getOperand(1));
+      const uint8_t red = value < 0 ? 0 : value > 255 ? 255 : value;
+      value = static_cast<int16_t>(getOperand(2));
+      const uint8_t green = value < 0 ? 0 : value > 255 ? 255 : value;
+      value = static_cast<int16_t>(getOperand(3));
+      const uint8_t blue = value < 0 ? 0 : value > 255 ? 255 : value;
+      value = static_cast<int16_t>(getOperand(4));
+      const uint8_t count = value < 1 ? 1 : value > 255 ? 255 : value;
+
       killBlinkOnVpin(vpin,count);
+      DIAG(F("NEOPIXEL VPIN:%d red:%d green:%d blue:%d count:%d"), vpin, red, green, blue, count);
       IODevice::writeAnalogueRange(vpin,(red<<8)|green,opcode==OPCODE_NEOPIXEL_ON,blue,count);
+    }
+    break;
+
+  case OPCODE_NEOPIXEL_BRIGHTNESS: 
+    // OPCODE_NEOPIXEL_BRIGHTNESS,V(pin),OPCODE_PAD,V(brightness),OPCODE_PAD,V(count)
+    {
+      int16_t value = static_cast<int16_t>(getOperand(1));
+      const uint8_t brightness = value < 0 ? 0 : value > 255 ? 255 : value;
+
+      value = static_cast<int16_t>(getOperand(2));
+      const uint8_t count = value < 1 ? 1 : value > 255 ? 255 : value;
+
+      if (operand <= 0 ||static_cast<uint32_t>(operand) + count > 0x10000UL) {
+        DIAG(F("NEOPIXEL_BRIGHTNESS invalid VPIN:%d count:%d"), operand, count);
+        break;
+      }
+
+      DIAG(F("NEOPIXEL_BRIGHTNESS VPIN:%d bright:%d count:%d"), operand, brightness, count);
+      IODevice::writeAnalogueRange(operand, brightness, 0,
+          IODevice::NEOPIXEL_BRIGHTNESS_COMMAND, count);
     }
     break;
   

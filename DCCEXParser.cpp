@@ -127,6 +127,9 @@ Once a new OPCODE is decided upon, update this list.
 #include "EXNetworkPreferences.h"
 #include "Sensors.h"
 #include "Roster.h"
+#if defined(ARDUINO_ARCH_ESP32)
+#include "IO_NeoPixelRMT.h"
+#endif
 
 int16_t DCCEXParser::stashP[MAX_COMMAND_PARAMS];
 bool DCCEXParser::stashBusy;

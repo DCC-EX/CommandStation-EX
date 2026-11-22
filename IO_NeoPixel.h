@@ -165,7 +165,7 @@ private:
     _kHz800=(mode & NEO_KHZ400)==0;
     _showPendimg=false;
     
-    // Each pixel requires 3 bytes RGB memory.
+    // Each pixel stores RGB and brightness.
     // Although the driver device can remember this, it cant do off/on without
     // forgetting what the on colour was!
     pixelBuffer=(RGB *) malloc(_nPins*sizeof(RGB)); 
@@ -252,8 +252,16 @@ private:
   // designed for servos and short integers  
   void _writeAnalogue(VPIN vpin, int colour_RG, uint8_t onoff, uint16_t colour_B) override {
     if (_deviceState == DEVSTATE_FAILED) return;
-    RGB newColour={(byte)((colour_RG>>8) & 0xFF), (byte)(colour_RG & 0xFF), (byte)(colour_B & 0xFF)};
     auto pixel=vpin-_firstVpin;
+    if (colour_B == NEOPIXEL_BRIGHTNESS_COMMAND) {
+      byte brightness = colour_RG < 0 ? 0 : (colour_RG > 255 ? 255 : colour_RG);
+      if (pixelBuffer[pixel].brightness == brightness) return;
+      pixelBuffer[pixel].brightness = brightness;
+      transmit(pixel);
+      return;
+    }
+    RGB newColour={(byte)((colour_RG>>8) & 0xFF), (byte)(colour_RG & 0xFF),
+                   (byte)(colour_B & 0xFF), pixelBuffer[pixel].brightness};
     if (pixelBuffer[pixel]==newColour && isPixelOn(pixel)==(bool)onoff) return; // no change  
       
     if (onoff) setPixelOn(pixel); else setPixelOff(pixel);
@@ -262,7 +270,8 @@ private:
   }
  VPIN _writeAnalogueRange(VPIN vpin, int colour_RG, uint8_t onoff, uint16_t colour_B, int count) override {
     // using write range cuts out the constant vpin to driver lookup so
-    VPIN nextVpin=vpin +  (count>_nPins ? _nPins : count); 
+    int available = _nPins - (vpin - _firstVpin);
+    VPIN nextVpin=vpin + (count > available ? available : count);
     if (_deviceState != DEVSTATE_FAILED) while(vpin<nextVpin) {
       _writeAnalogue(vpin,colour_RG, onoff,colour_B);
       vpin++;
@@ -300,7 +309,10 @@ private:
     buffer[3]=(byte)(offset & 0xFF);
     
     if (isPixelOn(pixel)) {
-      auto colour=pixelBuffer[pixel];  
+      auto colour=pixelBuffer[pixel];
+      colour.red = (static_cast<uint16_t>(colour.red) * colour.brightness + 127U) / 255;
+      colour.green = (static_cast<uint16_t>(colour.green) * colour.brightness + 127U) / 255;
+      colour.blue = (static_cast<uint16_t>(colour.blue) * colour.brightness + 127U) / 255;
       if (_bytesPerPixel==4 
            && colour.red==colour.blue 
            && colour.red==colour.green) {
@@ -325,6 +337,7 @@ private:
       byte red; 
       byte green; 
       byte blue; 
+      byte brightness;
       bool operator==(const RGB& other) const {
         return red == other.red && green == other.green && blue == other.blue;
       }
