@@ -275,6 +275,14 @@ private:
   #define EXTT_DEFAULT_EXTRA_PIN_4 12
 #endif
 
+
+#ifndef EX_TURNTABLE_INVERT_ENABLE
+  #ifdef INVERT_ENABLE
+    #define EX_TURNTABLE_INVERT_ENABLE
+  #endif
+#endif
+
+
 #ifndef EX_TURNTABLE_LIMIT_SENSOR_PIN
   #ifdef LIMIT_SENSOR_PIN
     #define EX_TURNTABLE_LIMIT_SENSOR_PIN LIMIT_SENSOR_PIN
@@ -437,6 +445,7 @@ private:
   #define EX_TURNTABLE_LED_FAST_MS 100
   #endif
 #endif
+
 #if defined(TURNTABLE_EX_MODE) && defined(TRAVERSER) && \
     TURNTABLE_EX_MODE == TRAVERSER && !defined(EX_TURNTABLE_MODE_TRAVERSER)
   #define EX_TURNTABLE_MODE_TRAVERSER
