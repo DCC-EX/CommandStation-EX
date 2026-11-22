@@ -36,6 +36,7 @@ build_flags =
     -DBOARD_HAS_PSRAM
     -DEXTURNTABLE_ONBOARD
     -DNO_DISPLAY
+    -DINVERT_ENABLE
 	-DI2C_SDA=11
 	-DI2C_SCL=10
     -mfix-esp32-psram-cache-issue
@@ -65,6 +66,9 @@ monitor_rts = 0
 The onboard driver uses a TMC2209 stepper motor driver.  This is the recommended driver module and is
 included on an RT_EX-Turntable board.
 
+The TMC2209 stepper motor driver needs enable inverted (active low).  Driver now defaults to true for this.  If you need the enable to be active high comment out `-DINVERT_ENABLE` in the above myPlatformio.ini env.
+
+
  `waspinator/AccelStepper` is included as a PlatformIO dependency.
 
 
@@ -72,8 +76,12 @@ Other boards use the non-ESP32 assignments from EX-Turntable.
 Although this is not really applicable for a DCC-EX node.
 
 
-Pins can be overridden in
-`config.h` with
+# Other Defines
+
+The easiest way to overide any of the following it to `#define` them in the `config.h` file
+
+
+Pins can be overridden with
 `EX_TURNTABLE_STEP_PIN`
 `EX_TURNTABLE_DIR_PIN`
 `EX_TURNTABLE_ENABLE_PIN`
@@ -83,13 +91,16 @@ Pins can be overridden in
 `EX_TURNTABLE_LED_PIN`
 `EX_TURNTABLE_ACCESSORY_PIN`
 
+
 If `EX_TURNTABLE_FULL_STEP_COUNT` (or the existing `FULL_STEP_COUNT`) is not defined, the controller
 homes and calibrates at startup.
 
 The measured full-turn step count is saved in NVS when it fits the NVS signed 16-bit value range.
 
+
 Define `EX_TURNTABLE_MODE_TRAVERSER` for traverser operation.
 Define `EX_TURNTABLE_MANUAL_PHASE_SWITCHING` to disable automatic phase switching.
+
 
 The Extra GPIO pins are dependent on the ESP32 being compiled for.
 
@@ -100,6 +111,126 @@ The pins can be overridden by
 `EXTT_DEFAULT_EXTRA_PIN_4`
 
 They need to be ESP32 gpio pins and there is no check to their validity.  The default pins assigned to these are safe to use.
+
+
+The active state of the home and limit sensors can be set by:
+
+`EX_TURNTABLE_HOME_SENSOR_ACTIVE_STATE`
+`EX_TURNTABLE_LIMIT_SENSOR_ACTIVE_STATE`
+
+default is low for both of these
+
+
+The active state of the relay
+
+`EX_TURNTABLE_RELAY_ACTIVE_STATE`
+
+default is active high
+
+
+Turntable full step count, this can be set on the brower configuration page.  Not really needed as calibration function does this.
+
+`EX_TURNTABLE_FULL_STEP_COUNT`
+
+default 0
+
+
+
+
+The following can all be set via the browser configuration page.
+
+
+The maximum speed for the stepper motor
+
+`EX_TURNTABLE_MAX_SPEED`
+
+defalut is 200, for a direct drive stepper motor this is a scale realistic value if you are using a geared turntable you probably want to increase this.
+
+
+The acceleration rate for the stepper motor
+
+`EX_TURNTABLE_ACCELERATION`
+
+default is 25, this is the rate of change for the stepper motor to increase/decrease speed.
+
+
+Sanity steps
+
+`EX_TURNTABLE_SANITY_STEPS`
+
+default is 10000, if you are using micro stepping of 1/128 or higher you need to change this.  Suggest 30000 for 1/128
+
+
+Home sensor sensitivity is the number of steps the motor will move to clear the home sensor.  Important for homing and calibration when the turntable is already at the home sensor.
+
+`EX_TURNTABLE_HOME_SENSITIVITY`
+
+default 300, if you are using 1/128 or higher micro stepping then increse this.
+
+
+Phase switching angle for auto phase switching.  Not normally needed to be changed.
+
+`EX_TURNTABLE_PHASE_SWITCH_ANGLE`
+
+default 45 
+
+
+For geared turntables, this is included as it is part of the original EX-Turntable.  It's probably nolonger required as the calibration should calculate the correct number of steps.
+
+`EX_TURNTABLE_GEARING_FACTOR`
+
+default 1
+
+
+Led slow flash rate in milliseconds
+
+`EX_TURNTABLE_LED_SLOW_MS`
+
+default 500mS
+
+
+Led fast flash rate in milliseconds
+
+`EX_TURNTABLE_LED_FAST_MS`
+
+default 100mS
+
+
+Home/Limit sensor debounce time in milliseconds
+
+`EX_TURNTABLE_DEBOUNCE_MS`
+
+default 0  for turntable mode
+default 10  for traverser mode
+
+
+Traverser mode
+
+`EX_TURNTABLE_MODE_TRAVERSER`
+
+default not defined
+
+
+Phase switching, if you want to manually switch the turntable phase so that EX-Rail, etc controls the switch.
+
+`EX_TURNTABLE_MANUAL_PHASE_SWITCHING`
+
+default not defined
+
+
+Turntable move forward (clockwise) only
+
+`EX_TURNTABLE_ROTATE_FORWARD_ONLY`
+
+default not defined
+
+
+Turntable move reverse (anti-clockwise) only
+
+`EX_TURNTABLE_ROTATE_REVERSE_ONLY`
+
+default not defined
+
 
 
 
@@ -142,7 +273,9 @@ This is equivalent to a track angle of 7.5 degrees.
 
 This will also occur any time a calibration is redone.
 
-Once calibration is completed the node will restart after 20 seconds to reload all the relevant NVS values and rehome the turntable.
+**NOTE:**  Once calibration is completed the node will restart after 20 seconds to reload all the relevant NVS values and rehome the turntable.
+
+
 
 # Subsequent start up
 
@@ -167,7 +300,7 @@ until restart and should instead be supplied through `FULL_STEP_COUNT` or
 
 | NVS ID | Setting | Value |
 | --- | --- | --- |
-| 0 | EX-Turntable address | Virtual pin (vpin) where the device is located |
+| 0 | EX-Turntable address | id for the turntable in EX-Rail |
 | 1 | Step pin | Step/ pulse output pin |
 | 2 | Direction pin | Direction output pin |
 | 3 | Enable pin | Stepper driver enable pin |
@@ -198,6 +331,7 @@ until restart and should instead be supplied through `FULL_STEP_COUNT` or
 | 31 | Invert enable | 1 = enabled, 2 = disabled |
 | 32 | Keep stepper outputs enabled at idle | 1 = enabled, 2 = disabled |
 | 33 | Extra outputs enabled | 1 = enabled, 2 = disabled |
+| 34 | Turntable description | Description used in EX-Rail |
 
 Boolean settings use 1/2 rather than 1/0 because the NVS table does not retain zero-valued entries.
 
@@ -205,3 +339,23 @@ Boolean settings use 1/2 rather than 1/0 because the NVS table does not retain z
 | --- | --- | --- |
 | 40-87 | Track positions | Stepper positions for tracks 1-48, generated after calibration |
 | 90-137 | Track descriptions | Description text for tracks 1-48 |
+
+
+# EXRail and other control.
+
+See here as well
+
+https://dcc-ex.com/ex-turntable/test-and-tune.html#ex-turntable-activity-reference
+
+For commands other than activity 0 or 1.  The steps must be 0
+
+eg.
+
+To turn the led on fast flash at the serial console using the turntable diagnostic command and id 600
+
+```<D TT 600 0 6>```
+
+In EXRail this would be 
+
+```ROTATE(600, 0, 6)```
+
