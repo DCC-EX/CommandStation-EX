@@ -37,7 +37,6 @@
 #include "EthernetInterface.h"
 #include "EXNetworkPreferences.h"
 #include "DIAG.h"
-#include "DCCTimer.h"
 #include "EXmDNS.h"
 
 struct UdpListener {
@@ -72,41 +71,53 @@ static bool bindW5500Multicast(EthernetUDP &udp, const IPAddress &multicastIP, u
   return false;
 }
 
-// bool EthernetInterface::receiveUDPPacket(EXNetworkUdpPacket &packet) {
-//   bool gotPacket = false;
-//   for (auto &listener : udpListeners) {
-//     if (!listener.port) continue;
-//     while (listener.udp.parsePacket() > 0) {
-//       int packetSize = listener.udp.available();
-//       if (packetSize <= 2) { listener.udp.flush(); continue; }
-//       int length = listener.udp.read(packet.data, EXNETWORK_UDP_MAX_SIZE);
-//       packet.remoteIP = listener.udp.remoteIP();
-//       if (length < packetSize) { listener.udp.flush(); continue; }
-//       packet.data[length] = 0;
-//       packet.localPort = listener.port;
-//       packet.length = length;
-//       gotPacket = true;
-//       break;
-//     }
-//     if (gotPacket) break;
-//   }
+bool EthernetInterface::receiveUDPPacket(EXNetworkUdpPacket &packet) {
+  bool gotPacket = false;
+  for (auto &listener : udpListeners) {
+    if (!listener.port) continue;
+#ifdef ETHERNET_W5500_RX_DIAG_PORT
+    while (parseW5500Packet(listener) > 0) {
+#else
+    while (listener.udp.parsePacket() > 0) {
+#endif
+      int packetSize = listener.udp.available();
+      if (packetSize <= 2) { 
+        listener.udp.flush(); 
+        continue; 
+      }
+      int length = listener.udp.read(packet.data, EXNETWORK_UDP_MAX_SIZE);
+      packet.remoteIP = listener.udp.remoteIP();
+      if (length < packetSize) { 
+        DIAG(F("Short UDP packet read %d < %d from %s"), length, packetSize,
+             packet.remoteIP.toString().c_str());
+        listener.udp.flush(); 
+        continue; 
+      }
+      packet.data[length] = 0;
+      packet.localPort = listener.port;
+      packet.length = length;
+      gotPacket = true;
+      break;
+    }
+    if (gotPacket) break;
+  }
 
-// #if defined(ETHERNET_CS_PIN)
-//   static uint32_t lastIncomingPacketTime = millis();
-//   if (gotPacket) {
-//     lastIncomingPacketTime = millis();
-//   } else if (millis() - lastIncomingPacketTime >= 120000) {
-//     lastIncomingPacketTime = millis();
-//     DIAG(F("IGMP Refresh"));
-//     for (auto &listener : udpListeners) {
-//       if (!listener.port) continue;
-//       listener.udp.stop();
-//       bindW5500Multicast(listener.udp, listener.group, listener.port);
-//     }
-//   }
-// #endif
-//   return gotPacket;
-// }
+#if defined(ETHERNET_CS_PIN)
+  static uint32_t lastIncomingPacketTime = millis();
+  if (gotPacket) {
+    lastIncomingPacketTime = millis();
+  } else if (millis() - lastIncomingPacketTime >= 120000) {
+    lastIncomingPacketTime = millis();
+    DIAG(F("IGMP Refresh"));
+    for (auto &listener : udpListeners) {
+      if (!listener.port) continue;
+      listener.udp.stop();
+      bindW5500Multicast(listener.udp, listener.group, listener.port);
+    }
+  }
+#endif
+  return gotPacket;
+}
 
 
 #ifdef ARDUINO_ARCH_STM32
@@ -256,7 +267,6 @@ void EthernetInterface::loop()
 #include "EthernetInterface.h"
 #include <SPI.h>
 #include <Ethernet.h>
-#include <EthernetUdp.h>
 #ifdef ETHERNET_W5500_RX_DIAG_PORT
 #include <utility/w5100.h>
 #endif
@@ -372,36 +382,6 @@ void EthernetInterface::stopUDPListeners() {
     listener.udp.stop();
     listener.port = 0;
   }
-}
-
-bool EthernetInterface::receiveUDPPacket(EXNetworkUdpPacket &packet) {
-  for (auto &listener : udpListeners) {
-    if (!listener.port) continue;
-#ifdef ETHERNET_W5500_RX_DIAG_PORT
-    while (parseW5500Packet(listener) > 0) {
-#else
-    while (listener.udp.parsePacket() > 0) {
-#endif
-      int packetSize = listener.udp.available();
-      if (packetSize <= 2) {
-        listener.udp.flush();
-        continue;
-      }
-      int length = listener.udp.read(packet.data, EXNETWORK_UDP_MAX_SIZE);
-      packet.remoteIP = listener.udp.remoteIP();
-      if (length < packetSize) {
-        DIAG(F("Short UDP packet read %d < %d from %s"), length, packetSize,
-             packet.remoteIP.toString().c_str());
-        listener.udp.flush();
-        continue;
-      }
-      packet.length = length;
-      packet.data[length] = 0;
-      packet.localPort = listener.port;
-      return true;
-    }
-  }
-  return false;
 }
 
 bool EthernetInterface::sendUDPMulticast(const IPAddress &group, uint16_t port, const uint8_t *data, size_t len) {

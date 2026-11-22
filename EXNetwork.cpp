@@ -231,6 +231,8 @@ void EXNetwork::setup() {
   _SHIM_::addService("http", "tcp", 80);
   _SHIM_::addServiceTxt("http", "tcp", "path", "/");
 
+#ifdef MOTOR_SHIELD_TYPE
+  // throttle services only apply if motor shield defined 
   _SHIM_::addService("withrottle", "tcp", IP_PORT);
   _SHIM_::addService("dcc-ex", "tcp", IP_PORT);
   _SHIM_::addService("dcc-ex", "udp", IP_PORT);
@@ -238,6 +240,7 @@ void EXNetwork::setup() {
   _SHIM_::addServiceTxt("dcc-ex", "udp", "multicast", "true");
   _SHIM_::addServiceTxt("dcc-ex", "udp", "group", throttleMulticastIP.toString().c_str());
   _SHIM_::addServiceTxt("dcc-ex", "udp", "port", String(IP_PORT).c_str());
+#endif
 
 #ifdef ARDUINO_ARCH_ESP32
   EthernetOTA.begin<_SHIM_>();
