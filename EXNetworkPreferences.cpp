@@ -199,12 +199,12 @@ void EXNetworkPreferences::dump(Print* stream) {
       : "no IP");
 #endif
 #if !defined(ARDUINO_ARCH_ESP32) || defined(ETHERNET_CS_PIN)
-  //bool ethEnabled = NVSTable::getNVS(SystemPreferences::enabled);
   bool ethEnabled = NVSTable::getNVS(SystemPreferences::ethernetEnabled, true);
   StringFormatter::send(stream, 
       F("<* C ETHERNET %S%S *>\n"), 
         ethEnabled?F("ON"):F("OFF"),
         NVSTable::getNVS(SystemPreferences::throttleNode,true)?F(""):F(" [NODE]"));
+#ifdef HAS_ETHERNET
   if (ethEnabled) {
     if (EthernetInterface::isUp()) {
       StringFormatter::send(stream,
@@ -220,6 +220,9 @@ void EXNetworkPreferences::dump(Print* stream) {
 	#endif
 			}
 		}
+#else
+  StringFormatter::send(stream, F("<* ETHERNET_PINS: No hardware/pins compiled *>\n"));
+#endif
 	#if defined(ETHERNET_PNAME)
 		StringFormatter::send(stream, F("<* ETHERNET_PINS %s *>\n"), ETHERNET_PNAME);
 	#endif
@@ -238,5 +241,27 @@ void EXNetworkPreferences::dump(Print* stream) {
 	StringFormatter::send(stream,
 		F("<iDCC-EX V-%S / %S / %S G-%S >\n"), 
 		F(VERSION), F(ARDUINO_TYPE), DCC::getMotorShieldName(), F(GITHUB_SHA));
+
+
+//  Additiona line available with date and time add two lines in environment build_flags
+//    -DPIO_ENV_NAME=${PIOENV}
+//    !python -c "import subprocess; b=subprocess.check_output(['git','rev-parse','--abbrev-ref','HEAD']).decode().strip().replace('/','_'); print('-DGIT_BRANCH=' + b)"
+
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+
+#ifdef PIO_ENV_NAME
+  #define BUILD_ENV_STR STR(PIO_ENV_NAME)
+
+#ifdef GIT_BRANCH
+  #define BUILD_BRANCH_STR STR(GIT_BRANCH)
+#else
+  #define BUILD_BRANCH_STR "DCC-EX"
+#endif
+
+  StringFormatter::send(stream,
+      F("<* %S  %S  %S %S *>\n"),
+      F(BUILD_ENV_STR), F(BUILD_BRANCH_STR), F(__DATE__), F(__TIME__));
+#endif
 
 }

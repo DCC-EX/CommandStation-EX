@@ -155,7 +155,7 @@ void Sensor::shareNodesToCS(){
     if (ss->tellJMRI) cmd=ss->active?'Q':'q';
     else if (ss->tellNodes) cmd=ss->active?'X':'x';
     if (cmd==0) continue;
-    if (buffer.getLength() > maxBufferLength - sizeof("<Q 32767>")) {
+    if (buffer.getLength() > (int)(maxBufferLength - sizeof("<Q 32767>"))) {
       NodeManager::cast(&buffer);
       buffer.flush();
     }

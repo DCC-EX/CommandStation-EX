@@ -22,6 +22,8 @@
  */
 
 #include "EXNetwork.h"
+
+#ifdef HAS_EXNETWORK
 #include "DIAG.h"
 #include "CommandDistributor.h"
 #include "NodeManager.h"
@@ -95,7 +97,10 @@ public:
     client = c;
     inUse = true;
   }
-
+  void close() {
+    if (inUse) client.stop();
+    inUse = false;
+  }
   bool active(byte clientId) {
     if (!inUse) return false;
     if (!EXNetwork::isUp()) {
@@ -170,8 +175,10 @@ IPAddress EXNetwork::myipaddress = { 0 , 0 , 0 , 0 };
 
 void EXNetwork::setup() {
   #ifdef ARDUINO_ARCH_STM32
-  udpTx.stop();
-  _SHIM_::stopUDPListeners();
+  if (isUp()) {
+    udpTx.stop();
+    _SHIM_::stopUDPListeners();
+	}
   #endif
 
   if (!_SHIM_::setup()) {
@@ -184,11 +191,17 @@ void EXNetwork::setup() {
   nodeMulticastIP[3] = EXNetworkPreferences::getNodeGroup();
 
   // Socket server for old style throttle connections.
-  throttleServer.begin();
+#if defined(ETHERNET_CS_PIN)
+  static bool serversStarted = false;
+  if (!serversStarted) {
+#endif
+    throttleServer.begin();
+    webServer.begin();
+#if defined(ETHERNET_CS_PIN)
+    serversStarted = true;
+  }
+#endif
   DIAG(F("throttleServer started on port %d"), IP_PORT);
-
-  // Web server for browser interface.
-  webServer.begin();
   DIAG(F("webServer started on port 80"));
 
   if (!udpTx.begin(0)) {
@@ -273,6 +286,7 @@ void EXNetwork::udpNodeMulticast(const char *buffer) {
 }
 
 EXNetworkClient EXNetwork::acceptWebInput() {
+  if (!isUp()) return EXNetworkClient();
   return acceptNetworkClient(webServer);
 }
 
@@ -415,16 +429,19 @@ void EXNetwork::loop() {
 void EXNetwork::teardown() {
   // Stop all locos. This broadcasts speed 1 (estop) and sets all reminders to speed 1.
   DCC::setThrottle(0, 1, 1);
-  _SHIM_::stopUDPListeners();
-  udpTx.stop();
+  if (isUp()) {
+    _SHIM_::stopUDPListeners();
+    udpTx.stop();
+  }
 
   // Terminate all client connections.
   while (!throttleClients.empty()) {
     // pop_back() invokes the destructor, which stops the underlying TCP connection.
+    throttleClients.back().close();
     throttleClients.pop_back();
   }
 
-#if defined(ARDUINO_ARCH_ESP32) || !defined(ETHERNET_CS_PIN)
+#if defined(ARDUINO_ARCH_ESP32) || (__has_include("STM32Ethernet.h") && !defined(ETHERNET_CS_PIN))
   webServer.end();
   throttleServer.end();
 #endif
@@ -481,3 +498,5 @@ bool EXNetwork::sendUDP(const IPAddress &ip, uint16_t port, const uint8_t *data,
 #endif
   return udpTx.endPacket();
 }
+
+#endif // HAS_EXNETWORK

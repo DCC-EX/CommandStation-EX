@@ -24,17 +24,23 @@
 #ifndef EXNetwork_h
 #define EXNetwork_h
 #include "defines.h"
+#include "IPAddress.h"
 
 #if defined(ARDUINO_ARCH_ESP32)
+#define HAS_EXNETWORK
 #include "EXNetworkESP32.h"
 #else
 #include "EthernetInterface.h"
+#ifdef HAS_ETHERNET
+#define HAS_EXNETWORK
 typedef EthernetClient EXNetworkClient;
 typedef EthernetServer EXNetworkServer;
 typedef EthernetUDP EXNetworkUDPTx;
 #define _SHIM_ EthernetInterface
 #endif
+#endif
 
+#ifdef HAS_EXNETWORK
 class EXNetwork {
 public:
   static void setup();
@@ -54,5 +60,16 @@ private:
 #endif
   static IPAddress myipaddress;
 };
-
+#else
+class EXNetwork {
+public:
+  static void setup() {}
+  static void teardown() {}
+  static void loop() {}
+  static bool isUp() { return false; }
+  static void udpMulticast(const char *) {}
+  static void udpNodeMulticast(const char *) {}
+  static IPAddress getMyIPAddress() { return IPAddress(0, 0, 0, 0); }
+};
+#endif
 #endif
