@@ -1,5 +1,6 @@
 /*
- *  © 2026 Mathew Winters
+ *  © 2026 Mathew Winters (with Github copilot)
+ *  © 2026 Herb Morton
  *  © 2024 Morten "Doc" Nielsen
  *  © 2023-2024 Paul M. Antoine
  *  © 2022 Bruno Sanches
@@ -7,6 +8,7 @@
  *  © 2020-2022 Harald Barth
  *  © 2020-2026 Chris Harlow
  *  © 2020 Gregor Baues
+ * 
  *  All rights reserved.
  *  
  *  This file is part of DCC-EX/CommandStation-EX
@@ -30,72 +32,91 @@
 #define DHCP_CHECK_RENEW_FAIL   (1)
 #define DHCP_CHECK_REBIND_FAIL  (3)
 
-
-#ifdef ARDUINO_ARCH_STM32
+#if defined(ARDUINO_ARCH_STM32) || defined(ARDUINO_ARCH_ESP32)
+#include <SPI.h>
 #include "EthernetInterface.h"
 #include "EXNetworkPreferences.h"
-
-extern "C" struct netif gnetif;
-
 #include "DIAG.h"
 #include "DCCTimer.h"
 #include "EXmDNS.h"
 
-EthernetUDP udpMdns;
-MDNS mdns(udpMdns);
-
 struct UdpListener {
   EthernetUDP udp;
+  IPAddress group;
   uint16_t port = 0;
+#ifdef ETHERNET_W5500_RX_DIAG_PORT
+  uint8_t diagSocket = MAX_SOCK_NUM;
+  unsigned long lastStallLog = 0;
+#endif
 };
 static UdpListener udpListeners[2];
 
-bool EthernetInterface::startUDPListener(const IPAddress &group, uint16_t port) {
-  for (auto &listener : udpListeners) {
-    if (listener.port) continue;
-    if (!listener.udp.beginMulticast(group, port)) {
-      listener.udp.stop();
-      return false;
-    }
-    listener.port = port;
-    return true;
-  }
-  DIAG(F("No free UDP listener for port %d"), port);
-  return false;
-}
-
-void EthernetInterface::stopUDPListeners() {
-  for (auto &listener : udpListeners) {
-    listener.udp.stop();
-    listener.port = 0;
-  }
-}
-
-bool EthernetInterface::receiveUDPPacket(EXNetworkUdpPacket &packet) {
-  for (auto &listener : udpListeners) {
-    if (!listener.port) continue;
-    while (listener.udp.parsePacket() > 0) {
-      int packetSize = listener.udp.available();
-      if (packetSize <= 2) {
-        listener.udp.flush();
-        continue;
-      }
-      int length = listener.udp.read(packet.data, EXNETWORK_UDP_MAX_SIZE);
-      packet.remoteIP = listener.udp.remoteIP();
-      if (length < packetSize) {
-        DIAG(F("Short UDP packet read %d < %d from %s"), length, packetSize,
-             packet.remoteIP.toString().c_str());
-        listener.udp.flush();
-        continue;
-      }
-      packet.length = length;
-      packet.data[length] = 0;
-      packet.localPort = listener.port;
+static bool bindW5500Multicast(EthernetUDP &udp, const IPAddress &multicastIP, uint16_t port) {
+  if (udp.beginMulticast(multicastIP, port)) return true;
+#if defined(ETHERNET_CS_PIN)
+  if (udp.begin(port)) {
+    uint8_t sock = ((EthernetUDP_Exposed *)&udp)->getSocketIndex();
+    if (sock < MAX_SOCK_NUM) {
+      uint8_t mac[6] = {0x01, 0x00, 0x5E, (uint8_t)(multicastIP[1] & 0x7F), multicastIP[2], multicastIP[3]};
+      uint8_t ipBuf[4] = {multicastIP[0], multicastIP[1], multicastIP[2], multicastIP[3]};
+      SPI.beginTransaction(SPI_ETHERNET_SETTINGS);
+      W5100.writeSnMR(sock, 0x02 | 0x80);
+      W5100.writeSnDHAR(sock, mac);
+      W5100.writeSnDIPR(sock, ipBuf);
+      W5100.writeSnDPORT(sock, port);
+      SPI.endTransaction();
       return true;
     }
   }
+#endif
   return false;
 }
+
+// bool EthernetInterface::receiveUDPPacket(EXNetworkUdpPacket &packet) {
+//   bool gotPacket = false;
+//   for (auto &listener : udpListeners) {
+//     if (!listener.port) continue;
+//     while (listener.udp.parsePacket() > 0) {
+//       int packetSize = listener.udp.available();
+//       if (packetSize <= 2) { listener.udp.flush(); continue; }
+//       int length = listener.udp.read(packet.data, EXNETWORK_UDP_MAX_SIZE);
+//       packet.remoteIP = listener.udp.remoteIP();
+//       if (length < packetSize) { listener.udp.flush(); continue; }
+//       packet.data[length] = 0;
+//       packet.localPort = listener.port;
+//       packet.length = length;
+//       gotPacket = true;
+//       break;
+//     }
+//     if (gotPacket) break;
+//   }
+
+// #if defined(ETHERNET_CS_PIN)
+//   static uint32_t lastIncomingPacketTime = millis();
+//   if (gotPacket) {
+//     lastIncomingPacketTime = millis();
+//   } else if (millis() - lastIncomingPacketTime >= 120000) {
+//     lastIncomingPacketTime = millis();
+//     DIAG(F("IGMP Refresh"));
+//     for (auto &listener : udpListeners) {
+//       if (!listener.port) continue;
+//       listener.udp.stop();
+//       bindW5500Multicast(listener.udp, listener.group, listener.port);
+//     }
+//   }
+// #endif
+//   return gotPacket;
+// }
+
+
+#ifdef ARDUINO_ARCH_STM32
+
+#ifndef ETHERNET_CS_PIN
+extern "C" struct netif gnetif;
+#endif
+
+EthernetUDP udpMdns;
+MDNS mdns(udpMdns);
 
 bool EthernetInterface::connected=false;
 bool EthernetInterface::isUp() { 
@@ -106,30 +127,54 @@ bool EthernetInterface::setup()
 {
   connected=false;
   DIAG(F("Ethernet starting (with mDNS). Please be patient, especially if no cable is connected!"));
-    
-    byte mac[6];
-    DCCTimer::getSimulatedMacAddress(mac);
-  
-  #ifdef ETHERNET_CS_PIN
-    Ethernet.init(ETHERNET_CS_PIN);
-  #endif
 
-  #ifdef IP_ADDRESS
-    static IPAddress myIP(IP_ADDRESS);
-    Ethernet.begin(mac,myIP);
-  #else
-    if (Ethernet.begin(mac)==0) {
-      LCD(4,F("IP: No DHCP"));
-      return false;
+	if (!EXNetworkPreferences::getEthernetEnabled()) {
+		DIAG(F(" Ethernet disabled in preferences "));
+		return false;
+	}
+
+  byte mac[6];
+  DCCTimer::getSimulatedMacAddress(mac);
+  DIAG(F("Generated MAC Address: %02X:%02X:%02X:%02X:%02X:%02X"),
+       mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+
+#ifdef ETHERNET_CS_PIN
+  // Remap STM32 SPI peripheral pins when using an external SPI Ethernet controller (e.g., W5500)
+#if defined(ETHERNET_MOSI_PIN) && defined(ETHERNET_MISO_PIN) && defined(ETHERNET_SCK_PIN)
+  DIAG(F(" SPI Pins: CS = %d, SCK = %d, MISO = %d, MOSI = %d "),
+         ETHERNET_CS_PIN, ETHERNET_SCK_PIN, ETHERNET_MISO_PIN, ETHERNET_MOSI_PIN);
+  //DIAG(F("ETHERNET_MOSI_PIN:%d ETHERNET_MISO_PIN:%d ETHERNET_SCK_PIN:%d"), ETHERNET_MOSI_PIN, ETHERNET_MISO_PIN, ETHERNET_SCK_PIN);
+  SPI.setMOSI(ETHERNET_MOSI_PIN);
+  SPI.setMISO(ETHERNET_MISO_PIN);
+  SPI.setSCLK(ETHERNET_SCK_PIN);
+#endif
+  SPI.begin();
+  DIAG(F("CS:%d"), ETHERNET_CS_PIN);
+  Ethernet.init(ETHERNET_CS_PIN);
+#endif
+
+#ifdef IP_ADDRESS
+  static IPAddress myIP(IP_ADDRESS);
+  Ethernet.begin(mac,myIP);
+#else
+  if (Ethernet.begin(mac)==0) {
+#ifdef ETHERNET_CS_PIN
+    if (Ethernet.hardwareStatus() == EthernetNoHardware) {
+      DIAG(F("Ethernet hardware not found"));
     }
-  #endif
+#endif
+    LCD(4,F("IP: No DHCP"));
+    return false;
+  }
+#endif
 
-  #ifndef ETHERNET_CS_PIN
-  // Accept all multicast frames. STM32Ethernet registers multicast MAC hashes,
-  // but its hash-filter path is unreliable on this MAC. This does not enable
-  // promiscuous unicast reception.
+#ifndef ETHERNET_CS_PIN
+  // Native STM32 MAC (F429ZI/F439ZI): Accept all multicast frames.
+  // STM32Ethernet registers multicast MAC hashes, but its
+  // multicast hash-filter path is unreliable on this MAC.
+  // This does not enable promiscuous unicast reception.
   ETH->MACFFR |= (1UL << 4);
-  #endif
+#endif
 
   #ifndef ETHERNET_CS_PIN
   // The link-state handler enables IGMP before multicast listeners are started.
@@ -165,6 +210,10 @@ void EthernetInterface::addServiceTxt(const char *name, const char *proto, const
 
 IPAddress EthernetInterface::getIPAddress() {
   return connected ? Ethernet.localIP(): IPAddress(0,0,0,0);
+}
+
+void EthernetInterface::teardown() {
+  connected = false;
 }
 
 void EthernetInterface::loop()
@@ -218,7 +267,6 @@ void EthernetInterface::loop()
 #endif
 
 #include "DIAG.h"
-#include "EXmDNS.h"
 #include "EXNetworkPreferences.h"
 
 // Sensible defaults for a bare ESP32 + W5500 module wired to the default VSPI pins.
@@ -242,16 +290,6 @@ void EthernetInterface::loop()
 EthernetUDP udpMdns;
 MDNS mdns(udpMdns);
 
-struct UdpListener {
-  EthernetUDP udp;
-  IPAddress group;
-  uint16_t port = 0;
-#ifdef ETHERNET_W5500_RX_DIAG_PORT
-  uint8_t diagSocket = MAX_SOCK_NUM;
-  unsigned long lastStallLog = 0;
-#endif
-};
-static UdpListener udpListeners[2];
 
 #ifdef ETHERNET_W5500_RX_DIAG_PORT
 static uint8_t logW5500Socket(uint16_t port) {
@@ -309,7 +347,8 @@ bool EthernetInterface::isUp() {
 bool EthernetInterface::startUDPListener(const IPAddress &group, uint16_t port) {
   for (auto &listener : udpListeners) {
     if (listener.port) continue;
-    if (!listener.udp.beginMulticast(group, port)) {
+    if (!bindW5500Multicast(listener.udp, group, port)) {
+    // if (!listener.udp.beginMulticast(group, port)) {
       listener.udp.stop();
       return false;
     }
@@ -382,6 +421,10 @@ bool EthernetInterface::setup()
   connected=false;
   ethernetLinkLost = false;
   ethernetLinkRestored = false;
+	if (!EXNetworkPreferences::getEthernetEnabled()) {
+		DIAG(F("Ethernet disabled in preferences"));
+		return false;
+	}
   DIAG(F("Ethernet (W5500) starting (with mDNS). Please be patient, especially if no cable is connected!"));
   DIAG(F("SPI Pins: CS = %d, SCK = %d, MISO = %d, MOSI = %d, RST = %d"), ETHERNET_CS_PIN,ETHERNET_SCK_PIN,ETHERNET_MISO_PIN,ETHERNET_MOSI_PIN,ETHERNET_RST_PIN);
   #if defined(ETHERNET_RST_PIN) && ETHERNET_RST_PIN >= 0
@@ -509,7 +552,18 @@ IPAddress EthernetInterface::getIPAddress() {
 }
 
 void EthernetInterface::teardown() {
+  mdns.end();
   connected = false;
+	#if defined(ETHERNET_RST_PIN) && ETHERNET_RST_PIN >= 0
+		pinMode(ETHERNET_RST_PIN, OUTPUT);
+		digitalWrite(ETHERNET_RST_PIN, LOW);
+		delay(10);
+		digitalWrite(ETHERNET_RST_PIN, HIGH);
+		delay(50);
+	#endif
+  #if defined(ARDUINO_ARCH_ESP32) && defined(ETHERNET_CS_PIN)
+    SPI.end();
+  #endif
 }
 
 void EthernetInterface::loop()
@@ -615,5 +669,7 @@ void EthernetInterface::loop()
         break;
     }
 }
+
+#endif
 
 #endif

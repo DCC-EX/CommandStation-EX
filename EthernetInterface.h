@@ -1,5 +1,6 @@
 /*
- *  © 2026 Mathew Winters
+ *  © 2026 Mathew Winters (with Github copilot)
+ *  © 2026 Herb Morton
  *  © 2023-2024 Paul M. Antoine
  *  © 2021 Neil McKechnie
  *  © 2021 Mike S
@@ -7,6 +8,7 @@
  *  © 2020-2024 Harald Barth
  *  © 2020-2026 Chris Harlow
  *  © 2020 Gregor Baues
+ * 
  *  All rights reserved.
  *  
  *  This file is part of DCC-EX/CommandStation-EX
@@ -56,17 +58,34 @@ class EthernetServerESP32 : public EthernetServer {
 #else
   //Nucleo devices with external ethernet module
   // Refer to platformio.ini library configs
-  #define ETHERNET_CS_PIN 10
+/*
+  #ifndef ETHERNET_CS_PIN
+    #ifdef PIN_SPI_SS
+      #define ETHERNET_CS_PIN PIN_SPI_SS
+    #else
+      #define ETHERNET_CS_PIN 10
+    #endif
+  #endif
+ */
   #include <Ethernet.h>
 #endif
+#endif
+
 #endif
 
 #include <EthernetUdp.h>
 #include "EXNetworkUdp.h"
 
-#if defined(ARDUINO_ARCH_STM32)
-extern "C" struct netif gnetif;
+#if defined(ETHERNET_CS_PIN)
+#include <utility/w5100.h>
+class EthernetUDP_Exposed : public EthernetUDP {
+public:
+  uint8_t getSocketIndex() const { return sockindex; }
+};
 #endif
+
+extern "C" struct netif gnetif;
+
 
 class EthernetInterface {
 
@@ -86,7 +105,7 @@ class EthernetInterface {
   static bool sendUDPMulticast(const IPAddress &group, uint16_t port, const uint8_t *data, size_t len);
 #endif
   static void teardown();
-  static bool startUDPListener(const IPAddress &ip, uint16_t port);
+ static bool startUDPListener(const IPAddress &ip, uint16_t port);
   static void stopUDPListeners();
   static bool receiveUDPPacket(EXNetworkUdpPacket &packet);
    
@@ -95,4 +114,4 @@ class EthernetInterface {
     
 };
 #endif // ARDUINO_ARCH_STM32 || ARDUINO_ARCH_ESP32
-#endif
+

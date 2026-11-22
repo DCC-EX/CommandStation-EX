@@ -1,5 +1,7 @@
 /*
- *  © 2026 Mathew Winters
+ *  © 2024 Harald Barth
+ *  © 2024 Paul M. Antoine
+ *  © 2026 Chris Harlow (with Github copilot)
  *
  *  All rights reserved.
  *
@@ -23,12 +25,17 @@
 
 #if defined(ARDUINO_ARCH_ESP32)
 #include "DIAG.h"
+#include "EXNetworkPreferences.h"
 
 bool exNetworkUsingEthernet = false;
 
 bool EXNetworkShimESP32::setup() {
   exNetworkUsingEthernet = EthernetInterface::setup();
   if (!exNetworkUsingEthernet) {
+    if (!EXNetworkPreferences::getEnabled()) {
+      DIAG(F(" Ethernet unavailable and WiFi disabled in preferences"));
+      return false;
+    }
     DIAG(F("Ethernet unavailable; trying WiFi"));
     if (!WifiESP::setup()) {
       DIAG(F("Network setup failed"));
@@ -53,23 +60,6 @@ IPAddress EXNetworkShimESP32::getIPAddress() {
     : WifiESP::getIPAddress();
 }
 
-bool EXNetworkShimESP32::startUDPListener(const IPAddress &group, uint16_t port) {
-  return exNetworkUsingEthernet
-    ? EthernetInterface::startUDPListener(group, port)
-    : WifiESP::startUDPListener(group, port);
-}
-
-void EXNetworkShimESP32::stopUDPListeners() {
-  if (exNetworkUsingEthernet) EthernetInterface::stopUDPListeners();
-  else WifiESP::stopUDPListeners();
-}
-
-bool EXNetworkShimESP32::receiveUDPPacket(EXNetworkUdpPacket &packet) {
-  return exNetworkUsingEthernet
-    ? EthernetInterface::receiveUDPPacket(packet)
-    : WifiESP::receiveUDPPacket(packet);
-}
-
 void EXNetworkShimESP32::setupMDNS() {
   if (exNetworkUsingEthernet) EthernetInterface::setupMDNS();
   else WifiESP::setupMDNS();
@@ -87,7 +77,29 @@ void EXNetworkShimESP32::addServiceTxt(
 }
 
 void EXNetworkShimESP32::teardown() {
-  if (exNetworkUsingEthernet) EthernetInterface::teardown();
-  else WifiESP::teardown();
+  if (exNetworkUsingEthernet) {
+    EthernetInterface::teardown();
+    exNetworkUsingEthernet = false;
+  } else {
+    WifiESP::teardown();
+  }
 }
+
+bool EXNetworkShimESP32::startUDPListener(const IPAddress &group, uint16_t port) {
+  return exNetworkUsingEthernet
+	  ? EthernetInterface::startUDPListener(group, port)
+	  : WifiESP::startUDPListener(group, port);
+}
+
+void EXNetworkShimESP32::stopUDPListeners() {
+  if (exNetworkUsingEthernet) EthernetInterface::stopUDPListeners();
+  else WifiESP::stopUDPListeners();
+}
+
+bool EXNetworkShimESP32::receiveUDPPacket(EXNetworkUdpPacket &packet) {
+  return exNetworkUsingEthernet
+    ? EthernetInterface::receiveUDPPacket(packet)
+    : WifiESP::receiveUDPPacket(packet);
+}
+
 #endif

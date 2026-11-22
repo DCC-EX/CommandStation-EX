@@ -1,8 +1,8 @@
 /*
  *  © 2024 Harald Barth
  *  © 2024 Paul M. Antoine
- *  © 2026 Mathew Winters
- * 
+ *  © 2026 Mathew Winters (with Github copilot)
+ *
  *  All rights reserved.
  *
  *  This file is part of CommandStation-EX
@@ -20,6 +20,10 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+
+#ifndef EXmDNS_h
+#define EXmDNS_h
+
 #include "defines.h"
 #if defined(ARDUINO_ARCH_STM32) || defined(ARDUINO_ARCH_ESP32)
 #define BROADCASTTIME 15 //seconds
@@ -40,6 +44,7 @@ public:
   MDNS(EthernetUDP& udp);
   ~MDNS();
   int begin(const IPAddress& ip,  const char* name);
+  void end();
   int addServiceRecord(const char* name, uint16_t port, MDNSServiceProtocol_t proto);
   int addTextRecord(const char* name, MDNSServiceProtocol_t proto,
                     const char* key, const char* value);
@@ -62,3 +67,5 @@ private:
   void processQueries();
 };
 #endif // ARDUINO_ARCH_STM32 || ARDUINO_ARCH_ESP32
+
+#endif

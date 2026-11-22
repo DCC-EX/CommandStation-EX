@@ -1,9 +1,10 @@
 /*
- *  © 2026 Chris Harlow
- *  © 2026 Mathew Winters
- * 
+ *  © 2026 Chris Harlow (with Github copilot)
+ *  © 2026 Mathew Winters (with Github copilot)
+ *  © 2026 Herb Morton
+ *
  *  All rights reserved.
- *  
+ *
  *  This file is part of CommandStation-EX
  *
  *  This is free software: you can redistribute it and/or modify
@@ -19,9 +20,11 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 #ifndef EXNetwork_h
 #define EXNetwork_h
 #include "defines.h"
+
 #if defined(ARDUINO_ARCH_ESP32)
 #include "EXNetworkESP32.h"
 #else
@@ -42,6 +45,7 @@ public:
   static void udpNodeMulticast(const char *buffer);
   static EXNetworkClient acceptWebInput();
   static IPAddress getMyIPAddress();
+  
 private:
   static bool sendUDP(const IPAddress &ip, uint16_t port, const uint8_t *data, size_t len);
 #if defined(ARDUINO_ARCH_ESP32)

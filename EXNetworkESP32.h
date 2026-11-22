@@ -1,5 +1,6 @@
 /*
- *  © 2026 Mathew Winters
+ *  © 2026 Mathew Winters (with Github copilot)
+ *  © 2026 Herb Morton
  *
  *  All rights reserved.
  *
@@ -27,6 +28,7 @@
 #if defined(ARDUINO_ARCH_ESP32)
 #include "WifiESP32.h"
 #include "EthernetInterface.h"
+#include "EXNetworkUdp.h"
 #include <WiFiUdp.h>
 #include <EthernetUdp.h>
 
@@ -206,6 +208,9 @@ public:
     return exNetworkUsingEthernet ? ethernetUDP.endPacket() : wifiUDP.endPacket();
   }
   using Print::write;
+  EthernetUDP *getEthernetUDP() {
+    return exNetworkUsingEthernet ? &ethernetUDP : nullptr;
+  }
 
 private:
   WiFiUDP wifiUDP;

@@ -5,6 +5,8 @@
  *  © 2020-2021 Fred Decker
  *  © 2020-2026 Chris Harlow
  *  © 2023 Nathan Kellenicki
+ *  © 2026 Mathew Winters (with Github copilot)
+ *  © 2023 Herb Morton
  *  
  *  This file is part of CommandStation-EX
  *
@@ -305,30 +307,44 @@ The configuration file for DCC-EX Command Station
 // That is described further above.
 //
 
+
+// DEFINE ETHERNET_PINS BELOW FOR W5500 OR ONBOARD ETHERNET. Full list in EthernetPins.h
+//
+//           this information is very preliminary
+//
+// CSB1_SPI        : W5500 wired to EX-CSB1 headers (CS=5, SCK=18, MISO=36, MOSI=26, RST=13)
+// ESP32_SPI       : W5500 wired to standard ESP32 VSPI pins (CS=5, SCK=18, MISO=19, MOSI=23, RST=4)
+// ESP32_SPI2      : W5500 wired to ESP32 HSPI pins (CS=15, SCK=14, MISO=12, MOSI=13, RST=4)
+// NUCLEO64_SPI1   : W5500 on Nucleo-64 Arduino D10-D13 pins
+// NUCLEO64_SPI2   : W5500 on Nucleo-64 Morpho SPI2 pins (PB12-PB15)
+// NUCLEO144_SPI2  : W5500 on Nucleo-144 SPI2 pins (PB12-PB15)
+// NUCLEO144_SPI2B : W5500 on Nucleo-144 alternate SPI2 pins
+// NUCLEO144_F4X9  : Onboard RMII Ethernet on Nucleo-F429ZI/F439ZI
+//
+// #define ETHERNET_PINS CSB1_SPI
+
+
 /////////////////////////////////////////////////////////////////////////////////////
 //
-// ESP32 probes for a W5500 before starting WiFi. These pins default to the
-// EX-CSB1 wiring and can be overridden for other ESP32/W5500 boards.
-#if defined(ARDUINO_ARCH_ESP32)
-  #ifndef ETHERNET_CS_PIN
-    #define ETHERNET_CS_PIN   5
-  #endif
-  #ifndef ETHERNET_SCK_PIN
-    #define ETHERNET_SCK_PIN  18
-  #endif
-  #ifndef ETHERNET_MISO_PIN
-    #define ETHERNET_MISO_PIN 16
-  #endif
-  #ifndef ETHERNET_MOSI_PIN
-    #define ETHERNET_MOSI_PIN 17
-  #endif
-  #ifndef ETHERNET_RST_PIN
-    #define ETHERNET_RST_PIN  4
-  #endif
-  // Disable hardware reset handling with -DETHERNET_RST_PIN=-1.
-#endif
+// If Ethernet is enabled, ESP32 always probes for a W5500 before starting WiFi. These are the pins
+// which have been tested for the EX-CSB1 wiring and can be overridden for other ESP32/W5500 boards.
+// Nucleo-F4 - W5500 RST pin can be wired to NRST pin.
+//   
+//           this information is very preliminary
+//
+//  #define ETHERNET_CS_PIN   5
+//  #define ETHERNET_SCK_PIN  18
+//  #define ETHERNET_MISO_PIN 36
+//  #define ETHERNET_MOSI_PIN 26
+//  #define ETHERNET_RST_PIN  13  // or -1 if not connected
 
-// Set OTA_AUTH to a password to secure OTA updates. Update the upload --auth
-// flag in your PlatformIO environment to match, or comment both out to disable authorization.
+// To disable hardware reset handling, set: -DETHERNET_RST_PIN=-1
+// Note:  the platformio build_flag -D ETHERNET_PINS_OVERRIDE takes priority
+
+// OTA_AUTH: Set this to your desired password if you wish to secure OTA updates.
+// If not set, OTA updates will be password-free.
+// Note: Upon modifying the OTA password, ensure to update the "upload_flags → --auth"
+// in the relevant environment within the platformio.ini file.
+// To deactivate OTA authorization, comment out the line below and comment out
+// the "upload_flags" line in the platformio.ini file.
 #define OTA_AUTH "dccex-ota"
-/////////////////////////////////////////////////////////////////////////////////////

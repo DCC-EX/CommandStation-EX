@@ -1,4 +1,5 @@
 /*
+ *  © 2026 Herb Morton
  *  © 2022 Paul M Antoine
  *  © 2021 Neil McKechnie
  *  © 2021 Mike S
@@ -36,6 +37,11 @@
   // Override the motor shield type when provided by PIO environment
   #undef MOTOR_SHIELD_TYPE
   #define MOTOR_SHIELD_TYPE MOTOR_SHIELD_OVERRIDE
+#endif
+
+#ifdef ETHERNET_PINS_OVERRIDE
+  #undef ETHERNET_PINS
+  #define ETHERNET_PINS ETHERNET_PINS_OVERRIDE
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -112,5 +118,7 @@
     #error short addr greater than 127 does not make sense
   #endif
 #endif
+
+#include "EthernetPins.h"
 
 #endif //DEFINES_H

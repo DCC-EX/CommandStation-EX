@@ -1,6 +1,7 @@
 /*
  *  © 2026 Chris Harlow
  *  © 2026 Paul M. Antoine
+ *  © 2026 Herb Morton
  *  All rights reserved.
  *
  *  This file is part of DCC-EX CommandStation-EX
@@ -148,6 +149,15 @@ static void drainHttpHeaders(Client& client) {
   }
 }
 
+static inline void finishHttpClient(Client& client) {
+#if defined(ETHERNET_CS_PIN)
+  if (client) {
+    client.flush();
+  }
+#endif
+  client.stop();
+}
+
 /**
  * Constructor
  * @param len Maximum length of the log buffer
@@ -218,7 +228,7 @@ void SerialUsbLog::shoveToBuffer(uint8_t b) {
     _pos_write = 0;
   }
   _buffer[_pos_write++] = b;
-  _seq_write++;
+  _seq_write = _seq_write + 1;
 
 // #if defined(ARDUINO_ARCH_ESP32)
 //   portEXIT_CRITICAL(&_mux);
@@ -345,9 +355,9 @@ LogPage::LogPage(const String& _path, const unsigned char * _data, size_t _len,
     cacheControl = "public, max-age=86400";
   }
 
-  next=first;
-  first=this;
-}
+      next=first;
+      first=this;
+    }
 
 void LogPage::render(Print* stream) {
   if (stream==nullptr) return;
@@ -370,7 +380,7 @@ void LogPage::render(Print* stream) {
   // Send compressed data directly
   for (size_t i = 0; i < content_len; i++) {
       stream->write(pgm_read_byte(&content[i]));
-  }
+    }
 }
 
 
@@ -418,12 +428,13 @@ void SerialUsbLog::loop() {
     DIAG(F("POST /savenvs"));
     // Handle POST request to NVSTable save endpoint.
     // Preferred format is id=value pairs, values may be int or string.
-    String body = client.readStringUntil('\0'); // Read until end of stream 
-    DIAG(F("POST body: %s"), body.c_str());
+    String body = client.readStringUntil(';'); // Read until end of stream // Terminated with ';' by script3.js
+    //DIAG(F("POST body: %s"), body.c_str());
     auto headerEnd = body.indexOf("\r\n\r\n");
     if (headerEnd >= 0) {
       body = body.substring(headerEnd + 4); // Skip past headers
     }
+    body.trim();
     DIAG(F("POST data: %s"), body.c_str());
     
     // read id=value, id="value" pairs from the full body.
@@ -438,7 +449,7 @@ void SerialUsbLog::loop() {
       "Cache-Control: no-store\r\n"
       "Connection: close\r\n\r\n"
     );
-    client.stop();
+    finishHttpClient(client);
     return;
   }
 
@@ -455,7 +466,7 @@ void SerialUsbLog::loop() {
       "Cache-Control: no-store\r\n"
       "Connection: close\r\n\r\n"
     );
-    client.stop();
+    finishHttpClient(client);
     return;
   }
 
@@ -464,7 +475,7 @@ void SerialUsbLog::loop() {
         "HTTP/1.1 405 Method Not Allowed\r\n"
         "Connection: close\r\n\r\n"
       );
-      client.stop();
+      finishHttpClient(client);
       return;
     }
 
@@ -481,27 +492,41 @@ void SerialUsbLog::loop() {
     
     // Compute next seq (for header) using the same logic as streamOutFrom.
     uint32_t writeSeq = SerialLog.getWriteSeq();
+    //uint32_t from = (fromParam < 0) ? writeSeq : (uint32_t)fromParam;
     uint32_t earliest = (writeSeq > (uint32_t)_bufferSize) ? (writeSeq - (uint32_t)_bufferSize) : 0;
     uint32_t start = from;
-    if (start < earliest) start = earliest;
-    if (start > writeSeq) start = writeSeq;
+    if (start < earliest || start > writeSeq) start = earliest;
     uint32_t avail = writeSeq - start;
     if (avail > (uint32_t)chunk) avail = (uint32_t)chunk;
+
+		#if defined(ETHERNET_CS_PIN)
+			// For W5500 SPI Ethernet: scan backward from the end of the chunk to align
+			// the payload on the last complete newline (\n) without stalling on 1-line packets.
+			if (avail > 0) {
+				for (uint32_t i = avail; i > 0; i--) {
+					uint32_t pos = (start + i - 1) % (uint32_t)_bufferSize;
+					if (_buffer[pos] == '\n') {
+						avail = i;
+						break;
+					}
+				}
+			}
+		#endif
+
     uint32_t next = start + avail;
 
     client.print(
-      "HTTP/1.1 200 OK\r\n"
-      "Content-Type: text/plain; charset=utf-8\r\n"
-      "Cache-Control: no-store\r\n"
-      "Connection: close\r\n"
-      "X-Next-Seq: "
-    );
+			F("HTTP/1.1 200 OK\r\n"
+				"Content-Type: text/plain; charset=utf-8\r\n"
+				"Cache-Control: no-store\r\n"
+				"Connection: close\r\n"
+				"X-Next-Seq: "));
     client.print(next);
-    client.print("\r\n\r\n");
+    client.print(F("\r\n\r\n"));
 
     uint32_t nextSeqOut = from;
-    SerialLog.streamOutFrom(&client, from, (size_t)chunk, nextSeqOut);
-    client.stop();
+    SerialLog.streamOutFrom(&client, start, (size_t)avail, nextSeqOut);
+    finishHttpClient(client);
     return;
   }
   
@@ -526,7 +551,7 @@ void SerialUsbLog::loop() {
         client.print("\");\n");
       }
     }
-    client.stop();
+    finishHttpClient(client);
     return;
   }
 
@@ -534,14 +559,14 @@ void SerialUsbLog::loop() {
     client.print(jsHeader);
     NVSTable::streamJSArray(&client);
     SystemPreferences::streamSystemPreferenceIds(&client);
-    client.stop();
+    finishHttpClient(client);
     return;
   }
 
   if (path == "/rosterValues.js") {
     client.print(jsHeader);
     Roster::sendAsJavascript(&client);
-    client.stop();
+    finishHttpClient(client);
     return;
   }
 
@@ -551,7 +576,7 @@ void SerialUsbLog::loop() {
     if (path == page->path) {
       // DIAG(F("SerialUsbLog:found"));
       page->render(&client);
-      client.stop();
+      finishHttpClient(client);
       return;
     }
   }
@@ -562,7 +587,7 @@ void SerialUsbLog::loop() {
     "HTTP/1.1 404 Not Found\r\n"
     "Connection: close\r\n\r\n"
   );
-  client.stop();
+  finishHttpClient(client);
 }
 
 

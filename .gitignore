@@ -17,3 +17,4 @@ _build
 venv
 .DS_Store
 *_gz.cpp
+.pio-mcp-workspace

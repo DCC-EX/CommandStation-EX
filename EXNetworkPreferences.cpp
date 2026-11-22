@@ -1,6 +1,7 @@
 /*
  *  © 2026 Chris Harlow
  *  © 2026 Mathew Winters
+ *  © 2026 Herb Morton
  *
  *  This file is part of CommandStation-EX
  *
@@ -27,7 +28,16 @@
 #include "SystemPreferences.h"
 #include "StringFormatter.h"
 #include "NVSTable.h"
+#include "EXNetwork.h"
+#if defined(ARDUINO_ARCH_ESP32)
+#include "EXNetworkESP32.h"
+#endif
+#include "version.h"
+#include "GITHUB_SHA.h"
+#include "DCC.h"
 
+
+// allow defined DCCHOSTNAME (eg in platformio.ini) to override the hostname
 bool EXNetworkPreferences::load() {
   auto hostName=NVSTable::getTextNVS(SystemPreferences::hostName);
   if (hostName[0]==0) {
@@ -42,10 +52,14 @@ bool EXNetworkPreferences::load() {
     NVSTable::setNVS(SystemPreferences::channelAP, 11,false);
     NVSTable::setNVS(SystemPreferences::hiddenAP, false,false);
     NVSTable::setNVS(SystemPreferences::throttleNode, true,false);
+    NVSTable::setNVS(SystemPreferences::ethernetEnabled, false, false);
+  #else
+    NVSTable::setNVS(SystemPreferences::ethernetEnabled, true, false);
   #endif
     NVSTable::setNVS(SystemPreferences::nodeGroup, 254,false); // default node group
     NVSTable::save();
   }
+
 #ifdef DCCHOSTNAME
   NVSTable::setNVS(SystemPreferences::hostName, DCCHOSTNAME,false);
   NVSTable::save();
@@ -128,6 +142,10 @@ void EXNetworkPreferences::enable(bool enable) {
   NVSTable::setNVS(SystemPreferences::enabled, enable, true);
 }
 
+void EXNetworkPreferences::enableEthernet(bool enable) {
+  NVSTable::setNVS(SystemPreferences::ethernetEnabled, enable, true);
+}
+
 void EXNetworkPreferences::saveThrottleNode(bool _throttleNode) {
   NVSTable::setNVS(SystemPreferences::throttleNode, _throttleNode, true);
 }
@@ -135,6 +153,10 @@ void EXNetworkPreferences::saveThrottleNode(bool _throttleNode) {
 // getters
 bool EXNetworkPreferences::getEnabled() {
    return NVSTable::getNVS(SystemPreferences::enabled,true);
+}
+
+bool EXNetworkPreferences::getEthernetEnabled() {
+  return NVSTable::getNVS(SystemPreferences::ethernetEnabled, true);
 }
 
 const char *EXNetworkPreferences::getHostName() {
@@ -156,6 +178,8 @@ void EXNetworkPreferences::saveNodeGroup(byte nodeGroup) {
 void EXNetworkPreferences::dump(Print* stream) {
   StringFormatter::send(stream, 
       F("<* C HOSTNAME \"%s\" *>\n"), NVSTable::getTextNVS(SystemPreferences::hostName));
+  StringFormatter::send(stream, 
+      F("<* C NODEGROUP %d *>\n"), NVSTable::getNVS(SystemPreferences::nodeGroup,true));
   #ifdef ARDUINO_ARCH_ESP32
   StringFormatter::send(stream, 
       F("<* C WIFI %S%S *>\n"), 
@@ -170,13 +194,52 @@ void EXNetworkPreferences::dump(Print* stream) {
     if (NVSTable::getTextNVS(SystemPreferences::ssidSTA)[0]) StringFormatter::send(stream, 
       F("<* C WIFI \"%s\" \"********\" *>\n"),
         NVSTable::getTextNVS(SystemPreferences::ssidSTA));
-#else
+
+  StringFormatter::send(stream,
+    F("<* WIFI IP %s *>\n"),
+    (!exNetworkUsingEthernet && WifiESP::isUp())
+      ? WifiESP::getIPAddress().toString().c_str()
+      : "no IP");
+#endif
+#if !defined(ARDUINO_ARCH_ESP32) || defined(ETHERNET_CS_PIN)
+  //bool ethEnabled = NVSTable::getNVS(SystemPreferences::enabled);
+  bool ethEnabled = NVSTable::getNVS(SystemPreferences::ethernetEnabled, true);
   StringFormatter::send(stream, 
       F("<* C ETHERNET %S%S *>\n"), 
-        NVSTable::getNVS(SystemPreferences::enabled)?F("ON"):F("OFF"),
+        ethEnabled?F("ON"):F("OFF"),
         NVSTable::getNVS(SystemPreferences::throttleNode,true)?F(""):F(" [NODE]"));
+  if (ethEnabled) {
+    if (EthernetInterface::isUp()) {
+      StringFormatter::send(stream,
+        F("<* ETHERNET IP %s *>\n"),
+        EthernetInterface::getIPAddress().toString().c_str());
+    } else {
+	#if defined(ETHERNET_CS_PIN)
+				StringFormatter::send(stream,
+					F("<* ETHERNET %S *>\n"),
+					(Ethernet.linkStatus() == LinkOFF) ? F("no cable") : F("no IP"));
+	#else
+				StringFormatter::send(stream, F("<* C ETHERNET no IP *>\n"));
+	#endif
+			}
+		}
+	#if defined(ETHERNET_PNAME)
+		StringFormatter::send(stream, F("<* ETHERNET_PINS %s *>\n"), ETHERNET_PNAME);
+	#endif
+	#if defined(ETHERNET_CS_PIN)
+  #if defined(ARDUINO_ARCH_ESP32)
+		StringFormatter::send(stream,
+			F("<* SPI Pins: CS = %d, SCK = %d, MISO = %d, MOSI = %d, RST = %d *>\n"),
+			ETHERNET_CS_PIN, ETHERNET_SCK_PIN, ETHERNET_MISO_PIN, ETHERNET_MOSI_PIN, ETHERNET_RST_PIN);
+  #else
+		StringFormatter::send(stream,
+			F("<* SPI Pins: CS = %d, SCK = %d, MISO = %d, MOSI = %d, RST = NRST *>\n"),
+			ETHERNET_CS_PIN, ETHERNET_SCK_PIN, ETHERNET_MISO_PIN, ETHERNET_MOSI_PIN);
   #endif
-  StringFormatter::send(stream, 
-      F("<* C NODEGROUP %d *>\n"), NVSTable::getNVS(SystemPreferences::nodeGroup,true));
-  
+  #endif
+  #endif
+	StringFormatter::send(stream,
+		F("<iDCC-EX V-%S / %S / %S G-%S >\n"), 
+		F(VERSION), F(ARDUINO_TYPE), DCC::getMotorShieldName(), F(GITHUB_SHA));
+
 }

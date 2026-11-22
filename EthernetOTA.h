@@ -47,6 +47,7 @@ public:
   }
   void loop();
   void networkRestored();
+  void end();
 
 private:
   using AddServiceCallback = void (*)(const char*, const char*, uint16_t);
