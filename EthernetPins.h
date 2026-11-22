@@ -35,11 +35,6 @@
 #define NUCLEO144_SPI2B  7
 #define NUCLEO144_F4X9   8
 
-// Default ESP32 fallback if neither ETHERNET_PINS nor ETHERNET_CS_PIN was set
-#if defined(ARDUINO_ARCH_ESP32) && !defined(ETHERNET_PINS) && !defined(ETHERNET_CS_PIN)
-  #define ETHERNET_PINS CSB1_SPI
-#endif
-
 #if defined(ETHERNET_PINS)
   #ifndef ETHERNET_NAME
     #define ETHERNET_NAME _ETH_STR(ETHERNET_PINS)

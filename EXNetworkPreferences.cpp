@@ -204,7 +204,7 @@ void EXNetworkPreferences::dump(Print* stream) {
       F("<* C ETHERNET %S%S *>\n"), 
         ethEnabled?F("ON"):F("OFF"),
         NVSTable::getNVS(SystemPreferences::throttleNode,true)?F(""):F(" [NODE]"));
-#ifdef HAS_ETHERNET
+#ifdef HAS_ETHERNET_HW
   if (ethEnabled) {
     if (EthernetInterface::isUp()) {
       StringFormatter::send(stream,

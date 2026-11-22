@@ -38,6 +38,9 @@
 
 #if defined(ETHERNET_CS_PIN) || (defined(ARDUINO_ARCH_STM32) && __has_include("STM32Ethernet.h"))
 #define HAS_ETHERNET
+#define HAS_ETHERNET_HW
+#elif defined(ARDUINO_ARCH_ESP32)
+#define HAS_ETHERNET
 #endif
 
 #ifdef HAS_ETHERNET

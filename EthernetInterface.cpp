@@ -96,10 +96,16 @@ bool EthernetInterface::receiveUDPPacket(EXNetworkUdpPacket &packet) {
     if (!listener.port) continue;
     while (listener.udp.parsePacket() > 0) {
       int packetSize = listener.udp.available();
-      if (packetSize <= 2) { listener.udp.flush(); continue; }
+      if (packetSize <= 2) {
+        listener.udp.flush();
+				continue;
+			 }
       int length = listener.udp.read(packet.data, EXNETWORK_UDP_MAX_SIZE);
       packet.remoteIP = listener.udp.remoteIP();
-      if (length < packetSize) { listener.udp.flush(); continue; }
+      if (length < packetSize) {
+				listener.udp.flush();
+				continue;
+		  }
       packet.data[length] = 0;
       packet.localPort = listener.port;
       packet.length = length;
@@ -170,7 +176,7 @@ bool EthernetInterface::setup()
   SPI.begin();
   DIAG(F("CS:%d"), ETHERNET_CS_PIN);
   Ethernet.init(ETHERNET_CS_PIN);
-  bool ethernetInitialized = true;
+  ethernetInitialized = true;
 #endif
 
 #ifdef IP_ADDRESS
@@ -203,6 +209,7 @@ bool EthernetInterface::setup()
 
   LCD(7, F("IP: %s"), Ethernet.localIP().toString().c_str());
   connected=true;
+  ethernetInitialized = true;
   return connected;
 }
 
@@ -234,13 +241,10 @@ IPAddress EthernetInterface::getIPAddress() {
 
 void EthernetInterface::teardown() {
   connected = false;
-#if defined(ETHERNET_CS_PIN)
   if (ethernetInitialized) {
     mdns.end();
   }
-#else
-  mdns.end();
-#endif
+
 #if defined(ETHERNET_RST_PIN) && ETHERNET_RST_PIN >= 0
   pinMode(ETHERNET_RST_PIN, OUTPUT);
   digitalWrite(ETHERNET_RST_PIN, LOW);
@@ -287,25 +291,7 @@ void EthernetInterface::loop()
 
 #elif defined(ARDUINO_ARCH_ESP32)
 
-// Sensible defaults for a bare ESP32 + W5500 module wired to the default VSPI pins.
-// Override any of these with -D build flags if your board wires the module differently.
-/*
-#ifndef ETHERNET_CS_PIN
-#define ETHERNET_CS_PIN 5
-#endif
-#ifndef ETHERNET_SCK_PIN
-#define ETHERNET_SCK_PIN 18
-#endif
-#ifndef ETHERNET_MISO_PIN
-#define ETHERNET_MISO_PIN 19
-#endif
-#ifndef ETHERNET_MOSI_PIN
-#define ETHERNET_MOSI_PIN 23
-#endif
-#ifndef ETHERNET_RST_PIN
-#define ETHERNET_RST_PIN 4
-#endif
-*/
+// No default pins - define ETHERNET_PINS or individual SPI pins. see EthernetPins.h
 
 EthernetUDP udpMdns;
 MDNS mdns(udpMdns);
@@ -322,6 +308,10 @@ bool EthernetInterface::setup()
   connected=false;
   ethernetLinkLost = false;
   ethernetLinkRestored = false;
+#if !defined(HAS_ETHERNET_HW)
+  DIAG(F("Ethernet: No hardware/pins compiled, using WiFi"));
+  return false;
+#else
 	if (!EXNetworkPreferences::getEthernetEnabled()) {
 		DIAG(F("Ethernet disabled in preferences"));
 		return false;
@@ -401,6 +391,7 @@ bool EthernetInterface::setup()
        Ethernet.subnetMask().toString().c_str(), Ethernet.linkStatus());
   connected = true;
   return connected;
+#endif // HAS_ETHERNET_HW
 }
 
 void EthernetInterface::setupMDNS() {
@@ -449,8 +440,9 @@ IPAddress EthernetInterface::getIPAddress() {
 }
 
 void EthernetInterface::teardown() {
-  mdns.end();
   connected = false;
+#if defined(HAS_ETHERNET_HW)
+  mdns.end();
 	#if defined(ETHERNET_RST_PIN) && ETHERNET_RST_PIN >= 0
 		pinMode(ETHERNET_RST_PIN, OUTPUT);
 		digitalWrite(ETHERNET_RST_PIN, LOW);
@@ -458,9 +450,8 @@ void EthernetInterface::teardown() {
 		digitalWrite(ETHERNET_RST_PIN, HIGH);
 		delay(50);
 	#endif
-  #if defined(ARDUINO_ARCH_ESP32) && defined(ETHERNET_CS_PIN)
     SPI.end();
-  #endif
+#endif
 }
 
 void EthernetInterface::loop()
