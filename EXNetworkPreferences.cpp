@@ -1,5 +1,7 @@
 /*
  *  © 2026 Chris Harlow
+ *  © 2026 Mathew Winters
+ *  © 2026 Herb Morton
  *
  *  This file is part of CommandStation-EX
  *
@@ -26,26 +28,44 @@
 #include "SystemPreferences.h"
 #include "StringFormatter.h"
 #include "NVSTable.h"
+#include "EXNetwork.h"
+#if defined(ARDUINO_ARCH_ESP32)
+#include "EXNetworkESP32.h"
+#endif
+#include "version.h"
+#include "GITHUB_SHA.h"
+#include "DCC.h"
 
+
+// allow defined DCCHOSTNAME (eg in platformio.ini) to override the hostname
 bool EXNetworkPreferences::load() {
   auto hostName=NVSTable::getTextNVS(SystemPreferences::hostName);
   if (hostName[0]==0) {
-    // We have not been here before, set all non ""/0 defaults 
+#ifdef DCCHOSTNAME
+    NVSTable::setNVS(SystemPreferences::hostName, DCCHOSTNAME,false);
+#else
     NVSTable::setNVS(SystemPreferences::hostName, "DCC-EX",false);
+#endif
+    // We have not been here before, set all non ""/0 defaults
     NVSTable::setNVS(SystemPreferences::enabled, true,false);
   #ifdef ARDUINO_ARCH_ESP32
     NVSTable::setNVS(SystemPreferences::channelAP, 11,false);
     NVSTable::setNVS(SystemPreferences::hiddenAP, false,false);
     NVSTable::setNVS(SystemPreferences::throttleNode, true,false);
+    NVSTable::setNVS(SystemPreferences::ethernetEnabled, false, false);
+  #else
+    NVSTable::setNVS(SystemPreferences::ethernetEnabled, true, false);
   #endif
     NVSTable::setNVS(SystemPreferences::nodeGroup, 254,false); // default node group
     NVSTable::save();
   }
-  if (NVSTable::getNVS(SystemPreferences::nodeGroup,true) == 0) {
-    NVSTable::setNVS(SystemPreferences::nodeGroup, 254,false);
-    NVSTable::save();
-  }
-  return true; // indicate that the preferences were successfully loaded
+
+#ifdef DCCHOSTNAME
+  NVSTable::setNVS(SystemPreferences::hostName, DCCHOSTNAME,false);
+  NVSTable::save();
+#endif
+
+  return true;
 }
 
 #ifdef ARDUINO_ARCH_ESP32
@@ -119,6 +139,10 @@ void EXNetworkPreferences::enable(bool enable) {
   NVSTable::setNVS(SystemPreferences::enabled, enable, true);
 }
 
+void EXNetworkPreferences::enableEthernet(bool enable) {
+  NVSTable::setNVS(SystemPreferences::ethernetEnabled, enable, true);
+}
+
 void EXNetworkPreferences::saveThrottleNode(bool _throttleNode) {
   NVSTable::setNVS(SystemPreferences::throttleNode, _throttleNode, true);
 }
@@ -126,6 +150,10 @@ void EXNetworkPreferences::saveThrottleNode(bool _throttleNode) {
 // getters
 bool EXNetworkPreferences::getEnabled() {
    return NVSTable::getNVS(SystemPreferences::enabled,true);
+}
+
+bool EXNetworkPreferences::getEthernetEnabled() {
+  return NVSTable::getNVS(SystemPreferences::ethernetEnabled, true);
 }
 
 const char *EXNetworkPreferences::getHostName() {
@@ -147,6 +175,8 @@ void EXNetworkPreferences::saveNodeGroup(byte nodeGroup) {
 void EXNetworkPreferences::dump(Print* stream) {
   StringFormatter::send(stream, 
       F("<* C HOSTNAME \"%s\" *>\n"), NVSTable::getTextNVS(SystemPreferences::hostName));
+  StringFormatter::send(stream, 
+      F("<* C NODEGROUP %d *>\n"), NVSTable::getNVS(SystemPreferences::nodeGroup,true));
   #ifdef ARDUINO_ARCH_ESP32
   StringFormatter::send(stream, 
       F("<* C WIFI %S%S *>\n"), 
@@ -161,13 +191,77 @@ void EXNetworkPreferences::dump(Print* stream) {
     if (NVSTable::getTextNVS(SystemPreferences::ssidSTA)[0]) StringFormatter::send(stream, 
       F("<* C WIFI \"%s\" \"********\" *>\n"),
         NVSTable::getTextNVS(SystemPreferences::ssidSTA));
-#else
+
+  StringFormatter::send(stream,
+    F("<* WIFI IP %s *>\n"),
+    (!exNetworkUsingEthernet && WifiESP::isUp())
+      ? WifiESP::getIPAddress().toString().c_str()
+      : "no IP");
+#endif
+#if !defined(ARDUINO_ARCH_ESP32) || defined(ETHERNET_CS_PIN)
+  bool ethEnabled = NVSTable::getNVS(SystemPreferences::ethernetEnabled, true);
   StringFormatter::send(stream, 
       F("<* C ETHERNET %S%S *>\n"), 
-        NVSTable::getNVS(SystemPreferences::enabled)?F("ON"):F("OFF"),
+        ethEnabled?F("ON"):F("OFF"),
         NVSTable::getNVS(SystemPreferences::throttleNode,true)?F(""):F(" [NODE]"));
+#ifdef HAS_ETHERNET_HW
+  if (ethEnabled) {
+    if (EthernetInterface::isUp()) {
+      StringFormatter::send(stream,
+        F("<* ETHERNET IP %s *>\n"),
+        EthernetInterface::getIPAddress().toString().c_str());
+    } else {
+	#if defined(ETHERNET_CS_PIN)
+				StringFormatter::send(stream,
+					F("<* ETHERNET %S *>\n"),
+					(Ethernet.linkStatus() == LinkOFF) ? F("no cable") : F("no IP"));
+	#else
+				StringFormatter::send(stream, F("<* C ETHERNET no IP *>\n"));
+	#endif
+			}
+		}
+#else
+  StringFormatter::send(stream, F("<* ETHERNET_PINS: No hardware/pins compiled *>\n"));
+#endif
+	#if defined(ETHERNET_PNAME)
+		StringFormatter::send(stream, F("<* ETHERNET_PINS %s *>\n"), ETHERNET_PNAME);
+	#endif
+	#if defined(ETHERNET_CS_PIN)
+  #if defined(ARDUINO_ARCH_ESP32)
+		StringFormatter::send(stream,
+			F("<* SPI Pins: CS = %d, SCK = %d, MISO = %d, MOSI = %d, RST = %d *>\n"),
+			ETHERNET_CS_PIN, ETHERNET_SCK_PIN, ETHERNET_MISO_PIN, ETHERNET_MOSI_PIN, ETHERNET_RST_PIN);
+  #else
+		StringFormatter::send(stream,
+			F("<* SPI Pins: CS = %d, SCK = %d, MISO = %d, MOSI = %d, RST = NRST *>\n"),
+			ETHERNET_CS_PIN, ETHERNET_SCK_PIN, ETHERNET_MISO_PIN, ETHERNET_MOSI_PIN);
   #endif
-  StringFormatter::send(stream, 
-      F("<* C NODEGROUP %d *>\n"), NVSTable::getNVS(SystemPreferences::nodeGroup,true));
-  
+  #endif
+  #endif
+	StringFormatter::send(stream,
+		F("<iDCC-EX V-%S / %S / %S G-%S >\n"), 
+		F(VERSION), F(ARDUINO_TYPE), DCC::getMotorShieldName(), F(GITHUB_SHA));
+
+
+//  Additiona line available with date and time add two lines in environment build_flags
+//    -DPIO_ENV_NAME=${PIOENV}
+//    !python -c "import subprocess; b=subprocess.check_output(['git','rev-parse','--abbrev-ref','HEAD']).decode().strip().replace('/','_'); print('-DGIT_BRANCH=' + b)"
+
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+
+#ifdef PIO_ENV_NAME
+  #define BUILD_ENV_STR STR(PIO_ENV_NAME)
+
+#ifdef GIT_BRANCH
+  #define BUILD_BRANCH_STR STR(GIT_BRANCH)
+#else
+  #define BUILD_BRANCH_STR "DCC-EX"
+#endif
+
+  StringFormatter::send(stream,
+      F("<* %S  %S  %S %S *>\n"),
+      F(BUILD_ENV_STR), F(BUILD_BRANCH_STR), F(__DATE__), F(__TIME__));
+#endif
+
 }
