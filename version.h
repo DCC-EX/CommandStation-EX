@@ -3,7 +3,8 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.9.25"
+#define VERSION "5.9.26"
+// 5.9.26 - Insert all changes here
 // 5.9.25 - Railcom for booster track outputs
 //        - Async UDP queues 
 //        - no mdns for throttle traffic if motor shield not defined
