@@ -713,7 +713,7 @@ ZZ_nodoc(=,track,NONE) // Set track no output
 ZZ_nodoc(=,track,EXT)  // Set track to use external sync
         CHECK(TrackManager::setTrackMode(track,TRACK_MODE_EXT))      
 
-#ifdef BOOSTER_INPUT
+#if defined(ARDUINO_ARCH_ESP32) && defined(BOOSTER_INPUT)
 ZZ_nodoc(=,track,BOOST)              CHECK(TrackManager::setTrackMode(track,TRACK_MODE_BOOST))
 ZZ_nodoc(=,track,BOOST_INV)          CHECK(TrackManager::setTrackMode(track,TRACK_MODE_BOOST_INV))
 ZZ_nodoc(=,track,BOOST_AUTO)         CHECK(TrackManager::setTrackMode(track,TRACK_MODE_BOOST_AUTO))
