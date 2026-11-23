@@ -2,7 +2,7 @@
  *  © 2022 Paul M Antoine
  *  © 2021 Neil McKechnie
  *  © 2021 Mike S
- *  © 2021-2025 Herb Morton
+ *  © 2021-2026 Herb Morton
  *  © 2020-2023 Harald Barth
  *  © 2020-2021 M Steve Todd
  *  © 2020-2021 Fred Decker
@@ -44,6 +44,7 @@ The REPLY( format, ...) macro sends a formatted string to the stream.
 These macros are included into the DCCEXParser::execute function so
   stream, ringStream and other DCCEXParser variables are available in context. */
  
+extern int startupLoopCounter;
 
 ZZBEGIN
 ZZ(#) // Request number of simultaneously supported locos
@@ -368,7 +369,8 @@ ZZ(D,ACK,RETRY,value) // Set ACK retry count
 ZZ(C,HOSTNAME,hostname) // @V6 set Wifi/eth hostname (in quotes)
   CHECKQ(hostname)
   EXNetworkPreferences::saveHostName(q_hostname); 
-  EXNetwork::setup();
+	EXNetwork::teardown();
+	EXNetwork::setup();
 
 ZZ(C,NODEGROUP,group)   // @V6 Set the node group (1..254)
   CHECK(group>=1 && group<=254)
@@ -377,7 +379,8 @@ ZZ(C,NODEGROUP,group)   // @V6 Set the node group (1..254)
 ZZ(C,NODE,ON) // @V6 (testing only) Enable Node mode without throttle support
         EXNetworkPreferences::enable(true);
         EXNetworkPreferences::saveThrottleNode(false);
-        EXNetwork::setup();
+				EXNetwork::teardown();
+				EXNetwork::setup();
 
 #if defined(ARDUINO_ARCH_ESP32)
 // WIFI and similar ESP32 - only stuff 
@@ -392,71 +395,110 @@ ZZ_nodoc(C,SNIFFER,OFF) // Turn sniffer output off
 ZZ_nodoc(C,WIFI,OFF) // Disable WiFi
         CHECK(stream==&USB_SERIAL, WiFi can only be disabled from USB Serial)
         EXNetworkPreferences::enable(false);
-        EXNetwork::setup();
+        if (!exNetworkUsingEthernet) {
+					EXNetwork::teardown();
+					EXNetwork::setup();
+				}
 ZZ_nodoc(C,WIFI,ON) // Enable Wifi
         EXNetworkPreferences::enable(true);
         EXNetworkPreferences::saveThrottleNode(true);
-        EXNetwork::setup();
-        
+        if (!exNetworkUsingEthernet) {
+					EXNetwork::teardown();
+					EXNetwork::setup();
+          if (EXNetwork::isUp()) startupLoopCounter = 0;
+				}
 ZZ(C,WIFI,HOSTNAME,hostname) // (deprecated, use C,HOSTNAME,hostname instead)
   CHECKQ(hostname)
   EXNetworkPreferences::saveHostName(q_hostname); 
-  EXNetwork::setup();
-
+		if (!exNetworkUsingEthernet) {
+			EXNetwork::teardown();
+			EXNetwork::setup();
+		}
 #undef DEFAULT
 ZZ(C,WIFI,DEFAULT) // @V6Set WiFi to default credentials
   EXNetworkPreferences::clear(); 
-        EXNetwork::setup();
+  if (!exNetworkUsingEthernet) {
+		EXNetwork::teardown();
+		EXNetwork::setup();
+	}
 ZZ(C,WIFI,ssid,password) // @V6 Set WiFi ssid and password (in quotes, like "mySSID" and "myPassword")
   CHECKQ(ssid)
   CHECKQ(password)
   EXNetworkPreferences::saveSTA(q_ssid, q_password,true); 
-        EXNetwork::setup();
+  if (!exNetworkUsingEthernet) {
+		EXNetwork::teardown();
+		EXNetwork::setup();
+	}
 ZZ(C,WIFI,TEMP,ssid,password) // @V6 Set WiFi ssid and password temporarily (in quotes)
   CHECKQ(ssid)
   CHECKQ(password)
   EXNetworkPreferences::saveSTA(q_ssid, q_password,false); 
-        EXNetwork::setup();
+  if (!exNetworkUsingEthernet) {
+		EXNetwork::teardown();
+		EXNetwork::setup();
+	}
 ZZ(C,WIFI,AP,ssid,password) // @V6 Set WiFi to AP mode with given ssid and password (in quotes)
   CHECK(stream==&USB_SERIAL, WiFi AP can only be set from USB Serial)
   CHECKQ(ssid)
   CHECKQ(password)
   EXNetworkPreferences::saveAP(q_ssid, q_password,11,false); 
-        EXNetwork::setup();
+  if (!exNetworkUsingEthernet) {
+		EXNetwork::teardown();
+		EXNetwork::setup();
+	}
 ZZ(C,WIFI,AP,ssid,password,channel) // @V6 Set WiFi to AP mode with given ssid and password (in quotes)
   CHECK(stream==&USB_SERIAL, WiFi AP can only be set from USB Serial)
   CHECKQ(ssid)
   CHECKQ(password)
   EXNetworkPreferences::saveAP(q_ssid, q_password,channel,false); 
-        EXNetwork::setup();
+  if (!exNetworkUsingEthernet) {
+		EXNetwork::teardown();
+		EXNetwork::setup();
+	}
 ZZ(C,WIFI,HIDDENAP,ssid,password) // @V6 Set WiFi to hidden AP mode with given ssid and password (in quotes)
   CHECK(stream==&USB_SERIAL, WiFi AP can only be set from USB Serial)
   CHECKQ(ssid)
   CHECKQ(password)
   EXNetworkPreferences::saveAP(q_ssid, q_password,11,true); 
-        EXNetwork::setup();
+  if (!exNetworkUsingEthernet) {
+		EXNetwork::teardown();
+		EXNetwork::setup();
+	}
 ZZ(C,WIFI,HIDDENAP,ssid,password,channel) // @V6 Set WiFi to hidden AP mode with given ssid and password (in quotes)
   CHECK(stream==&USB_SERIAL, WiFi AP can only be set from USB Serial)
   CHECKQ(ssid)
   CHECKQ(password)
   EXNetworkPreferences::saveAP(q_ssid, q_password,channel,true); 
-        EXNetwork::setup();
+  if (!exNetworkUsingEthernet) {
+		EXNetwork::teardown();
+		EXNetwork::setup();
+	}
+#endif
 
 ZZ(D,WIFI,SHOW) // @V6 Show WiFi status
   EXNetworkPreferences::dump(stream);
-#else 
+
+#undef DEFAULT
+ZZ(C,NETWORK,DEFAULT) // @V6Set WiFi and Ethernet to default settings
+  EXNetworkPreferences::clear();
+	EXNetwork::teardown();
+  EXNetwork::setup();
+
 // ZZ(C,ETHERNET,onoff) // Enable ethernet ON or OFF 
 ZZ_nodoc(C,ETHERNET,OFF) // Disable Ethernet
-        CHECK(stream==&USB_SERIAL, WiFi can only be disabled from USB Serial)
-        EXNetworkPreferences::enable(false);
-        EXNetwork::setup();
+        CHECK(stream==&USB_SERIAL, Ethernet can only be disabled from USB Serial)
+        EXNetworkPreferences::enableEthernet(false);
+				EXNetwork::teardown();
+				EXNetwork::setup();
 ZZ_nodoc(C,ETHERNET,ON) // Enable Ethernet
-        EXNetworkPreferences::enable(true);
+        EXNetworkPreferences::enableEthernet(true);
         EXNetworkPreferences::saveThrottleNode(true);
+        EXNetwork::teardown();
         EXNetwork::setup();
+        if (EXNetwork::isUp()) startupLoopCounter = 0;
 ZZ(D,ETHERNET,SHOW) // @V6 Show Ethernet status
   EXNetworkPreferences::dump(stream);
-#endif
+
 // Non Volatile storage
 
 ZZ(C,NVS,nvsnumber,nvsvalue) // @V6 set Non Volatile storage value (int or quoted string)

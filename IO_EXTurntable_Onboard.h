@@ -118,6 +118,7 @@
 
 #if !defined(MOTOR_SHIELD_TYPE) && __has_include(<AccelStepper.h>)
 
+#include "config.h"
 #include "defines.h"
 #include "AccelStepper.h"
 #include "DIAG.h"
@@ -507,6 +508,7 @@ inline long phaseSwitchStopSteps = 0;
 inline long lastStep = 0;
 inline long lastTarget = EX_TURNTABLE_SANITY_STEPS;
 inline uint8_t homed = 0;
+inline uint8_t startupHomingPhase = 0;
 inline uint8_t calibrationPhase = 0;
 inline bool calibrating = false;
 inline uint8_t ledState = ActivityLedOff;
@@ -726,6 +728,50 @@ inline void updatePhaseSwitchSteps() {
 
 inline void moveHome() {
   setPhase(0);
+
+  // At startup, move clear of an active home sensor before homing again.
+  if (startupHomingPhase == 1) {
+    if (!stepper->isRunning()) {
+      stepper->enableOutputs();
+      stepper->setCurrentPosition(0);
+      lastStep = 0;
+      stepper->move(config.homeSensitivity);
+      lastTarget = stepper->targetPosition();
+      startupHomingPhase = 2;
+      DIAG(F("EX-Turntable_OB moving off home sensor"));
+    }
+    return;
+  }
+
+  if (startupHomingPhase == 2) {
+    if (!stepper->isRunning()) {
+      stepper->enableOutputs();
+      stepper->move(config.sanitySteps);
+      lastTarget = stepper->targetPosition();
+      startupHomingPhase = 3;
+      DIAG(F("EX-Turntable_OB returning to home sensor"));
+    }
+    return;
+  }
+
+  if (startupHomingPhase == 3 &&
+      homeSensorState() == config.homeSensorActiveState) {
+    stepper->stop();
+    stepper->setCurrentPosition(0);
+    lastStep = 0;
+    startupHomingPhase = 0;
+    homed = 1;
+    DIAG(F("EX-Turntable_OB homed"));
+    return;
+  }
+
+  if (startupHomingPhase == 3 && !stepper->isRunning()) {
+    startupHomingPhase = 0;
+    homed = 2;
+    DIAG(F("EX-Turntable_OB could not find home sensor"));
+    return;
+  }
+
   if (homeSensorState() == config.homeSensorActiveState) {
     stepper->stop();
     stepper->setCurrentPosition(0);
@@ -889,11 +935,14 @@ inline void calibration() {
 }
 
 inline void initiateHoming() {
+  startupHomingPhase = homeSensorState() == config.homeSensorActiveState ? 1 : 0;
+//  startupHomingPhase = 0;
   homed = 0;
   lastTarget = config.sanitySteps;
 }
 
 inline void initiateCalibration() {
+  startupHomingPhase = 0;
   calibrating = true;
   homed = 0;
   calibrationPhase = 0;
@@ -940,6 +989,7 @@ inline void begin() {
 
   lastHomeSensorState = digitalRead(config.homeSensorPin);
   lastLimitSensorState = digitalRead(config.limitSensorPin);
+  startupHomingPhase = homeSensorState() == config.homeSensorActiveState ? 1 : 0;
   setPhase(0);
   digitalWrite(config.accessoryPin, LOW);
   digitalWrite(config.ledPin, LOW);

@@ -1,5 +1,5 @@
 /*
- *  © 2026 Mathew Winters
+ *  © 2026 Mathew Winters (with Github copilot)
  *
  *  All rights reserved.
  *
@@ -47,6 +47,7 @@ public:
   }
   void loop();
   void networkRestored();
+  void end();
 
 private:
   using AddServiceCallback = void (*)(const char*, const char*, uint16_t);

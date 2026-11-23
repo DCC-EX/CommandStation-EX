@@ -2,7 +2,8 @@
  *  © 2024 Harald Barth
  *  © 2024 Paul M. Antoine
  *  © 2026 Chris Harlow (with Github copilot)
- *  © 2026 Mathew Winters
+ *  © 2026 Mathew Winters (with Github copilot)
+ *  © 2026 Herb Morton
  * 
  *  All rights reserved.
  *
@@ -23,9 +24,13 @@
  */
 
 #include "defines.h"
-#if defined(ARDUINO_ARCH_STM32) || defined(ARDUINO_ARCH_ESP32)
-#include <Arduino.h>
 #include "EthernetInterface.h"
+
+#if defined(HAS_ETHERNET)
+#include <Arduino.h>
+#if defined(ETHERNET_CS_PIN)
+#include <SPI.h>
+#endif
 
 #include "EXmDNS.h"
 
@@ -79,6 +84,21 @@ MDNS::~MDNS() {
     free(_services[i].text);
   }
 }
+
+void MDNS::end() {
+  if (_udp) _udp->stop();
+  if (_name) {
+    free(_name);
+    _name = NULL;
+  }
+  for (uint8_t i = 0; i < _serviceCount; i++) {
+    free(_services[i].name);
+    free(_services[i].text);
+    _services[i] = {NULL, MDNSServiceTCP, 0, NULL, 0};
+  }
+  _serviceCount = 0;
+}
+
 int MDNS::begin(const IPAddress& ip, const char* name) {
   // if we were called very soon after the board was booted, we need to give the
   // EthernetShield (WIZnet) some time to come up. Hence, we delay until millis() is at
@@ -325,8 +345,32 @@ void MDNS::sendServiceAnnounce(ServiceRecord &service) {
     _udp->write(buf, 10);
     _udp->write(service.text, service.textLength);
   }
-  
-  _udp->endPacket();
+#if defined(ETHERNET_CS_PIN)
+	uint8_t mdnsSocket = ((EthernetUDP_Exposed *)_udp)->getSocketIndex();
+	if (mdnsSocket < MAX_SOCK_NUM) {
+		uint8_t mdnsMAC[6] = {0x01, 0x00, 0x5E, 0x00, 0x00, 0xFB};
+    SPI.beginTransaction(SPI_ETHERNET_SETTINGS);
+    W5100.writeSnIR(mdnsSocket, 0xFF);
+		W5100.writeSnDHAR(mdnsSocket, mdnsMAC);
+		W5100.execCmdSn(mdnsSocket, Sock_SEND_MAC);
+		uint32_t startUs = micros();
+		while ((W5100.readSnIR(mdnsSocket) & SnIR::SEND_OK) != SnIR::SEND_OK) {
+			uint8_t snir = W5100.readSnIR(mdnsSocket);
+			if (snir & SnIR::TIMEOUT) {
+				W5100.writeSnIR(mdnsSocket, (SnIR::SEND_OK | SnIR::TIMEOUT));
+				break;
+			}
+			if (micros() - startUs >= 5000UL) {
+				W5100.writeSnIR(mdnsSocket, (SnIR::SEND_OK | SnIR::TIMEOUT));
+				break;
+			}
+		}
+		W5100.writeSnIR(mdnsSocket, SnIR::SEND_OK);
+    SPI.endTransaction();
+	}
+#else
+	_udp->endPacket();
+#endif
   _udp->flush();
 }
 
@@ -439,4 +483,5 @@ void MDNS::run() {
     sendServiceAnnounce(_services[s]);
   }
 }
-#endif // ARDUINO_ARCH_STM32 || ARDUINO_ARCH_ESP32
+
+#endif // HAS_ETHERNET

@@ -1,5 +1,6 @@
 /*
- *  © 2026 Mathew Winters
+ *  © 2026 Mathew Winters (with Github copilot)
+ *  © 2026 Herb Morton
  *
  *  All rights reserved.
  *
@@ -27,6 +28,7 @@
 #if defined(ARDUINO_ARCH_ESP32)
 #include "WifiESP32.h"
 #include "EthernetInterface.h"
+#include "EXNetworkUdp.h"
 #include <WiFiUdp.h>
 #include <EthernetUdp.h>
 
@@ -40,13 +42,13 @@ public:
   static void loop();
   static bool isUp();
   static IPAddress getIPAddress();
-  static bool startUDPListener(const IPAddress &group, uint16_t port);
-  static void stopUDPListeners();
-  static bool receiveUDPPacket(EXNetworkUdpPacket &packet);
   static void setupMDNS();
   static void addService(const char *name, const char *proto, uint16_t port);
   static void addServiceTxt(const char *name, const char *proto, const char *key, const char *value);
   static void teardown();
+	static bool startUDPListener(const IPAddress &group, uint16_t port);
+	static void stopUDPListeners();
+	static bool receiveUDPPacket(EXNetworkUdpPacket &packet);
 };
 
 // Client facade that forwards the Client API to the active ESP32 transport.
@@ -206,6 +208,9 @@ public:
     return exNetworkUsingEthernet ? ethernetUDP.endPacket() : wifiUDP.endPacket();
   }
   using Print::write;
+  EthernetUDP *getEthernetUDP() {
+    return exNetworkUsingEthernet ? &ethernetUDP : nullptr;
+  }
 
 private:
   WiFiUDP wifiUDP;

@@ -1,5 +1,5 @@
 /*
- *  © 2026 Mathew Winters
+ *  © 2026 Mathew Winters (with Github copilot)
  *
  *  All rights reserved.
  *
@@ -192,6 +192,13 @@ void EthernetOTAClass::networkRestored() {
   if (!udp.begin(ETHERNET_OTA_PORT)) {
     DIAG(F("EthernetOTA UDP restart failed on port %d"), ETHERNET_OTA_PORT);
   }
+  state = IDLE;
+}
+
+void EthernetOTAClass::end() {
+  if (!initialized) return;
+  udp.stop();
+  initialized = false;
   state = IDLE;
 }
 

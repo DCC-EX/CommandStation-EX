@@ -128,7 +128,7 @@ void Signal::listSignalIds(Print * stream){
 	  // todo prevent loopback
       auto description=s->getDescription();
       if (!description) description="";
-      if (buffer.getLength()> maxBuffer - sizeof("<S 32768 X \"\"") - strlen(description)) {
+      if (buffer.getLength()> (int)(maxBuffer - sizeof("<S 32768 X \"\"") - strlen(description))) {
         NodeManager::cast(&buffer);
         buffer.flush();
       }

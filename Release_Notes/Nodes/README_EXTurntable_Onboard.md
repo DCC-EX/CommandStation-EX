@@ -137,7 +137,7 @@ default 0
 
 
 
-The following can all be set via the browser configuration page.
+The following can all be set via the NVS.
 
 
 The maximum speed for the stepper motor
@@ -280,12 +280,14 @@ This will also occur any time a calibration is redone.
 # Subsequent start up
 
 The controller will move the turntable/traverser to the home position.
+If the home sensor is already active at startup, it first moves away by
+`EX_TURNTABLE_HOME_SENSITIVITY` steps, then moves toward home by `EX_TURNTABLE_SANITY_STEPS` and stops when the sensor activates.
 
 
 ## NVS configuration
 
 The onboard controller reads its configuration from the DCC-EX node NVS table
-when its IO device starts. NVS(0) contains the EX-Turntable's virtual pin
+when its IO device starts. NVS(0) contains the EX-Turntable's id / virtual pin
 address. When this value is nonzero, the HAL device is created at that vpin;
 otherwise, the vpin provided in the `HAL(EXTurntable, ...)` declaration is
 used. Configuration values use the fixed NVS IDs shown below; NVS(0) is not a

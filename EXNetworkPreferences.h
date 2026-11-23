@@ -1,5 +1,6 @@
 /*
  *  © 2026 Chris Harlow
+ *  © 2026 Herb Morton
  *
  *  This file is part of CommandStation-EX
  *
@@ -30,10 +31,12 @@ public:
   static void saveHostName(const char *_hostname);
   static void saveThrottleNode(bool throttleNode);
   static void saveNodeGroup(byte nodeGroup);
+  static void enableEthernet(bool enable);
   static void clear();
   static void enable(bool enable);
   static bool getThrottleNode();
   static bool getEnabled();
+  static bool getEthernetEnabled();
   static const char *getSsidSTA();
   static const char *getPasswordSTA();
   static const char *getSsidAP();
