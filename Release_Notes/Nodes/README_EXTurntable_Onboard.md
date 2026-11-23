@@ -287,7 +287,7 @@ If the home sensor is already active at startup, it first moves away by
 ## NVS configuration
 
 The onboard controller reads its configuration from the DCC-EX node NVS table
-when its IO device starts. NVS(0) contains the EX-Turntable's virtual pin
+when its IO device starts. NVS(0) contains the EX-Turntable's id / virtual pin
 address. When this value is nonzero, the HAL device is created at that vpin;
 otherwise, the vpin provided in the `HAL(EXTurntable, ...)` declaration is
 used. Configuration values use the fixed NVS IDs shown below; NVS(0) is not a
