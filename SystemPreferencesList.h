@@ -11,6 +11,7 @@
   SYSPref(hiddenAP,32008)
   SYSPref(throttleNode,32009)
   SYSPref(nodeGroup,32010)
+  SYSPref(ethernetEnabled,32011)
   SYSPref(_LAST_NETWORK_PREF,32099)
 
   SYSPref(_FIRST_ACK_PREF,32100)

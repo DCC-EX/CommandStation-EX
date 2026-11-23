@@ -131,7 +131,11 @@ if(!paused && logEl.selectionStart===logEl.selectionEnd){
   if(r.ok){
     const t=await r.text();
     const nxt=r.headers.get('X-Next-Seq');
-    if(nxt) seq=parseInt(nxt,10)||seq;
+    if(nxt !== null) {
+        const nextSeq = parseInt(nxt,10);
+        if(nextSeq < seq) buf += '\n- - - - -  Reset  - - - - -\n';
+        seq = nextSeq;
+      }
     if(t && t.length){
       buf+=t;
       
@@ -146,7 +150,7 @@ if(!paused && logEl.selectionStart===logEl.selectionEnd){
         }
       }
       
-      logEl.textContent=applyFilter(buf);
+      logEl.value=applyFilter(buf);
       if(followCb.checked&&!userScrolled) logEl.scrollTop=logEl.scrollHeight;
     }
     stat.textContent=(paused?'paused':'live')+' • seq '+seq+' • '+buf.length+' chars';
@@ -166,4 +170,7 @@ if (hostName && hostName!="DCC-EX") {
   showHostName.textContent = "(" + hostName + ")";
   document.title = "DCC-EX " + showHostName.textContent;
 }
+logEl.addEventListener('copy', () => {
+  setTimeout(() => { logEl.selectionStart = logEl.selectionEnd; }, 50);
+});
 tick();

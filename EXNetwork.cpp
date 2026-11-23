@@ -1,7 +1,10 @@
 /*
- *  © 2026 Chris Harlow with help from AI
+ *  © 2026 Chris Harlow (with Github copilot)
+ *  © 2026 Mathew Winters (with Github copilot)
+ *  © 2026 Herb Morton
+ *
  *  All rights reserved.
- *  
+ *
  *  This file is part of CommandStation-EX
  *
  *  This is free software: you can redistribute it and/or modify
@@ -17,7 +20,10 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 #include "EXNetwork.h"
+
+#ifdef HAS_EXNETWORK
 #include "DIAG.h"
 #include "CommandDistributor.h"
 #include "NodeManager.h"
@@ -27,6 +33,30 @@
 #include "Websockets.h"
 #include "EXNetworkPreferences.h"
 
+#ifdef ARDUINO_ARCH_ESP32
+#if __has_include(<esp_arduino_version.h>)
+#include <esp_arduino_version.h>
+#include "EthernetOTA.h"
+#endif
+#endif
+
+#if defined(ETHERNET_CS_PIN)
+#if defined(ETHERNET_LARGE_BUFFERS)
+#error "ETHERNET_LARGE_BUFFERS limits W5500 to 4 sockets; remove it so all 8 sockets are available for TCP + UDP."
+#endif
+#include <SPI.h>
+static inline EthernetUDP *rawEthernetUDP(EXNetworkUDPTx &udp) {
+#if defined(ARDUINO_ARCH_ESP32)
+  return udp.getEthernetUDP();
+#else
+  return &udp;
+#endif
+}
+#endif
+
+#ifndef NODE_GROUP
+#define NODE_GROUP 254
+#endif
 #ifndef IP_PORT
 #define IP_PORT 2560
 #endif
@@ -34,7 +64,6 @@
 // Common points of interaction for network interfaces
 EXNetworkServer webServer(80);
 EXNetworkServer throttleServer(IP_PORT);
-
 
 // udp throtttle traffic 
 EXNetworkUDPTx udpTx;
@@ -44,9 +73,15 @@ IPAddress nodeMulticastIP = {239, 255, 254, 0 /* will become EXNetworkPreference
 IPAddress throttleMulticastIP = {239, 255, 255, 0 /* will become WiFi.localIP()[3] */};
 
 constexpr uint16_t UDP_RESPONSE_MAX = 1472; // max outbound payload (Ethernet MTU 1500 - 20 IP - 8 UDP)
+
 static RingStream *outboundRing = new RingStream(10240);
 
 static std::vector<IPAddress> udpDiscoveryClients;
+
+static EXNetworkClient acceptNetworkClient(EXNetworkServer &server) {
+  return server.available();
+
+}
 
 static void rememberUdpDiscoveryClient(const IPAddress &ip) {
   for (const auto &knownIp : udpDiscoveryClients) {
@@ -62,7 +97,10 @@ public:
     client = c;
     inUse = true;
   }
-
+  void close() {
+    if (inUse) client.stop();
+    inUse = false;
+  }
   bool active(byte clientId) {
     if (!inUse) return false;
     if (!EXNetwork::isUp()) {
@@ -82,7 +120,7 @@ public:
     return true;
   }
   bool recycle(EXNetworkClient c) {
-    if (client == c) {
+    if (client.operator==(c)) {
       // ESP32: caller will warn about duplicate clients/recycling
       // STM32: this is normal behavior due to .available() returning clients with unread data.
       inUse = true;
@@ -103,11 +141,45 @@ private:
 };
 static std::vector<exNetworkClient> throttleClients; // A list to hold all clients.
 
+#ifdef ARDUINO_ARCH_ESP32
+void EXNetwork::restartEthernetServices() {
+  DIAG(F("Ethernet service recovery starting: hardware %d, IP %s"),
+       Ethernet.hardwareStatus(), EthernetInterface::getIPAddress().toString().c_str());
+  while (!throttleClients.empty()) {
+    const auto clientId = static_cast<byte>(throttleClients.size() - 1);
+    CommandDistributor::forget(clientId);
+    throttleClients.pop_back();
+  }
+
+  myipaddress = EthernetInterface::getIPAddress();
+  throttleMulticastIP[3] = myipaddress[3];
+  udpDiscoveryClients.clear();
+
+  udpTx.stop();
+  _SHIM_::stopUDPListeners();
+  udpTx.stop();
+  const bool txStarted = udpTx.begin(0);
+  const bool throttleStarted = _SHIM_::startUDPListener(throttleMulticastIP, IP_PORT);
+  const bool nodeStarted = _SHIM_::startUDPListener(nodeMulticastIP, NODE_PORT);
+  DIAG(F("Ethernet socket recovery results: tx %d, throttle multicast %d, node multicast %d"),
+       txStarted, throttleStarted, nodeStarted);
+
+  EthernetInterface::restartMDNS();
+  EthernetOTA.networkRestored();
+  DIAG(F("Ethernet service recovery complete: IP %s"),
+       EthernetInterface::getIPAddress().toString().c_str());
+}
+#endif
+
 IPAddress EXNetwork::myipaddress = { 0 , 0 , 0 , 0 };
 
 void EXNetwork::setup() {
-  _SHIM_::stopUDPListeners();
-  udpTx.stop();
+  #ifdef ARDUINO_ARCH_STM32
+  if (isUp()) {
+    udpTx.stop();
+    _SHIM_::stopUDPListeners();
+	}
+  #endif
 
   if (!_SHIM_::setup()) {
     DIAG(F("Network setup failed"));
@@ -119,11 +191,17 @@ void EXNetwork::setup() {
   nodeMulticastIP[3] = EXNetworkPreferences::getNodeGroup();
 
   // Socket server for old style throttle connections.
-  throttleServer.begin();
+#if defined(ETHERNET_CS_PIN)
+  static bool serversStarted = false;
+  if (!serversStarted) {
+#endif
+    throttleServer.begin();
+    webServer.begin();
+#if defined(ETHERNET_CS_PIN)
+    serversStarted = true;
+  }
+#endif
   DIAG(F("throttleServer started on port %d"), IP_PORT);
-
-  // Web server for browser interface.
-  webServer.begin();
   DIAG(F("webServer started on port 80"));
 
   if (!udpTx.begin(0)) {
@@ -153,23 +231,23 @@ void EXNetwork::setup() {
          nodeMulticastIP.toString().c_str(), NODE_PORT);
     nodeFail = true;
   }
-  
+
   NodeManager::setup(!nodeFail);
 
   _SHIM_::setupMDNS();
   _SHIM_::addService("http", "tcp", 80);
   _SHIM_::addServiceTxt("http", "tcp", "path", "/");
 
-  #ifdef MOTOR_SHIELD_TYPE
-    // throttle services only apply if motor shield defined 
-    _SHIM_::addService("withrottle", "tcp", IP_PORT);
-    _SHIM_::addService("dcc-ex", "tcp", IP_PORT);
-    _SHIM_::addService("dcc-ex", "udp", IP_PORT);
+  _SHIM_::addService("withrottle", "tcp", IP_PORT);
+  _SHIM_::addService("dcc-ex", "tcp", IP_PORT);
+  _SHIM_::addService("dcc-ex", "udp", IP_PORT);
 
-    _SHIM_::addServiceTxt("dcc-ex", "udp", "multicast", "true");
-    _SHIM_::addServiceTxt("dcc-ex", "udp", "group", throttleMulticastIP.toString().c_str());
-    _SHIM_::addServiceTxt("dcc-ex", "udp", "port", String(IP_PORT).c_str());
-  #endif
+  _SHIM_::addServiceTxt("dcc-ex", "udp", "multicast", "true");
+  _SHIM_::addServiceTxt("dcc-ex", "udp", "group", throttleMulticastIP.toString().c_str());
+  _SHIM_::addServiceTxt("dcc-ex", "udp", "port", String(IP_PORT).c_str());
+#ifdef ARDUINO_ARCH_ESP32
+  EthernetOTA.begin<_SHIM_>();
+#endif
 }
 
 bool EXNetwork::isUp() { return _SHIM_::isUp(); }
@@ -208,8 +286,10 @@ void EXNetwork::udpNodeMulticast(const char *buffer) {
 }
 
 EXNetworkClient EXNetwork::acceptWebInput() {
-  return webServer.available();
+  if (!isUp()) return EXNetworkClient();
+  return acceptNetworkClient(webServer);
 }
+
 
 void EXNetwork::processUdpPacket(byte *data, size_t length, const IPAddress &remoteIP, uint16_t localPort) {
   if (remoteIP == myipaddress) return;
@@ -234,16 +314,27 @@ void EXNetwork::processUdpPacket(byte *data, size_t length, const IPAddress &rem
 }
 
 void EXNetwork::loop() {
-  _SHIM_::loop(); // Wi-Fi/Ethernet continuous support.
+  _SHIM_::loop();
+#ifdef ARDUINO_ARCH_ESP32
+  if (exNetworkUsingEthernet) {
+    if (EthernetInterface::takeLinkLost()) {
+      DIAG(F("Ethernet link down confirmed; emergency-stopping all locos"));
+      DCC::estopAll();
+    }
+    if (EthernetInterface::takeLinkRestored()) {
+      restartEthernetServices();
+    }
+  }
+#endif
   if (!isUp()) return;
   
   // Track new socket clients. 
   // STM32: .available() returns any client with data waiting.
-  // ESP32: .available() returns only new clients.
+  // ESP32: .accept() returns only new clients.
 
   size_t clientId; // internal id to be used in ringstream operations.
   EXNetworkClient client;
-  if (client = throttleServer.available()) {
+  if ((client = acceptNetworkClient(throttleServer))) {
 
     // Work out the clientId for this client and recycle or create a new throttleClients entry as needed.
     // ESP32: recycling a client happens only once per client connect.
@@ -283,11 +374,13 @@ void EXNetwork::loop() {
     }
   }
 
+  // Poll and process UDP packets synchronously from the main loop.
   EXNetworkUdpPacket packet;
   while (_SHIM_::receiveUDPPacket(packet)) {
     processUdpPacket(packet.data, packet.length, packet.remoteIP, packet.localPort);
   }
 
+  // Process outbound WiThrottle / WebSocket ring buffer
   WiThrottle::loop(outboundRing); // withrottle may need to broadcast changes 
 
   // Send the next queued outbound message.
@@ -326,30 +419,84 @@ void EXNetwork::loop() {
       DIAG(F("Non existent client %d has message: %s"), clientId, buffer + wsHeaderLen);
     }
   }
+
+  #ifdef ARDUINO_ARCH_ESP32
+    EthernetOTA.loop();
+  #endif
 }
 
 
 void EXNetwork::teardown() {
   // Stop all locos. This broadcasts speed 1 (estop) and sets all reminders to speed 1.
   DCC::setThrottle(0, 1, 1);
-
-  _SHIM_::stopUDPListeners();
-  udpTx.stop();
+  if (isUp()) {
+    _SHIM_::stopUDPListeners();
+    udpTx.stop();
+  }
 
   // Terminate all client connections.
   while (!throttleClients.empty()) {
     // pop_back() invokes the destructor, which stops the underlying TCP connection.
+    throttleClients.back().close();
     throttleClients.pop_back();
   }
 
-  #if !defined(ETHERNET_CS_PIN)
+#if defined(ARDUINO_ARCH_ESP32) || (__has_include("STM32Ethernet.h") && !defined(ETHERNET_CS_PIN))
   webServer.end();
   throttleServer.end();
-  #endif
+#endif
+
+#if defined(ARDUINO_ARCH_ESP32)
+    EthernetOTA.end();
+#endif
 
   _SHIM_::teardown();
 }
 
 bool EXNetwork::sendUDP(const IPAddress &ip, uint16_t port, const uint8_t *data, size_t len) {
-  return isUp() && udpTx.beginPacket(ip, port) && udpTx.write(data, len) && udpTx.endPacket();
+  if (!isUp()) return false;
+  if (!udpTx.beginPacket(ip, port)) return false;
+  if (udpTx.write(data, len) != len) return false;
+#if defined(ETHERNET_CS_PIN)
+  EthernetUDP *ethUdp = rawEthernetUDP(udpTx);
+  if (ethUdp != nullptr) {
+    uint32_t raw = (uint32_t)ip;
+    uint8_t b0 = raw & 0xFF;
+    uint8_t b1 = (raw >> 8) & 0xFF;
+    uint8_t b2 = (raw >> 16) & 0xFF;
+    uint8_t b3 = (raw >> 24) & 0xFF;
+    if (b0 >= 224 && b0 <= 239) {
+      uint8_t txSocket = ((EthernetUDP_Exposed *)ethUdp)->getSocketIndex();
+      if (txSocket < MAX_SOCK_NUM) {
+        uint8_t multicastMAC[6] = {0x01, 0x00, 0x5E, (uint8_t)(b1 & 0x7F), b2, b3};
+        SPI.beginTransaction(SPI_ETHERNET_SETTINGS);
+        W5100.writeSnIR(txSocket, 0xFF);
+        W5100.writeSnDHAR(txSocket, multicastMAC);
+        W5100.execCmdSn(txSocket, Sock_SEND_MAC);
+        uint32_t startUs = micros();
+        while ((W5100.readSnIR(txSocket) & SnIR::SEND_OK) != SnIR::SEND_OK) {
+          uint8_t snir = W5100.readSnIR(txSocket);
+          if (snir & SnIR::TIMEOUT) {
+            W5100.writeSnIR(txSocket, (SnIR::SEND_OK | SnIR::TIMEOUT));
+            SPI.endTransaction();
+            return false;
+          }
+          if (micros() - startUs >= 5000UL) {
+            W5100.writeSnIR(txSocket, (SnIR::SEND_OK | SnIR::TIMEOUT));
+            SPI.endTransaction();
+            DIAG(F("W5500 Sock_SEND_MAC timeout on sock %d"), txSocket);
+            return false;
+          }
+        }
+				W5100.writeSnIR(txSocket, SnIR::SEND_OK);
+				SPI.endTransaction();
+				return true;
+			}
+			return false;
+		}
+  }
+#endif
+  return udpTx.endPacket();
 }
+
+#endif // HAS_EXNETWORK

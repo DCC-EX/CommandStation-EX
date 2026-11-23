@@ -152,7 +152,7 @@ void Turnout::setRamDescription(const char *desc) {
       if (tt->isRemote()) continue; // dont rebroadcast turnouts sent to us by other nodes
       auto tdesc = tt->getRamDescription();
       if (!tdesc) tdesc = "";
-      if (buffer.getLength() > maxBuffer - sizeof("<H 32768 1 \"\"") - strlen(tdesc)) {
+      if (buffer.getLength() > (int)(maxBuffer - sizeof("<H 32768 1 \"\"") - strlen(tdesc))) {
         NodeManager::cast(&buffer);
         buffer.flush();
       }

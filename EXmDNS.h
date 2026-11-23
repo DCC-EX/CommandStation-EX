@@ -1,6 +1,8 @@
 /*
  *  © 2024 Harald Barth
  *  © 2024 Paul M. Antoine
+ *  © 2026 Mathew Winters (with Github copilot)
+ *
  *  All rights reserved.
  *
  *  This file is part of CommandStation-EX
@@ -18,7 +20,10 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifdef ARDUINO_ARCH_STM32
+#include "defines.h"
+#include "EthernetInterface.h"
+
+#if defined(HAS_ETHERNET)
 #define BROADCASTTIME 15 //seconds
 
 // We do this ourselves because every library is different and/or broken...
@@ -37,6 +42,7 @@ public:
   MDNS(EthernetUDP& udp);
   ~MDNS();
   int begin(const IPAddress& ip,  const char* name);
+  void end();
   int addServiceRecord(const char* name, uint16_t port, MDNSServiceProtocol_t proto);
   int addTextRecord(const char* name, MDNSServiceProtocol_t proto,
                     const char* key, const char* value);
@@ -58,4 +64,4 @@ private:
   void sendServiceAnnounce(ServiceRecord &service);
   void processQueries();
 };
-#endif // ARDUINO_ARCH_STM32
+#endif // HAS_ETHERNET

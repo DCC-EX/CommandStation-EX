@@ -286,6 +286,7 @@ void WifiESP::teardown() {
   mdns_free();
   // stop WiFi
   WiFi.disconnect(true);
+  WiFi.mode(WIFI_OFF);
   wifiUp = false;
 }
 
