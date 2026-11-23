@@ -53,7 +53,10 @@ void Railcom::anticipate(uint16_t loco, uint16_t cv, ACK_CALLBACK callback) {
 }
 
 // process is called to handle data buffer sent by collector
-void Railcom::process(int16_t firstVpin,byte * buffer, byte length) { 
+void Railcom::process(int16_t firstVpin,byte * buffer, byte length) {
+#ifndef EXRAIL_ACTIVE
+    (void)firstVpin; // to get rid of compiler warning
+#endif
     //  block,locohi,locolow
     //  block|0x80,data pom read cv
     byte i=0; 
