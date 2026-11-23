@@ -155,10 +155,15 @@ bool Turntable::setPosition(uint16_t id, uint8_t position, byte activity, bool t
     if (!pp) return false; // Position not found
   
     previousPosition = position;
+    position = newposition;
     if (type==TURNTABLE_EXTT) IODevice::writeAnalogue(extVpin, pp->exttData, activity);
     if (type==TURNTABLE_DCC) DCC::setAccessory(pp->dccAddress>>3, pp->dccAddress & 0x03, 1);
     if (tellNodes) NodeManager::cast(F("<i %d %d %d>"), id, newposition, activity);
     CommandDistributor::broadcastTurntable(id, newposition, true); // is moving
+#if defined(EXRAIL_ACTIVE)
+    RMFT2::rotateEvent(id, true);
+#endif
+
     return true;
   }
 
