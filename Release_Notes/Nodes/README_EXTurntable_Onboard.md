@@ -137,7 +137,7 @@ default 0
 
 
 
-The following can all be set via the browser configuration page.
+The following can all be set via the NVS.
 
 
 The maximum speed for the stepper motor
@@ -280,6 +280,8 @@ This will also occur any time a calibration is redone.
 # Subsequent start up
 
 The controller will move the turntable/traverser to the home position.
+If the home sensor is already active at startup, it first moves away by
+`EX_TURNTABLE_HOME_SENSITIVITY` steps, then moves toward home by `EX_TURNTABLE_SANITY_STEPS` and stops when the sensor activates.
 
 
 ## NVS configuration
