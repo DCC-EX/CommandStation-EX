@@ -26,21 +26,24 @@
 #include "CommandDistributor.h"
 
 Signal *Signal::firstSignal = nullptr;
-Signal::Signal(uint16_t _id, const char * _description) {
+Signal::Signal(uint16_t _id, const char * _description, bool _remote) {
     id=_id;
     nextSignal=firstSignal;
     firstSignal = this;
     state=SIGNAL_UNKNOWN;
+    remote=_remote;
     description=nullptr;
     setRamDescription(_description);
 }
 
 Signal::RAG Signal::getState(uint16_t id) {
-    return findSignal(id)->state;
+    auto s=findSignal(id);
+    return s ? s->state : SIGNAL_UNKNOWN;
 }
 
 char * Signal::getDescription(uint16_t id) {
-    return findSignal(id)->description;
+    auto s=findSignal(id);
+    return s ? s->description : nullptr;
 }
 
 void Signal::action() {
@@ -56,8 +59,9 @@ void Signal::setAllSignalsToRed() {
 }
 
 void Signal::setSignal(uint16_t id, RAG rag, bool tellNodes) {
-    if (tellNodes) NodeManager::cast(F("<S %d %c>"), id, rag);
     auto s=findSignal(id);
+    if (!s) return;
+    if (tellNodes) NodeManager::cast(F("<S %d %c>"), id, rag);
     bool changed=(s->state!=rag);
     s->state=rag;
     s->action(); // do the hardware implemnentation
@@ -95,7 +99,7 @@ Signal * Signal::findSignal(uint16_t id) {
     for (auto s=firstSignal;s;s=s->nextSignal) {
         if (s->id == id) return s;
     }
-    return new Signal(id, ""); // Create a new signal if not found
+    return nullptr;
 }
 
 void Signal::display(Print * stream) {
@@ -120,21 +124,12 @@ void Signal::listSignalIds(Print * stream){
 
 /* static */ void Signal::shareNodesToCS() {
     
-    DIAG(F("Sharing signals to CS"));
-    const int maxBuffer=1000;
-    StringBuffer buffer(maxBuffer);
     for (auto s=firstSignal;s;s=s->nextSignal) {
-      if (s->isHidden()) continue;
-	  // todo prevent loopback
-      auto description=s->getDescription();
+      if (s->isRemote()) continue;
+	  auto description=s->getDescription();
       if (!description) description="";
-      if (buffer.getLength()> (int)(maxBuffer - sizeof("<S 32768 X \"\"") - strlen(description))) {
-        NodeManager::cast(&buffer);
-        buffer.flush();
-      }
-      StringFormatter::send(&buffer,F("<S %d %c \"%s\">"),s->id, s->state,description);  
+      NodeManager::cast(F("<S %d %c \"%s\">"),s->id, s->state,description);  
     }
-    if (buffer.getLength() > 0) NodeManager::cast(&buffer);
   }
 
 // DCC Signals 
