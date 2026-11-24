@@ -96,10 +96,4 @@ void EXNetworkShimESP32::stopUDPListeners() {
   else WifiESP::stopUDPListeners();
 }
 
-bool EXNetworkShimESP32::receiveUDPPacket(EXNetworkUdpPacket &packet) {
-  return exNetworkUsingEthernet
-    ? EthernetInterface::receiveUDPPacket(packet)
-    : WifiESP::receiveUDPPacket(packet);
-}
-
 #endif

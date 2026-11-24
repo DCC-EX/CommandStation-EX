@@ -90,7 +90,7 @@ void EthernetInterface::stopUDPListeners() {
   }
 }
 
-bool EthernetInterface::receiveUDPPacket(EXNetworkUdpPacket &packet) {
+bool EthernetInterface::receiveUDPPacket() {
   bool gotPacket = false;
   for (auto &listener : udpListeners) {
     if (!listener.port) continue;
@@ -98,17 +98,15 @@ bool EthernetInterface::receiveUDPPacket(EXNetworkUdpPacket &packet) {
       int packetSize = listener.udp.available();
       if (packetSize <= 2) {
         listener.udp.flush();
-        continue;
-      }
-      int length = listener.udp.read(packet.data, EXNETWORK_UDP_MAX_SIZE);
-      packet.remoteIP = listener.udp.remoteIP();
+				continue;
+			 }
+      byte packetBuffer[EXNETWORK_UDP_MAX_SIZE+1]; 
+      int length = listener.udp.read(packetBuffer, EXNETWORK_UDP_MAX_SIZE);
       if (length < packetSize) {
-         listener.udp.flush();
-         continue;
-      }
-      packet.data[length] = 0;
-      packet.localPort = listener.port;
-      packet.length = length;
+				listener.udp.flush();
+				continue;
+		  }
+      EXNetworkUdp::addPacket(true, listener.udp.remoteIP(), listener.port, packetBuffer, length);
       gotPacket = true;
       break;
     }

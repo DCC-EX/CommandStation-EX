@@ -1,5 +1,5 @@
 /*
- *  © 2026 DCC-EX  AI generated
+ *  © 2026 DCC-EX  Chris Harlow
  *  All rights reserved.
  *  
  *  This file is part of CommandStation-EX
@@ -27,10 +27,28 @@
 constexpr size_t EXNETWORK_UDP_MAX_SIZE = 1472;
 
 struct EXNetworkUdpPacket {
+  EXNetworkUdpPacket * next;
   byte data[EXNETWORK_UDP_MAX_SIZE + 1];
-  size_t length;
+  int16_t length;
+  bool incoming;
   IPAddress remoteIP;
-  uint16_t localPort;
+  uint16_t port;
+};
+
+
+class EXNetworkUdp {
+public:
+  // Call before starting tasks that use the queue.
+  static void setup();
+  static void addPacket(bool incoming,const IPAddress ip, uint16_t port, 
+              const unsigned char * data, int16_t length);
+  // The returned packet remains owned by the caller until the next call.
+  static EXNetworkUdpPacket* getPendingPacket();
+  private:
+    static EXNetworkUdpPacket * firstPendingPacket;
+    static EXNetworkUdpPacket * firstRecycledPacket;
+    static EXNetworkUdpPacket * currentlyProcessingPacket;
+    static int16_t udpQueueLength;
 };
 
 #endif
