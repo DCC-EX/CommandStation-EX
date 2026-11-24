@@ -299,6 +299,8 @@ void EXNetwork::processOneUdpPacket() {
 
   if (!packet->incoming) {
       udpTx.beginPacket(packet->remoteIP, packet->port) && udpTx.write(packet->data, packet->length) && udpTx.endPacket();
+     if (Diag::NODE && packet->port==NODE_PORT)
+         DIAG(F("Node out: %s"), packet->data);
      return;
   }
 

@@ -106,6 +106,9 @@ bool EthernetInterface::receiveUDPPacket() {
 				listener.udp.flush();
 				continue;
 		  }
+      // ignore packets from own broadcast or multicast send
+      if (listener.udp.remoteIP() == Ethernet.localIP() ) continue; 
+      
       EXNetworkUdp::addPacket(true, listener.udp.remoteIP(), listener.port, packetBuffer, length);
       gotPacket = true;
       break;
@@ -283,6 +286,7 @@ void EthernetInterface::loop()
         connected=false;
         return;
     default:
+        receiveUDPPacket();
         break;
     }   
 }
@@ -552,6 +556,7 @@ void EthernetInterface::loop()
         DIAG(F("Ethernet Error: rebind fail"));
         return;
     default:
+        receiveUDPPacket();
         break;
     }
 }
