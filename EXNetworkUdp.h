@@ -24,7 +24,7 @@
 #include <Arduino.h>
 #include <IPAddress.h>
 
-constexpr size_t EXNETWORK_UDP_MAX_SIZE = 1472;
+constexpr int16_t EXNETWORK_UDP_MAX_SIZE = 1472;
 
 struct EXNetworkUdpPacket {
   EXNetworkUdpPacket * next;
