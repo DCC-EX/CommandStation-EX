@@ -283,6 +283,7 @@ void EthernetInterface::loop()
         connected=false;
         return;
     default:
+        receiveUDPPacket();
         break;
     }   
 }
@@ -552,6 +553,7 @@ void EthernetInterface::loop()
         DIAG(F("Ethernet Error: rebind fail"));
         return;
     default:
+        receiveUDPPacket();
         break;
     }
 }
