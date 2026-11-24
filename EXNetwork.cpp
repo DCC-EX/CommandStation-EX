@@ -291,24 +291,36 @@ EXNetworkClient EXNetwork::acceptWebInput() {
 }
 
 
-void EXNetwork::processUdpPacket(byte *data, size_t length, const IPAddress &remoteIP, uint16_t localPort) {
-  if (remoteIP == myipaddress) return;
+
+// called once per loop to process one pending UDP input or output packet.
+void EXNetwork::processOneUdpPacket() {
+  EXNetworkUdpPacket *packet = EXNetworkUdp::getPendingPacket();
+  if (!packet) return;
+
+  if (!packet->incoming) {
+      udpTx.beginPacket(packet->remoteIP, packet->port) && udpTx.write(packet->data, packet->length) && udpTx.endPacket();
+     return;
+  }
+
+  // handle incoming packets from other devices only
+  if (packet->remoteIP == myipaddress) return;
+
   // Pass node traffic to NodeManager
-  if (localPort == NODE_PORT) {
-    NodeManager::parse(data);
+  if ( packet->port == NODE_PORT) {
+    NodeManager::parse(packet->data);
     return;
   }
  
   // detect UDP throttles that can't listen to the UDP broadcast and remember them for unicast responses
-  if (length >= 3 && data[0] == '<' && data[1] == '#' && data[2] == '>') {
-    rememberUdpDiscoveryClient(remoteIP);
+  if (packet->length >= 3 && packet->data[0] == '<' && packet->data[1] == '#' && packet->data[2] == '>') {
+    rememberUdpDiscoveryClient(packet->remoteIP);
   }
  
   // process command collecting results in a buffer
   StringBuffer response(UDP_RESPONSE_MAX);
-  DCCEXParser::parse(&response, data);
+  DCCEXParser::parse(&response, packet->data);
   if (response.getLength() > 0) {
-    sendUDP(remoteIP, IP_PORT,
+    sendUDP(packet->remoteIP, IP_PORT,
             (const byte *)response.getString(), response.getLength());
   }
 }
@@ -373,12 +385,8 @@ void EXNetwork::loop() {
       }
     }
   }
-
-  // Poll and process UDP packets synchronously from the main loop.
-  EXNetworkUdpPacket packet;
-  while (_SHIM_::receiveUDPPacket(packet)) {
-    processUdpPacket(packet.data, packet.length, packet.remoteIP, packet.localPort);
-  }
+  // process just one input or output udp packet per loop()
+  EXNetwork::processOneUdpPacket();
 
   // Process outbound WiThrottle / WebSocket ring buffer
   WiThrottle::loop(outboundRing); // withrottle may need to broadcast changes 
@@ -425,7 +433,6 @@ void EXNetwork::loop() {
   #endif
 }
 
-
 void EXNetwork::teardown() {
   // Stop all locos. This broadcasts speed 1 (estop) and sets all reminders to speed 1.
   DCC::setThrottle(0, 1, 1);
@@ -454,49 +461,7 @@ void EXNetwork::teardown() {
 }
 
 bool EXNetwork::sendUDP(const IPAddress &ip, uint16_t port, const uint8_t *data, size_t len) {
-  if (!isUp()) return false;
-  if (!udpTx.beginPacket(ip, port)) return false;
-  if (udpTx.write(data, len) != len) return false;
-#if defined(ETHERNET_CS_PIN)
-  EthernetUDP *ethUdp = rawEthernetUDP(udpTx);
-  if (ethUdp != nullptr) {
-    uint32_t raw = (uint32_t)ip;
-    uint8_t b0 = raw & 0xFF;
-    uint8_t b1 = (raw >> 8) & 0xFF;
-    uint8_t b2 = (raw >> 16) & 0xFF;
-    uint8_t b3 = (raw >> 24) & 0xFF;
-    if (b0 >= 224 && b0 <= 239) {
-      uint8_t txSocket = ((EthernetUDP_Exposed *)ethUdp)->getSocketIndex();
-      if (txSocket < MAX_SOCK_NUM) {
-        uint8_t multicastMAC[6] = {0x01, 0x00, 0x5E, (uint8_t)(b1 & 0x7F), b2, b3};
-        SPI.beginTransaction(SPI_ETHERNET_SETTINGS);
-        W5100.writeSnIR(txSocket, 0xFF);
-        W5100.writeSnDHAR(txSocket, multicastMAC);
-        W5100.execCmdSn(txSocket, Sock_SEND_MAC);
-        uint32_t startUs = micros();
-        while ((W5100.readSnIR(txSocket) & SnIR::SEND_OK) != SnIR::SEND_OK) {
-          uint8_t snir = W5100.readSnIR(txSocket);
-          if (snir & SnIR::TIMEOUT) {
-            W5100.writeSnIR(txSocket, (SnIR::SEND_OK | SnIR::TIMEOUT));
-            SPI.endTransaction();
-            return false;
-          }
-          if (micros() - startUs >= 5000UL) {
-            W5100.writeSnIR(txSocket, (SnIR::SEND_OK | SnIR::TIMEOUT));
-            SPI.endTransaction();
-            DIAG(F("W5500 Sock_SEND_MAC timeout on sock %d"), txSocket);
-            return false;
-          }
-        }
-				W5100.writeSnIR(txSocket, SnIR::SEND_OK);
-				SPI.endTransaction();
-				return true;
-			}
-			return false;
-		}
-  }
-#endif
-  return udpTx.endPacket();
+  if (isUp()) EXNetworkUdp::addPacket(false, ip, port, (uint8_t*)data, len);
+  return isUp();
 }
-
-#endif // HAS_EXNETWORK
+#endif

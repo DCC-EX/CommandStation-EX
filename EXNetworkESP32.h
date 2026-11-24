@@ -48,7 +48,6 @@ public:
   static void teardown();
 	static bool startUDPListener(const IPAddress &group, uint16_t port);
 	static void stopUDPListeners();
-	static bool receiveUDPPacket(EXNetworkUdpPacket &packet);
 };
 
 // Client facade that forwards the Client API to the active ESP32 transport.
