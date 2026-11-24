@@ -854,7 +854,8 @@ void RMFT2::loop2() {
     break;
 
   case OPCODE_IFTTPOSITION: // do block if turntable at this position
-    skipIf=Turntable::getPosition(operand)!=(int)getOperand(1);
+    skipIf=Turntable::isMoving(operand) ||
+           Turntable::getPosition(operand)!=(int)getOperand(1);
     break;
 
   case OPCODE_ENDIF:
