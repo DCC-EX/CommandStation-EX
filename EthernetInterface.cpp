@@ -288,9 +288,23 @@ void EthernetInterface::loop()
 }
 
 #elif defined(ARDUINO_ARCH_ESP32)
+// #include "defines.h"
+// #include "EthernetInterface.h"
+// #include <SPI.h>
+// #include <Ethernet.h>
+// #include <EthernetUdp.h>
+// #ifdef ETHERNET_W5500_RX_DIAG_PORT
+// #include <utility/w5100.h>
+// #endif
+#if __has_include(<esp_mac.h>)
+#include <esp_mac.h>
+#else
+#include <esp_system.h>
+#endif
 
-// No default pins - define ETHERNET_PINS or individual SPI pins. see EthernetPins.h
-
+// #include "DIAG.h"
+// #include "EXmDNS.h"
+// #include "EXNetworkPreferences.h"
 EthernetUDP udpMdns;
 MDNS mdns(udpMdns);
 
@@ -359,7 +373,11 @@ bool EthernetInterface::setup()
 
   DIAG(F("Ethernet: Link Found"));
   byte mac[6];
-  DCCTimer::getSimulatedMacAddress(mac);
+  const esp_err_t macResult = esp_read_mac(mac, ESP_MAC_ETH);
+  if (macResult != ESP_OK) {
+    DIAG(F("Ethernet: cannot read ESP32 Ethernet MAC (%d), falling back to WiFi"), macResult);
+    return false;
+  }
 
   #ifdef IP_ADDRESS
     static IPAddress myIP(IP_ADDRESS);

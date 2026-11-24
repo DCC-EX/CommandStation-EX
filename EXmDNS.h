@@ -20,6 +20,10 @@
  *  You should have received a copy of the GNU General Public License
  *  along with CommandStation.  If not, see <https://www.gnu.org/licenses/>.
  */
+
+#ifndef EXmDNS_h
+#define EXmDNS_h
+
 #include "defines.h"
 #include "EthernetInterface.h"
 
@@ -64,4 +68,6 @@ private:
   void sendServiceAnnounce(ServiceRecord &service);
   void processQueries();
 };
+
 #endif // HAS_ETHERNET
+#endif

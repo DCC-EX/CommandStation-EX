@@ -32,6 +32,12 @@
 #include "WiThrottle.h"
 #include "Websockets.h"
 #include "EXNetworkPreferences.h"
+#ifdef ARDUINO_ARCH_ESP32
+#if __has_include(<esp_arduino_version.h>)
+#include <esp_arduino_version.h>
+#endif
+#include "EthernetOTA.h"
+#endif
 
 #ifdef ARDUINO_ARCH_ESP32
 #if __has_include(<esp_arduino_version.h>)
@@ -238,6 +244,8 @@ void EXNetwork::setup() {
   _SHIM_::addService("http", "tcp", 80);
   _SHIM_::addServiceTxt("http", "tcp", "path", "/");
 
+#ifdef MOTOR_SHIELD_TYPE
+  // throttle services only apply if motor shield defined 
   _SHIM_::addService("withrottle", "tcp", IP_PORT);
   _SHIM_::addService("dcc-ex", "tcp", IP_PORT);
   _SHIM_::addService("dcc-ex", "udp", IP_PORT);
@@ -245,6 +253,7 @@ void EXNetwork::setup() {
   _SHIM_::addServiceTxt("dcc-ex", "udp", "multicast", "true");
   _SHIM_::addServiceTxt("dcc-ex", "udp", "group", throttleMulticastIP.toString().c_str());
   _SHIM_::addServiceTxt("dcc-ex", "udp", "port", String(IP_PORT).c_str());
+#endif
 #ifdef ARDUINO_ARCH_ESP32
   EthernetOTA.begin<_SHIM_>();
 #endif
@@ -334,6 +343,9 @@ void EXNetwork::loop() {
     if (EthernetInterface::takeLinkLost()) {
       DIAG(F("Ethernet link down confirmed; emergency-stopping all locos"));
       DCC::estopAll();
+      // W5500 sends IGMP leaves on close. Close while the link is down so
+      // recovery sends fresh joins without first sending leaves on the restored link.
+      _SHIM_::stopUDPListeners();
     }
     if (EthernetInterface::takeLinkRestored()) {
       restartEthernetServices();

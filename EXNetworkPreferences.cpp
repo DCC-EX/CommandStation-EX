@@ -59,7 +59,6 @@ bool EXNetworkPreferences::load() {
     NVSTable::setNVS(SystemPreferences::nodeGroup, 254,false); // default node group
     NVSTable::save();
   }
-
 #ifdef DCCHOSTNAME
   NVSTable::setNVS(SystemPreferences::hostName, DCCHOSTNAME,false);
   NVSTable::save();

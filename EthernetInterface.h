@@ -73,6 +73,7 @@ class EthernetServerESP32 : public EthernetServer {
   // Refer to platformio.ini library configs
   #include <Ethernet.h>
 #endif
+#endif
 
 #include <EthernetUdp.h>
 #include "EXNetworkUdp.h"
@@ -110,5 +111,5 @@ class EthernetInterface {
   static bool receiveUDPPacket();
     
 };
-#endif // HAS_ETHERNET
+
 #endif
