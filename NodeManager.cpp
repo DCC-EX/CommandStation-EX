@@ -24,12 +24,34 @@
 #include "DIAG.h"
 #include "Turnouts.h"
 #include "EXNetworkPreferences.h"
+#include "Sensors.h"
+#include "Turntables.h"
+#include "Signals.h"
+#include "CommandDistributor.h"
+
 
 
 bool NodeManager::enabled = false;
 OtherNode * NodeManager::firstOtherNode = nullptr;
 
 void NodeManager::addOtherNode(const char * name, const char * ipAddress) {
+    // if we receive a new node after we have gone through the node sharing phase,
+    // all bets afre off and everything will start by sharing again.
+    
+    if(sodState > SOD_NAMES_SHARED) {
+        OtherNode * nexone = nullptr;
+        for (OtherNode * node = firstOtherNode; node != nullptr; node = nexone) {
+            nexone = node->next;
+            delete node;
+        }
+        firstOtherNode = nullptr;
+
+        // reset SOD sequence to share state again
+        sodState = SOD_WAITING_TO_START;
+        sodTime = 0;
+    }
+
+    // add node to list
     for (OtherNode * node = firstOtherNode; node != nullptr; node = node->next) {
         if (strcmp(node->name, name) == 0 && strcmp(node->ipAddress, ipAddress) == 0) {
             return; // Node already exists
@@ -43,6 +65,7 @@ void NodeManager::addOtherNode(const char * name, const char * ipAddress) {
     node->ipAddress[sizeof(node->ipAddress) - 1] = '\0';
     node->next = firstOtherNode;
     firstOtherNode = node;
+
 }
 
 void NodeManager::shareNodeNameToCS() {
@@ -101,3 +124,71 @@ void NodeManager::parse(byte *cmd) {
     DCCEXParser::parseNodeTraffic(cmd);
 }
 
+
+/* Start Of Day (SOD) state and timing variables
+   used to manage the sequence of actions at the start of the day.
+   This code is used to allow all nodes to advertise their presence
+   by calling shareNodeNameToCS() almost immediately after startup. 
+   Nothing further happens until a significant delay has been reached to allow all nodes to be ready.
+
+   Then each node is able to share its state using a slightly randomized and delayed sequence.
+   this means that all nodes starting at roughly the same time will be able to share with each other without repetition.
+
+   Should another node start after the initial sequence, its initial sharteNodeNameToCS() can be detected 
+   and used to reset the SOD state of every started node. 
+   Thus all previous nodes will share their state again with the new node.
+   
+*/
+
+SODState NodeManager::sodState = SOD_WAITING_TO_START;
+unsigned long NodeManager::sodTime = 0;
+
+
+void NodeManager::loop() {
+    if (sodState == SOD_DONE) return;
+    if (millis()<sodTime) return;
+
+    switch(sodState) {
+        case SOD_WAITING_TO_START:
+            sodTime=millis()+micros()%1000; // do it soon but randomize a bit to avoid collisions
+            sodState=SOD_SHARE_HOSTNAME;
+            break;
+        case SOD_SHARE_HOSTNAME:
+            shareNodeNameToCS();
+            sodTime = millis() + 4000; // allow all starting nlodes to get past this step
+            sodState = SOD_NAMES_SHARED;
+            break;
+        case SOD_NAMES_SHARED:
+            // get here after sturtup hello phase sharing node names
+            sodState = SOD_SHARE_TURNOUTS;
+            break;
+        case SOD_SHARE_TURNOUTS:
+            Turnout::shareNodesToCS();
+            sodTime = millis() + 1000;
+            sodState = SOD_SHARE_SENSORS;
+            break;
+        case SOD_SHARE_SENSORS:
+            Sensor::shareNodesToCS();
+            sodTime = millis() + 1000;
+            sodState = SOD_SHARE_SIGNALS;
+            break;
+        case SOD_SHARE_SIGNALS:
+            Signal::shareNodesToCS();
+            sodTime = millis() + 1000;
+            sodState = SOD_SHARE_TURNTABLES;
+            break;
+        case SOD_SHARE_TURNTABLES:
+            Turntable::shareNodesToCS();
+            sodTime = millis() + 1000;
+            sodState = SOD_BROADCAST_POWER;
+            break;
+        case SOD_BROADCAST_POWER:
+            CommandDistributor::broadcastPower();
+            sodTime = millis() + 1000;
+            sodState = SOD_DONE;
+            break;
+        case SOD_DONE:
+            // Nothing to do... see top of function!
+            break;
+    }
+}

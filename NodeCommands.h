@@ -113,17 +113,6 @@ ZZ(c,clocktime,clockrate) // Clock time change
   // This was sent by a node that changes the clock time
   CommandDistributor::setClockTime(clocktime,clockrate,false);
 
-
-ZZ(?,T) // CS requests list of locally defined turnouts
-  Turnout::shareNodesToCS();
-ZZ(?,Q)  // CS requests list of shared sensors
-  Sensor::shareNodesToCS();
-ZZ(?,S)  // CS requests list of signals
-  Signal::shareNodesToCS();
-ZZ(?,I)  // CS requests list of turntables
-  Turntable::shareNodesToCS();
-ZZ(?,N)  // CS requests node name
-  NodeManager::shareNodeNameToCS();
 ZZ(N,name,ipAddress) // Node name and IP address from CS
   CHECKQ(name)
   CHECKQ(ipAddress)

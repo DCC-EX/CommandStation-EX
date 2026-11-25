@@ -32,6 +32,18 @@ class OtherNode {
         OtherNode * next;
 };
 
+enum SODState: byte {
+    SOD_WAITING_TO_START,
+    SOD_SHARE_HOSTNAME,
+    SOD_NAMES_SHARED,
+    SOD_SHARE_TURNOUTS,
+    SOD_SHARE_SENSORS,
+    SOD_SHARE_SIGNALS,
+    SOD_SHARE_TURNTABLES,
+    SOD_BROADCAST_POWER,
+    SOD_DONE
+};
+
 class NodeManager {
     public:
         static void setup(bool enabled);
@@ -45,8 +57,13 @@ class NodeManager {
         static OtherNode * firstOtherNode;
         static void shareNodeNameToCS();
         static void addOtherNode(const char * name, const char * ipAddress);
+        static void loop();
+        static void SODReset();
+
    private:
         static bool enabled;
-
+        static SODState sodState;
+        static unsigned long sodTime;
+    
 };
 #endif // NODEMANAGER_H
