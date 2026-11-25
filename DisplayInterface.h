@@ -77,6 +77,12 @@ public:
     for (DisplayInterface *p = _displayHandler; p!=0; p=p->_nextHandler) 
       p->_displayLoop();
   };
+
+  static void shareNodesToCS() {
+    for (DisplayInterface *p = _displayHandler; p!=0; p=p->_nextHandler) 
+      p->_shareNodesToCS();
+  }
+
   // The following are overridden within the specific device class
   virtual void begin() {};
   virtual size_t _write(uint8_t c) { (void)c; return 0; };
@@ -84,6 +90,7 @@ public:
   virtual void _clear() {}
   virtual void _refresh() {}
   virtual void _displayLoop() {}
+  virtual void _shareNodesToCS() {}
 };
 
 class DisplayDevice {
