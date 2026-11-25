@@ -37,7 +37,9 @@ Turntable::Turntable() {}
 Turntable* Turntable::create(uint16_t id, TurntableType turntableType,uint16_t homeAngle,VPIN extVpin, const char * description) {
     Turntable *tt = get(id);
     if (tt) {
-      DIAG(F("Duplicate Turntable ID: %d\n"), id);
+      if (turntableType != TURNTABLE_REMOTE) {
+        DIAG(F("Duplicate Turntable ID: %d\n"), id);
+      }
       return nullptr;
     }
     tt = new Turntable();
@@ -61,7 +63,9 @@ Turntable* Turntable::create(uint16_t id, TurntableType turntableType,uint16_t h
   TurntablePosition* Turntable::addPosition(uint8_t idx, uint16_t value, uint16_t angle, const char * description) {
     for (auto p=_firstPosition;p;p=p->next) {
       if (p->index==idx) {
-        DIAG(F("Duplicate Turntable %d Position Index: %d\n"), id, idx);
+        if (type != TURNTABLE_REMOTE) {
+          DIAG(F("Duplicate Turntable %d Position Index: %d\n"), id, idx);
+        }
         return nullptr;
       }
     }

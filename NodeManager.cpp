@@ -180,6 +180,11 @@ void NodeManager::loop() {
         case SOD_SHARE_TURNTABLES:
             Turntable::shareNodesToCS();
             sodTime = millis() + 1000;
+            sodState = SOD_SHARE_DISPLAYS;
+            break;
+        case SOD_SHARE_DISPLAYS:
+            Display::shareNodesToCS();
+            sodTime = millis() + 1000;
             sodState = SOD_BROADCAST_POWER;
             break;
         case SOD_BROADCAST_POWER:

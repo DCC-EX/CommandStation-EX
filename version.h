@@ -4,6 +4,8 @@
 #include "StringFormatter.h"
 
 #define VERSION "5.9.28"
+//        - DOD sequence added Display sharing
+//        - Removed duplicate tt warning
 // 5.9.28 - NodeManager SOD sequence improvements
 //        - Fix shared signal handling 
 // 5.9.27 - Implemented bi-directional UDP packet queue in wifi/eth

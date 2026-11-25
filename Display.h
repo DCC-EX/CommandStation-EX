@@ -48,6 +48,7 @@ public:
   static const int MAX_CHARACTER_COLS = MAX_MSG_SIZE;
   static const long DISPLAY_SCROLL_TIME = 3000;  // 3 seconds
 
+  void _shareNodesToCS() override;
 private:
   DisplayDevice *_deviceDriver;
 

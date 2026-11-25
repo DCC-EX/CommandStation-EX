@@ -47,6 +47,7 @@
  */
 
 #include "Display.h"
+#include "NodeManager.h"
 
 // Constructor - allocates device driver.
 Display::Display(DisplayDevice *deviceDriver, uint8_t displayNo) {
@@ -63,6 +64,30 @@ Display::Display(DisplayDevice *deviceDriver, uint8_t displayNo) {
 void Display::begin() {
   _deviceDriver->begin();
   _deviceDriver->clearNative();
+}
+
+void Display::_shareNodesToCS() {
+  for (int i = 0; i < MAX_CHARACTER_ROWS; i++) {
+    char copyrow[MAX_CHARACTER_COLS+1];
+    strncpy(copyrow, rowBuffer[i], MAX_CHARACTER_COLS);
+    // trim any trailing whitespace
+    for (int j = MAX_CHARACTER_COLS - 1; j >= 0; j--) {
+      if (copyrow[j] == ' ' || copyrow[j] == '\t') {
+        copyrow[j] = '\0';
+      } else {
+        break;
+      }
+    }
+    if (copyrow[0] == '\0') continue;  // Skip empty rows
+    auto displayForNodes = _displayNo;
+    auto rowForNodes = i;
+    if (displayForNodes==0) {
+      rowForNodes+=StringFormatter::alternativeScreen0RowOffset;
+      displayForNodes=StringFormatter::alternativeScreen0; // for node screen sharing
+   }
+  
+    NodeManager::cast(F("<@ %d %d \"%s\">"), displayForNodes, rowForNodes, copyrow);
+  }
 }
 
 void Display::_clear() {
