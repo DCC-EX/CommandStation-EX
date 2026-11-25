@@ -148,20 +148,13 @@ void AnalogSensor::check(){
 void Sensor::shareNodesToCS(){
   DIAG(F("Sharing Sensors"));
   char cmd='\0';
-  const int maxBufferLength = 1000;
-  StringBuffer buffer(maxBufferLength);
   for(auto ss=firstSensor;ss;ss=ss->nextSensor) {
     if (ss->vpin == 0 || ss->acceptREMOTE) continue; // Skip sensors not accepted for remote sharing
     if (ss->tellJMRI) cmd=ss->active?'Q':'q';
     else if (ss->tellNodes) cmd=ss->active?'X':'x';
     if (cmd==0) continue;
-    if (buffer.getLength() > (int)(maxBufferLength - sizeof("<Q 32767>"))) {
-      NodeManager::cast(&buffer);
-      buffer.flush();
-    }
-    StringFormatter::send(&buffer, F("<%c %d>"), cmd, ss->id);
+    NodeManager::cast(F("<%c %d>"), cmd, ss->id);
   }
-  if (buffer.getLength() > 0) NodeManager::cast(&buffer);
 }
 
 

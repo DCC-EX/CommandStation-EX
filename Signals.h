@@ -42,8 +42,11 @@ class Signal {
      static void shareNodesToCS();
      static void listSignalIds(Print * stream);
      static Signal* findSignal(uint16_t id);
+     inline bool isRemote() { return remote; }
+     inline void setRemote() { remote = true; } 
+  
 
-     Signal(uint16_t id, const char * description);
+     Signal(uint16_t id, const char * description, bool remote=false);
      uint16_t getId() { return id; }
      RAG getState() { return state; }
      const char * getDescription() { return description; }
@@ -59,6 +62,7 @@ class Signal {
     protected:
         uint16_t id;
         RAG state;
+        bool remote;
         char * description;
 #ifdef DCC_ACCESSORY_COMMAND_REVERSE
 

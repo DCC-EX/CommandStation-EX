@@ -102,12 +102,12 @@ class EthernetInterface {
   static void restartMDNS();
 #endif
   static void teardown();
- static bool startUDPListener(const IPAddress &ip, uint16_t port);
+  static bool startUDPListener(const IPAddress &ip, uint16_t port);
   static void stopUDPListeners();
-  static bool receiveUDPPacket(EXNetworkUdpPacket &packet);
    
  private:
-    static bool connected;
+  static bool connected;
+  static bool receiveUDPPacket();
     
 };
 #endif // HAS_ETHERNET

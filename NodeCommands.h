@@ -80,7 +80,7 @@ ZZ(S,signalid,rag) // Signal aspect change (R=red, A=amber, G=green)
 ZZ(S,signalid,rag,description) // Node startup broadcast of signal state and description
     CHECKQ(description) 
     auto ss=Signal::findSignal(signalid);
-    if (!ss) ss=new Signal(signalid,q_description); // create a dummy signal to hold the description
+    if (!ss) ss=new Signal(signalid,q_description,true); // create a dummy remote signal to hold the description
     Signal::setSignal(signalid,(Signal::RAG)rag,false);   
 
 ZZ(z,vpin,value,count)

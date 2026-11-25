@@ -3,7 +3,11 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.9.26"
+#define VERSION "5.9.27"
+//        - Fix shared signal handling 
+// 5.9.27 - Implemented bi-directional UDP packet queue in wifi/eth
+//  with automatic inbound and outbound packet merging.
+//        - removed unnecessary self-merging from turnouts and sensors 
 // 5.9.26 - Insert all changes here
 // 5.9.25 - Railcom for booster track outputs
 //        - Async UDP queues 

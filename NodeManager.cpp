@@ -70,7 +70,7 @@ void NodeManager::cast(const FSH* format...) {
 void NodeManager::cast(StringBuffer *buffer) {
     if (!enabled || buffer == nullptr || buffer->getLength() <= 0) return;
     EXNetwork::udpNodeMulticast(buffer->getString());
-    if (Diag::NODE) DIAG(F("Node out: %s"), buffer->getString());
+    // diag will be done by udp queue to show outgoing merged messages 
 }
 
 void NodeManager::castSensorChange(char cmd,VPIN vpin) {
