@@ -100,6 +100,7 @@ class EthernetInterface {
   static bool takeLinkLost();
   static bool takeLinkRestored();
   static void restartMDNS();
+  static bool sendUDPMulticast(const IPAddress &group, uint16_t port, const uint8_t *data, size_t len);
 #endif
   static void teardown();
   static bool startUDPListener(const IPAddress &ip, uint16_t port);

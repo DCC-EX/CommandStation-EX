@@ -106,7 +106,9 @@ bool EthernetInterface::receiveUDPPacket() {
 				listener.udp.flush();
 				continue;
 		  }
-      EXNetworkUdp::addPacket(true, listener.udp.remoteIP(), listener.port, packetBuffer, length);
+      const IPAddress remoteIP = listener.udp.remoteIP();
+      if (remoteIP != getIPAddress())
+        EXNetworkUdp::addPacket(true, remoteIP, listener.port, packetBuffer, length);
       gotPacket = true;
       break;
     }
@@ -284,10 +286,16 @@ void EthernetInterface::loop()
         return;
     default:
         break;
-    }   
+    }
+    receiveUDPPacket();
 }
 
 #elif defined(ARDUINO_ARCH_ESP32)
+#if __has_include(<esp_mac.h>)
+#include <esp_mac.h>
+#else
+#include <esp_system.h>
+#endif
 
 // No default pins - define ETHERNET_PINS or individual SPI pins. see EthernetPins.h
 
@@ -299,6 +307,18 @@ static bool ethernetLinkLost = false;
 static bool ethernetLinkRestored = false;
 bool EthernetInterface::isUp() {
   return connected;
+}
+
+bool EthernetInterface::sendUDPMulticast(const IPAddress &group, uint16_t port, const uint8_t *data, size_t len) {
+  for (auto &listener : udpListeners) {
+    if (!listener.port || listener.port != port || listener.group != group) continue;
+    // Keep the W5500 socket's multicast destination and MAC paired.
+    return listener.udp.beginPacket(group, port)
+      && listener.udp.write(data, len) == len
+      && listener.udp.endPacket();
+  }
+  DIAG(F("Ethernet: no multicast socket for %s:%d"), group.toString().c_str(), port);
+  return false;
 }
 
 bool EthernetInterface::setup()
@@ -359,7 +379,11 @@ bool EthernetInterface::setup()
 
   DIAG(F("Ethernet: Link Found"));
   byte mac[6];
-  DCCTimer::getSimulatedMacAddress(mac);
+  const esp_err_t macResult = esp_read_mac(mac, ESP_MAC_ETH);
+  if (macResult != ESP_OK) {
+    DIAG(F("Ethernet: cannot read ESP32 Ethernet MAC (%d), falling back to WiFi"), macResult);
+    return false;
+  }
 
   #ifdef IP_ADDRESS
     static IPAddress myIP(IP_ADDRESS);
@@ -554,6 +578,7 @@ void EthernetInterface::loop()
     default:
         break;
     }
+    receiveUDPPacket();
 }
 
 #endif

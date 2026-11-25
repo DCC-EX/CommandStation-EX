@@ -28,8 +28,12 @@
 #include "WifiESP32.h"
 #include "DIAG.h"
 #include "EXNetworkPreferences.h"
-#include "AsyncUDP.h"
 #include "EXNetworkUdp.h"
+extern "C" {
+#include <lwip/igmp.h>
+#include <lwip/priv/tcpip_priv.h>
+#include <lwip/udp.h>
+}
 
 #if __has_include ( "soc/rtc_wdt.h")
 #include <rtc_wdt.h>
@@ -83,29 +87,101 @@ void feedTheDog0(){
 
 static bool APmode = false;
 bool WifiESP::wifiUp = false;
-AsyncUDP * udpListeners[3] = {nullptr, nullptr};
+struct UdpListener {
+  udp_pcb *pcb;
+  ip4_addr_t group;
+  uint16_t port;
+  uint32_t localAddress;
+};
 
-bool WifiESP::startUDPListener(IPAddress multicastGroup,uint16_t port ) {
-  AsyncUDP *udp =new AsyncUDP();
-  udp->onPacket([](AsyncUDPPacket packet) {
-    // add packet info to the EXNetworkUdp packet queue
-    EXNetworkUdp::addPacket(true, packet.remoteIP(), packet.localPort(), packet.data(), packet.length());
-  });
-  for (int i = 0; i < sizeof(udpListeners)/sizeof(udpListeners[0]); i++) {
-    if (udpListeners[i] == nullptr) {
-      udpListeners[i] = udp;
+static UdpListener udpListeners[2] = {};
+
+// lwIP runs this callback and listener removal on the TCP/IP task.
+static void queueUdpPacket(void *arg, udp_pcb *, pbuf *packet, const ip_addr_t *remoteIP, u16_t) {
+  const auto *listener = static_cast<UdpListener *>(arg);
+  if (packet->tot_len > 2 && IP_IS_V4(remoteIP) &&
+      ip4_addr_get_u32(ip_2_ip4(remoteIP)) != listener->localAddress) {
+    if (packet->tot_len > EXNETWORK_UDP_MAX_SIZE) {
+      DIAG(F("UDP packet too large: %d"), packet->tot_len);
+    } else {
+      static byte buffer[EXNETWORK_UDP_MAX_SIZE];
+      const auto length = packet->tot_len;
+      if (pbuf_copy_partial(packet, buffer, length, 0) == length) {
+        EXNetworkUdp::addPacket(true, IPAddress(ip4_addr_get_u32(ip_2_ip4(remoteIP))),
+                                listener->port, buffer, length);
+      } else {
+        DIAG(F("UDP packet copy failed"));
+      }
+    }
+  }
+  pbuf_free(packet);
+}
+
+struct UdpListenerCall {
+  tcpip_api_call_data call;
+  UdpListener *listener;
+  ip4_addr_t group;
+};
+
+static err_t startUdpListenerOnTcpip(tcpip_api_call_data *call) {
+  auto *request = reinterpret_cast<UdpListenerCall *>(call);
+  UdpListener *listener = request->listener;
+  listener->pcb = udp_new();
+  if (!listener->pcb) return ERR_MEM;
+  err_t result = udp_bind(listener->pcb, IP_ADDR_ANY, listener->port);
+  ip4_addr_t anyAddress;
+  ip4_addr_set_any(&anyAddress);
+  if (result == ERR_OK) result = igmp_joingroup(&anyAddress, &request->group);
+  if (result != ERR_OK) {
+    udp_remove(listener->pcb);
+    listener->pcb = nullptr;
+    return result;
+  }
+  listener->group = request->group;
+  udp_recv(listener->pcb, queueUdpPacket, listener);
+  return ERR_OK;
+}
+
+bool WifiESP::startUDPListener(const IPAddress &group, uint16_t port) {
+  UdpListener *listener = nullptr;
+  for (auto &candidate : udpListeners) {
+    if (!candidate.pcb) {
+      listener = &candidate;
       break;
     }
   }
-  return udp->listenMulticast(multicastGroup, port);
+  if (!listener) {
+    DIAG(F("No free UDP listener for port %d"), port);
+    return false;
+  }
+  listener->port = port;
+  listener->localAddress = static_cast<uint32_t>(getIPAddress());
+  UdpListenerCall request = {};
+  request.listener = listener;
+  IP4_ADDR(&request.group, group[0], group[1], group[2], group[3]);
+  return tcpip_api_call(startUdpListenerOnTcpip, &request.call) == ERR_OK;
+}
+
+static err_t stopUdpListenersOnTcpip(tcpip_api_call_data *) {
+  err_t result = ERR_OK;
+  ip4_addr_t anyAddress;
+  ip4_addr_set_any(&anyAddress);
+  for (auto &listener : udpListeners) {
+    if (!listener.pcb) continue;
+    err_t leaveResult = igmp_leavegroup(&anyAddress, &listener.group);
+    if (leaveResult != ERR_OK) result = leaveResult;
+    udp_remove(listener.pcb);
+    listener.pcb = nullptr;
+  }
+  return result;
 }
 
 void WifiESP::stopUDPListeners() {
-  for (int i = 0; i < sizeof(udpListeners)/sizeof(udpListeners[0]); i++) {
-    if (udpListeners[i] == nullptr) continue;
-    udpListeners[i]->close();
-    delete udpListeners[i];
-    udpListeners[i] = nullptr;
+  if (udpListeners[0].pcb || udpListeners[1].pcb) {
+    tcpip_api_call_data request = {};
+    if (tcpip_api_call(stopUdpListenersOnTcpip, &request) != ERR_OK) {
+      DIAG(F("UDP multicast leave failed"));
+    }
   }
 }
 

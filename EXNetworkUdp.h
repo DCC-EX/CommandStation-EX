@@ -27,9 +27,8 @@
 constexpr size_t EXNETWORK_UDP_MAX_SIZE = 1472;
 
 struct EXNetworkUdpPacket {
-  EXNetworkUdpPacket * next;
   byte data[EXNETWORK_UDP_MAX_SIZE + 1];
-  int16_t length;
+  size_t length;
   bool incoming;
   IPAddress remoteIP;
   uint16_t port;
@@ -38,17 +37,13 @@ struct EXNetworkUdpPacket {
 
 class EXNetworkUdp {
 public:
-  // Call before starting tasks that use the queue.
-  static void setup();
-  static void addPacket(bool incoming,const IPAddress ip, uint16_t port, 
-              const unsigned char * data, int16_t length);
-  // The returned packet remains owned by the caller until the next call.
+  static bool setup();
+  static bool addPacket(bool incoming, const IPAddress &ip, uint16_t port,
+                        const unsigned char *data, size_t length);
+  static void clear();
+  static unsigned long takeDroppedCount();
+  // The returned packet is valid until the next call.
   static EXNetworkUdpPacket* getPendingPacket();
-  private:
-    static EXNetworkUdpPacket * firstPendingPacket;
-    static EXNetworkUdpPacket * firstRecycledPacket;
-    static EXNetworkUdpPacket * currentlyProcessingPacket;
-    static int16_t udpQueueLength;
 };
 
 #endif

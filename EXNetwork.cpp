@@ -77,6 +77,12 @@ constexpr uint16_t UDP_RESPONSE_MAX = 1472; // max outbound payload (Ethernet MT
 static RingStream *outboundRing = new RingStream(10240);
 
 static std::vector<IPAddress> udpDiscoveryClients;
+static bool udpQueueReady = false;
+static bool udpImmediate = false;
+static uint32_t udpGeneration = 0;
+#ifdef ARDUINO_ARCH_ESP32
+static bool ethernetLinkDown = false;
+#endif
 
 static EXNetworkClient acceptNetworkClient(EXNetworkServer &server) {
   return server.available();
@@ -154,6 +160,8 @@ void EXNetwork::restartEthernetServices() {
   myipaddress = EthernetInterface::getIPAddress();
   throttleMulticastIP[3] = myipaddress[3];
   udpDiscoveryClients.clear();
+  EXNetworkUdp::clear();
+  ++udpGeneration;
 
   udpTx.stop();
   _SHIM_::stopUDPListeners();
@@ -174,6 +182,12 @@ void EXNetwork::restartEthernetServices() {
 IPAddress EXNetwork::myipaddress = { 0 , 0 , 0 , 0 };
 
 void EXNetwork::setup() {
+  udpQueueReady = EXNetworkUdp::setup();
+  if (!udpQueueReady) return;
+  EXNetworkUdp::clear();
+#ifdef ARDUINO_ARCH_ESP32
+  ethernetLinkDown = false;
+#endif
   #ifdef ARDUINO_ARCH_STM32
   if (isUp()) {
     udpTx.stop();
@@ -238,6 +252,8 @@ void EXNetwork::setup() {
   _SHIM_::addService("http", "tcp", 80);
   _SHIM_::addServiceTxt("http", "tcp", "path", "/");
 
+#ifdef MOTOR_SHIELD_TYPE
+  // throttle services only apply if motor shield defined
   _SHIM_::addService("withrottle", "tcp", IP_PORT);
   _SHIM_::addService("dcc-ex", "tcp", IP_PORT);
   _SHIM_::addService("dcc-ex", "udp", IP_PORT);
@@ -245,6 +261,8 @@ void EXNetwork::setup() {
   _SHIM_::addServiceTxt("dcc-ex", "udp", "multicast", "true");
   _SHIM_::addServiceTxt("dcc-ex", "udp", "group", throttleMulticastIP.toString().c_str());
   _SHIM_::addServiceTxt("dcc-ex", "udp", "port", String(IP_PORT).c_str());
+#endif
+
 #ifdef ARDUINO_ARCH_ESP32
   EthernetOTA.begin<_SHIM_>();
 #endif
@@ -298,10 +316,12 @@ void EXNetwork::processOneUdpPacket() {
   if (!packet) return;
 
   if (!packet->incoming) {
-      udpTx.beginPacket(packet->remoteIP, packet->port) && udpTx.write(packet->data, packet->length) && udpTx.endPacket();
-     if (Diag::NODE && packet->port==NODE_PORT)
-         DIAG(F("Node out: %s"), packet->data);
-     return;
+    if (!transmitUDP(packet->remoteIP, packet->port, packet->data, packet->length)) {
+      DIAG(F("UDP send failed to %s:%d"), packet->remoteIP.toString().c_str(), packet->port);
+    } else if (Diag::NODE && packet->port == NODE_PORT) {
+      DIAG(F("Node out: %s"), packet->data);
+    }
+    return;
   }
 
   // handle incoming packets from other devices only
@@ -319,11 +339,13 @@ void EXNetwork::processOneUdpPacket() {
   }
  
   // process command collecting results in a buffer
+  const uint32_t generation = udpGeneration;
   StringBuffer response(UDP_RESPONSE_MAX);
   DCCEXParser::parse(&response, packet->data);
-  if (response.getLength() > 0) {
-    sendUDP(packet->remoteIP, IP_PORT,
-            (const byte *)response.getString(), response.getLength());
+  if (generation == udpGeneration && response.getLength() > 0 &&
+      !sendUDP(packet->remoteIP, IP_PORT,
+               (const byte *)response.getString(), response.getLength())) {
+    DIAG(F("UDP response queue failed to %s"), packet->remoteIP.toString().c_str());
   }
 }
 
@@ -332,15 +354,26 @@ void EXNetwork::loop() {
 #ifdef ARDUINO_ARCH_ESP32
   if (exNetworkUsingEthernet) {
     if (EthernetInterface::takeLinkLost()) {
+      ethernetLinkDown = true;
+      EXNetworkUdp::clear();
+      ++udpGeneration;
       DIAG(F("Ethernet link down confirmed; emergency-stopping all locos"));
       DCC::estopAll();
+      // W5500 sends IGMP leaves on close. Close while the link is down so
+      // recovery sends fresh joins without first sending leaves on the restored link.
+      _SHIM_::stopUDPListeners();
     }
     if (EthernetInterface::takeLinkRestored()) {
       restartEthernetServices();
+      ethernetLinkDown = false;
     }
+    if (ethernetLinkDown) return;
   }
 #endif
   if (!isUp()) return;
+
+  const unsigned long dropped = EXNetworkUdp::takeDroppedCount();
+  if (dropped) DIAG(F("UDP queue dropped %L packets"), dropped);
   
   // Track new socket clients. 
   // STM32: .available() returns any client with data waiting.
@@ -436,12 +469,20 @@ void EXNetwork::loop() {
 }
 
 void EXNetwork::teardown() {
+  if (udpQueueReady) {
+    EXNetworkUdp::clear();
+    ++udpGeneration;
+  }
   // Stop all locos. This broadcasts speed 1 (estop) and sets all reminders to speed 1.
+  udpImmediate = true;
   DCC::setThrottle(0, 1, 1);
+  udpImmediate = false;
   if (isUp()) {
     _SHIM_::stopUDPListeners();
     udpTx.stop();
   }
+  if (udpQueueReady) EXNetworkUdp::clear();
+  udpDiscoveryClients.clear();
 
   // Terminate all client connections.
   while (!throttleClients.empty()) {
@@ -463,7 +504,41 @@ void EXNetwork::teardown() {
 }
 
 bool EXNetwork::sendUDP(const IPAddress &ip, uint16_t port, const uint8_t *data, size_t len) {
-  if (isUp()) EXNetworkUdp::addPacket(false, ip, port, (uint8_t*)data, len);
-  return isUp();
+  if (!isUp() || !udpQueueReady) return false;
+  if (udpImmediate) return transmitUDP(ip, port, data, len);
+  return EXNetworkUdp::addPacket(false, ip, port, data, len);
+}
+
+bool EXNetwork::transmitUDP(const IPAddress &ip, uint16_t port, const uint8_t *data, size_t len) {
+#ifdef ARDUINO_ARCH_ESP32
+  if (exNetworkUsingEthernet && ip[0] >= 224 && ip[0] <= 239) {
+    return EthernetInterface::sendUDPMulticast(ip, port, data, len);
+  }
+#endif
+  if (!udpTx.beginPacket(ip, port) || udpTx.write(data, len) != len) return false;
+#if defined(ETHERNET_CS_PIN)
+  EthernetUDP *ethUdp = rawEthernetUDP(udpTx);
+  if (ethUdp && ip[0] >= 224 && ip[0] <= 239) {
+    uint8_t txSocket = ((EthernetUDP_Exposed *)ethUdp)->getSocketIndex();
+    if (txSocket >= MAX_SOCK_NUM) return false;
+    uint8_t multicastMAC[6] = {0x01, 0x00, 0x5E, (uint8_t)(ip[1] & 0x7F), ip[2], ip[3]};
+    SPI.beginTransaction(SPI_ETHERNET_SETTINGS);
+    W5100.writeSnIR(txSocket, 0xFF);
+    W5100.writeSnDHAR(txSocket, multicastMAC);
+    W5100.execCmdSn(txSocket, Sock_SEND_MAC);
+    uint32_t startUs = micros();
+    while ((W5100.readSnIR(txSocket) & SnIR::SEND_OK) != SnIR::SEND_OK) {
+      if ((W5100.readSnIR(txSocket) & SnIR::TIMEOUT) || micros() - startUs >= 5000UL) {
+        W5100.writeSnIR(txSocket, SnIR::SEND_OK | SnIR::TIMEOUT);
+        SPI.endTransaction();
+        return false;
+      }
+    }
+    W5100.writeSnIR(txSocket, SnIR::SEND_OK);
+    SPI.endTransaction();
+    return true;
+  }
+#endif
+  return udpTx.endPacket();
 }
 #endif

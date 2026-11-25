@@ -54,6 +54,7 @@ public:
   
 private:
   static bool sendUDP(const IPAddress &ip, uint16_t port, const uint8_t *data, size_t len);
+  static bool transmitUDP(const IPAddress &ip, uint16_t port, const uint8_t *data, size_t len);
   static void processOneUdpPacket();
   static void restartEthernetServices();
   static IPAddress myipaddress;

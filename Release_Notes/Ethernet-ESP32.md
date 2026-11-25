@@ -10,4 +10,8 @@ The default network hostname is `DCC-EX`. Define `DCCHOSTNAME` as a build flag t
 
 While running on Ethernet, CommandStation monitors the physical link. Link-down indications shorter than 500 ms are ignored; after a sustained outage, the link must remain up for one second before the Ethernet TCP/UDP, multicast, mDNS, and OTA services are restarted.
 
+UDP traffic uses a shared eight-packet queue on Ethernet and Wi-Fi. Incoming datagrams remain separate; adjacent outbound messages to the same destination may be batched. When the queue is full, packets are dropped and reported in diagnostics. Pending traffic is discarded when the network is restarted.
+
+Run the host-side UDP queue tests with `pio test -e native`; no board is required.
+
 ESP32 Ethernet OTA is available through the `ESP32-OTA` and `ESP32-NODE-OTA` PlatformIO environments. The default upload hostname is `dcc-ex`. OTA authentication is configured with `OTA_AUTH`; change the example password in `config.h` to a private value and keep the PlatformIO upload authentication setting in sync.
