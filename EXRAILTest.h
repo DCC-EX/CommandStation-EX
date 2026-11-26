@@ -73,7 +73,7 @@ ROUTE(7000, "Route state tests")
       PRINT("7301 START_SHARED failed")
       ENDIF
     DONE   
-    SEQUENCE(7302)
+  SEQUENCE(7302)
     IFLOCO(5)
       PRINT("7302 START_SEND received")
       ELSE 
@@ -370,4 +370,34 @@ STEALTH_GLOBAL(
   STEALTH(delayTestEnd();)
 
   PRINT("NVS delay complete")
+  DONE
+
+  // Test activate and deactivate DCC devices
+  ONACTIVATE(44,2)
+    PRINT("ONACTIVATE 44,2 triggered")
+  DONE
+  ONDEACTIVATE(44,2)
+    PRINT("ONDEACTIVATE 44,2 triggered")
+  DONE
+
+  ONACTIVATEL(899)
+    PRINT("ONACTIVATEL 899 triggered")
+  DONE
+  ONDEACTIVATEL(899)
+    PRINT("ONDEACTIVATEL 899 triggered")
+  DONE
+
+
+ROUTE("ACTIVATE_TEST"_hk,"Test Activate onactivate etc ")
+  PRINT("Activate 44,2")
+  ACTIVATE(44,2)
+  DELAY(1000)
+  DEACTIVATE(44,2)
+  DELAY(1000)
+  PRINT("Activate 899")
+  ACTIVATEL(899)
+  DELAY(1000)
+  DEACTIVATEL(899)
+  DELAY(1000)
+
   DONE
