@@ -78,6 +78,9 @@ class EthernetServerESP32 : public EthernetServer {
 #include "EXNetworkUdp.h"
 
 #if defined(ETHERNET_CS_PIN)
+#if defined(ETHERNET_LARGE_BUFFERS)
+#error "ETHERNET_LARGE_BUFFERS limits W5500 to 4 sockets; remove it so all 8 sockets are available for TCP + UDP."
+#endif
 #include <utility/w5100.h>
 class EthernetUDP_Exposed : public EthernetUDP {
 public:
@@ -105,6 +108,39 @@ class EthernetInterface {
   static void teardown();
   static bool startUDPListener(const IPAddress &ip, uint16_t port);
   static void stopUDPListeners();
+  static bool startUDPTx();
+  static void stopUDPTx();
+  static bool transmitUDP(const IPAddress &ip, uint16_t port, const uint8_t *data, size_t len);
+#if defined(ARDUINO_ARCH_STM32)
+  static bool takeLinkLost() { return false; }
+  static bool takeLinkRestored() { return false; }
+  static void networkRestored() {}
+  static void startNetworkServices() {}
+  static void loopNetworkServices() {}
+  static void stopNetworkServices() {}
+#endif
+  template<class Server>
+  static void startServers(Server &throttle, Server &web) {
+#if defined(ETHERNET_CS_PIN)
+    static bool started = false;
+    if (started) return;
+#endif
+    throttle.begin();
+    web.begin();
+#if defined(ETHERNET_CS_PIN)
+    started = true;
+#endif
+  }
+  template<class Server>
+  static void stopServers(Server &throttle, Server &web) {
+#if __has_include("STM32Ethernet.h") && !defined(ETHERNET_CS_PIN)
+    web.end();
+    throttle.end();
+#else
+    (void)throttle;
+    (void)web;
+#endif
+  }
    
  private:
   static bool connected;

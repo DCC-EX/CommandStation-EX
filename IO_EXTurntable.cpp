@@ -48,6 +48,7 @@ EXTurntable::EXTurntable(VPIN firstVpin, int nPins, I2CAddress I2CAddress) {
   _I2CAddress = I2CAddress;
   _stepperStatus = 0;
   _previousStatus = 0;
+  _readError = false;
   addDevice(this);
 }
 
@@ -70,7 +71,19 @@ void EXTurntable::_begin() {
 // 1 = still moving
 void EXTurntable::_loop(unsigned long currentMicros) {
   uint8_t readBuffer[1];
-  I2CManager.read(_I2CAddress, readBuffer, 1);
+  const uint8_t status = I2CManager.read(_I2CAddress, readBuffer, 1);
+  delayUntil(currentMicros + 100000);  // Wait 100ms before checking again
+  if (status != I2C_STATUS_OK) {
+    if (!_readError)
+      DIAG(F("EX-Turntable I2C:%s status read failed: %S"),
+           _I2CAddress.toString(), I2CManager.getErrorMessage(status));
+    _readError = true;
+    return;
+  }
+  if (_readError) {
+    DIAG(F("EX-Turntable I2C:%s status read recovered"), _I2CAddress.toString());
+    _readError = false;
+  }
   _stepperStatus = readBuffer[0];
   if (_stepperStatus != _previousStatus && _stepperStatus == 0) { // Broadcast when a rotation finishes
     if ( _currentActivity < 4) {
@@ -78,7 +91,6 @@ void EXTurntable::_loop(unsigned long currentMicros) {
     }
     _previousStatus = _stepperStatus;
   }
-  delayUntil(currentMicros + 100000);  // Wait 100ms before checking again
 }
 
 // Read returns status as obtained in our loop.

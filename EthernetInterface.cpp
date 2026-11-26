@@ -46,6 +46,47 @@ struct UdpListener {
   uint16_t port = 0;
 };
 static UdpListener udpListeners[2];
+static EthernetUDP udpTx;
+
+bool EthernetInterface::startUDPTx() {
+  return udpTx.begin(0);
+}
+
+void EthernetInterface::stopUDPTx() {
+  udpTx.stop();
+}
+
+bool EthernetInterface::transmitUDP(const IPAddress &ip, uint16_t port,
+                                    const uint8_t *data, size_t len) {
+#ifdef ARDUINO_ARCH_ESP32
+  if (ip[0] >= 224 && ip[0] <= 239)
+    return sendUDPMulticast(ip, port, data, len);
+#endif
+  if (!udpTx.beginPacket(ip, port) || udpTx.write(data, len) != len) return false;
+#if defined(ETHERNET_CS_PIN)
+  if (ip[0] >= 224 && ip[0] <= 239) {
+    uint8_t txSocket = ((EthernetUDP_Exposed *)&udpTx)->getSocketIndex();
+    if (txSocket >= MAX_SOCK_NUM) return false;
+    uint8_t multicastMAC[6] = {0x01, 0x00, 0x5E, (uint8_t)(ip[1] & 0x7F), ip[2], ip[3]};
+    SPI.beginTransaction(SPI_ETHERNET_SETTINGS);
+    W5100.writeSnIR(txSocket, 0xFF);
+    W5100.writeSnDHAR(txSocket, multicastMAC);
+    W5100.execCmdSn(txSocket, Sock_SEND_MAC);
+    uint32_t startUs = micros();
+    while ((W5100.readSnIR(txSocket) & SnIR::SEND_OK) != SnIR::SEND_OK) {
+      if ((W5100.readSnIR(txSocket) & SnIR::TIMEOUT) || micros() - startUs >= 5000UL) {
+        W5100.writeSnIR(txSocket, SnIR::SEND_OK | SnIR::TIMEOUT);
+        SPI.endTransaction();
+        return false;
+      }
+    }
+    W5100.writeSnIR(txSocket, SnIR::SEND_OK);
+    SPI.endTransaction();
+    return true;
+  }
+#endif
+  return udpTx.endPacket();
+}
 
 static bool bindW5500Multicast(EthernetUDP &udp, const IPAddress &multicastIP, uint16_t port) {
   if (udp.beginMulticast(multicastIP, port)) return true;
