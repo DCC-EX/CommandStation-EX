@@ -3,7 +3,9 @@
 
 #include "StringFormatter.h"
 
-#define VERSION "5.9.28"
+#define VERSION "5.9.29"
+// 5.8.29 - fix display share screen 0 bug
+//        - EXRAIL fix to allow use of NVS in activate/deactivate type commands
 //        - Wifi/Ethernet fast ignore own broadcasts without queueing 
 //        - DOD sequence added Display sharing
 //        - Removed duplicate tt warning during node share

@@ -67,6 +67,8 @@ void Display::begin() {
 }
 
 void Display::_shareNodesToCS() {
+  if (_displayNo==0 && StringFormatter::alternativeScreen0==0) return;
+  
   for (int i = 0; i < MAX_CHARACTER_ROWS; i++) {
     char copyrow[MAX_CHARACTER_COLS+1];
     strncpy(copyrow, rowBuffer[i], MAX_CHARACTER_COLS);
