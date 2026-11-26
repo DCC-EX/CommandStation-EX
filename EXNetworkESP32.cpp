@@ -26,8 +26,10 @@
 #if defined(ARDUINO_ARCH_ESP32)
 #include "DIAG.h"
 #include "EXNetworkPreferences.h"
+#include "EthernetOTA.h"
 
 bool exNetworkUsingEthernet = false;
+static WiFiUDP udpTx;
 
 bool EXNetworkShimESP32::setup() {
   exNetworkUsingEthernet = EthernetInterface::setup();
@@ -92,8 +94,49 @@ bool EXNetworkShimESP32::startUDPListener(const IPAddress &group, uint16_t port)
 }
 
 void EXNetworkShimESP32::stopUDPListeners() {
+  // Closing on link loss prevents W5500 IGMP leaves from following the recovery joins.
   if (exNetworkUsingEthernet) EthernetInterface::stopUDPListeners();
   else WifiESP::stopUDPListeners();
+}
+
+bool EXNetworkShimESP32::startUDPTx() {
+  return exNetworkUsingEthernet ? EthernetInterface::startUDPTx() : udpTx.begin(0);
+}
+
+void EXNetworkShimESP32::stopUDPTx() {
+  if (exNetworkUsingEthernet) EthernetInterface::stopUDPTx();
+  else udpTx.stop();
+}
+
+bool EXNetworkShimESP32::transmitUDP(const IPAddress &ip, uint16_t port,
+                                     const uint8_t *data, size_t len) {
+  if (exNetworkUsingEthernet) return EthernetInterface::transmitUDP(ip, port, data, len);
+  return udpTx.beginPacket(ip, port) && udpTx.write(data, len) == len && udpTx.endPacket();
+}
+
+bool EXNetworkShimESP32::takeLinkLost() {
+  return exNetworkUsingEthernet && EthernetInterface::takeLinkLost();
+}
+
+bool EXNetworkShimESP32::takeLinkRestored() {
+  return exNetworkUsingEthernet && EthernetInterface::takeLinkRestored();
+}
+
+void EXNetworkShimESP32::networkRestored() {
+  if (exNetworkUsingEthernet) EthernetInterface::restartMDNS();
+  EthernetOTA.networkRestored();
+}
+
+void EXNetworkShimESP32::startNetworkServices() {
+  EthernetOTA.begin<EXNetworkShimESP32>();
+}
+
+void EXNetworkShimESP32::loopNetworkServices() {
+  EthernetOTA.loop();
+}
+
+void EXNetworkShimESP32::stopNetworkServices() {
+  EthernetOTA.end();
 }
 
 #endif

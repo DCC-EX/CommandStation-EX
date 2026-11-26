@@ -1,87 +1,93 @@
+#include "EXNetwork.h"
+
+#ifdef HAS_EXNETWORK
 #include "EXNetworkUdp.h"
 #include "DIAG.h"
 
-#if __has_include(<freertos/semphr.h>)
-    #include <freertos/semphr.h>
-    SemaphoreHandle_t udpMutex = xSemaphoreCreateMutex();
-    class UdpQueueLock {
-    public:
-        UdpQueueLock() { xSemaphoreTake(udpMutex, portMAX_DELAY); }
-        ~UdpQueueLock() { xSemaphoreGive(udpMutex); }
-    };
+#ifdef ARDUINO_ARCH_ESP32
+#include <freertos/semphr.h>
+static SemaphoreHandle_t udpMutex = nullptr;
+class UdpQueueLock {
+public:
+  UdpQueueLock() { xSemaphoreTake(udpMutex, portMAX_DELAY); }
+  ~UdpQueueLock() { xSemaphoreGive(udpMutex); }
+};
 #else
- #warning "FreeRTOS semaphores not available, UDP queue will not be thread-safe"
-  // STM32 or other platforms without FreeRTOS mutexes
-  class UdpQueueLock {
-  public:
-    UdpQueueLock() {}
-    ~UdpQueueLock() {}
-  };
+class UdpQueueLock {
+public:
+  UdpQueueLock() {}
+};
 #endif
 
-EXNetworkUdpPacket * EXNetworkUdp::firstPendingPacket = nullptr;
-EXNetworkUdpPacket * EXNetworkUdp::firstRecycledPacket = nullptr;
-EXNetworkUdpPacket * EXNetworkUdp::currentlyProcessingPacket = nullptr;
-int16_t EXNetworkUdp::udpQueueLength = 0;
-
-void EXNetworkUdp::addPacket(bool incoming,const IPAddress ip, uint16_t port, const unsigned char * data, int16_t length) {
-  if (!data || length > EXNETWORK_UDP_MAX_SIZE) {
-    DIAG(F("Invalid UDP packet length %d"), (int)length);
-    return;
-  }
-  UdpQueueLock lock; // unlocks when goes out of scope
-
-  // search pending packets for a matching port, ipaddress and incoming flag
-  EXNetworkUdpPacket * lastPacket = nullptr;
-  for (auto p = firstPendingPacket; p != nullptr; p = p->next) {
-    lastPacket = p;
-    if (port == p->port && 
-        ip == p->remoteIP && 
-        incoming == p->incoming) 
-        if ((length+p->length) < EXNETWORK_UDP_MAX_SIZE) {
-          // yes we can append this packet to an existing one       
-          memcpy(&p->data[p->length], data, length);
-          p->length += length;
-          p->data[p->length] = 0; // null-terminate for safety
-          return; // packet appended, no chain change
-        }
-    }
-
-// Allocate a new packet, either from the recycled list or by creating a new one
-    auto newpacket = firstRecycledPacket;
-    if (newpacket) firstRecycledPacket = newpacket->next;
-    else {
-      newpacket = new EXNetworkUdpPacket;
-      udpQueueLength++;
-      DIAG("UDP Queue length=%d", udpQueueLength);
-    }
-    newpacket->next = nullptr;
-    newpacket->length = length;
-    newpacket->incoming = incoming;
-    newpacket->remoteIP = ip;
-    newpacket->port = port;
-    memcpy(newpacket->data, data, length);
-    newpacket->data[newpacket->length] = 0; // null-terminate for safety
-    // chain to end of queue
-    if (lastPacket) lastPacket->next = newpacket;
-    else firstPendingPacket = newpacket;
+namespace {
+constexpr size_t UDP_QUEUE_CAPACITY = 8;
+constexpr size_t UDP_BATCH_MAX_SIZE = 1460;
+EXNetworkUdpPacket packets[UDP_QUEUE_CAPACITY];
+EXNetworkUdpPacket processingPacket;
+size_t head = 0;
+size_t count = 0;
+unsigned long dropped = 0;
 }
 
+bool EXNetworkUdp::setup() {
+#ifdef ARDUINO_ARCH_ESP32
+  if (!udpMutex) udpMutex = xSemaphoreCreateMutex();
+  if (!udpMutex) {
+    DIAG(F("UDP queue mutex allocation failed"));
+    return false;
+  }
+#endif
+  return true;
+}
 
-EXNetworkUdpPacket* EXNetworkUdp::getPendingPacket() {
+bool EXNetworkUdp::addPacket(bool incoming, const IPAddress &ip, uint16_t port,
+                             const unsigned char *data, size_t length) {
+  if (!data || !length || length > EXNETWORK_UDP_MAX_SIZE) return false;
   UdpQueueLock lock;
-  // recycle previous current packet if any
-  if (currentlyProcessingPacket) {
-    currentlyProcessingPacket->next = firstRecycledPacket;
-    firstRecycledPacket = currentlyProcessingPacket;
-    currentlyProcessingPacket = nullptr;
+  if (!incoming && count) {
+    auto &tail = packets[(head + count - 1) % UDP_QUEUE_CAPACITY];
+    if (!tail.incoming && tail.remoteIP == ip && tail.port == port &&
+        tail.length + length <= UDP_BATCH_MAX_SIZE) {
+      memcpy(tail.data + tail.length, data, length);
+      tail.length += length;
+      tail.data[tail.length] = 0;
+      return true;
+    }
   }
-
-  // get the first pending packet
-  auto p = firstPendingPacket;
-  if (p) {
-    currentlyProcessingPacket = p;
-    firstPendingPacket = p->next;
+  if (count == UDP_QUEUE_CAPACITY) {
+    ++dropped;
+    return false;
   }
-    return p;
+  auto &packet = packets[(head + count) % UDP_QUEUE_CAPACITY];
+  packet.length = length;
+  packet.incoming = incoming;
+  packet.remoteIP = ip;
+  packet.port = port;
+  memcpy(packet.data, data, length);
+  packet.data[length] = 0;
+  ++count;
+  return true;
 }
+
+void EXNetworkUdp::clear() {
+  UdpQueueLock lock;
+  head = 0;
+  count = 0;
+}
+
+unsigned long EXNetworkUdp::takeDroppedCount() {
+  UdpQueueLock lock;
+  unsigned long result = dropped;
+  dropped = 0;
+  return result;
+}
+
+EXNetworkUdpPacket *EXNetworkUdp::getPendingPacket() {
+  UdpQueueLock lock;
+  if (!count) return nullptr;
+  processingPacket = packets[head];
+  head = (head + 1) % UDP_QUEUE_CAPACITY;
+  --count;
+  return &processingPacket;
+}
+#endif

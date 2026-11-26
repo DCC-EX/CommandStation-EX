@@ -40,7 +40,7 @@ public:
   static void addService(const char *name, const char *proto, uint16_t port);
   static void addServiceTxt(const char *name, const char *proto, const char *key, const char *value);
   static void teardown();
-  static bool startUDPListener(IPAddress group, uint16_t port);
+  static bool startUDPListener(const IPAddress &group, uint16_t port);
   static void stopUDPListeners();
   
   private:

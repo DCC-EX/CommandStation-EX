@@ -46,6 +46,47 @@ struct UdpListener {
   uint16_t port = 0;
 };
 static UdpListener udpListeners[2];
+static EthernetUDP udpTx;
+
+bool EthernetInterface::startUDPTx() {
+  return udpTx.begin(0);
+}
+
+void EthernetInterface::stopUDPTx() {
+  udpTx.stop();
+}
+
+bool EthernetInterface::transmitUDP(const IPAddress &ip, uint16_t port,
+                                    const uint8_t *data, size_t len) {
+#ifdef ARDUINO_ARCH_ESP32
+  if (ip[0] >= 224 && ip[0] <= 239)
+    return sendUDPMulticast(ip, port, data, len);
+#endif
+  if (!udpTx.beginPacket(ip, port) || udpTx.write(data, len) != len) return false;
+#if defined(ETHERNET_CS_PIN)
+  if (ip[0] >= 224 && ip[0] <= 239) {
+    uint8_t txSocket = ((EthernetUDP_Exposed *)&udpTx)->getSocketIndex();
+    if (txSocket >= MAX_SOCK_NUM) return false;
+    uint8_t multicastMAC[6] = {0x01, 0x00, 0x5E, (uint8_t)(ip[1] & 0x7F), ip[2], ip[3]};
+    SPI.beginTransaction(SPI_ETHERNET_SETTINGS);
+    W5100.writeSnIR(txSocket, 0xFF);
+    W5100.writeSnDHAR(txSocket, multicastMAC);
+    W5100.execCmdSn(txSocket, Sock_SEND_MAC);
+    uint32_t startUs = micros();
+    while ((W5100.readSnIR(txSocket) & SnIR::SEND_OK) != SnIR::SEND_OK) {
+      if ((W5100.readSnIR(txSocket) & SnIR::TIMEOUT) || micros() - startUs >= 5000UL) {
+        W5100.writeSnIR(txSocket, SnIR::SEND_OK | SnIR::TIMEOUT);
+        SPI.endTransaction();
+        return false;
+      }
+    }
+    W5100.writeSnIR(txSocket, SnIR::SEND_OK);
+    SPI.endTransaction();
+    return true;
+  }
+#endif
+  return udpTx.endPacket();
+}
 
 static bool bindW5500Multicast(EthernetUDP &udp, const IPAddress &multicastIP, uint16_t port) {
   if (udp.beginMulticast(multicastIP, port)) return true;
@@ -106,7 +147,9 @@ bool EthernetInterface::receiveUDPPacket() {
 				listener.udp.flush();
 				continue;
 		  }
-      EXNetworkUdp::addPacket(true, listener.udp.remoteIP(), listener.port, packetBuffer, length);
+      const IPAddress remoteIP = listener.udp.remoteIP();
+      if (remoteIP != getIPAddress())
+        EXNetworkUdp::addPacket(true, remoteIP, listener.port, packetBuffer, length);
       gotPacket = true;
       break;
     }
@@ -285,10 +328,16 @@ void EthernetInterface::loop()
     default:
         receiveUDPPacket();
         break;
-    }   
+    }
+    receiveUDPPacket();
 }
 
 #elif defined(ARDUINO_ARCH_ESP32)
+#if __has_include(<esp_mac.h>)
+#include <esp_mac.h>
+#else
+#include <esp_system.h>
+#endif
 
 // No default pins - define ETHERNET_PINS or individual SPI pins. see EthernetPins.h
 
@@ -300,6 +349,18 @@ static bool ethernetLinkLost = false;
 static bool ethernetLinkRestored = false;
 bool EthernetInterface::isUp() {
   return connected;
+}
+
+bool EthernetInterface::sendUDPMulticast(const IPAddress &group, uint16_t port, const uint8_t *data, size_t len) {
+  for (auto &listener : udpListeners) {
+    if (!listener.port || listener.port != port || listener.group != group) continue;
+    // Keep the W5500 socket's multicast destination and MAC paired.
+    return listener.udp.beginPacket(group, port)
+      && listener.udp.write(data, len) == len
+      && listener.udp.endPacket();
+  }
+  DIAG(F("Ethernet: no multicast socket for %s:%d"), group.toString().c_str(), port);
+  return false;
 }
 
 bool EthernetInterface::setup()
@@ -360,7 +421,11 @@ bool EthernetInterface::setup()
 
   DIAG(F("Ethernet: Link Found"));
   byte mac[6];
-  DCCTimer::getSimulatedMacAddress(mac);
+  const esp_err_t macResult = esp_read_mac(mac, ESP_MAC_ETH);
+  if (macResult != ESP_OK) {
+    DIAG(F("Ethernet: cannot read ESP32 Ethernet MAC (%d), falling back to WiFi"), macResult);
+    return false;
+  }
 
   #ifdef IP_ADDRESS
     static IPAddress myIP(IP_ADDRESS);
@@ -556,6 +621,7 @@ void EthernetInterface::loop()
         receiveUDPPacket();
         break;
     }
+    receiveUDPPacket();
 }
 
 #endif

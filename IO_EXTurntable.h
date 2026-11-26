@@ -33,5 +33,6 @@ private:
   uint8_t _stepperStatus;
   uint8_t _previousStatus;
   uint8_t _currentActivity;
+  bool _readError;
 };
 #endif // IO_EXTURNTABLE_H

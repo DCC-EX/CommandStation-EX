@@ -48,6 +48,32 @@ public:
   static void teardown();
 	static bool startUDPListener(const IPAddress &group, uint16_t port);
 	static void stopUDPListeners();
+  static bool startUDPTx();
+  static void stopUDPTx();
+  static bool transmitUDP(const IPAddress &ip, uint16_t port, const uint8_t *data, size_t len);
+  static bool takeLinkLost();
+  static bool takeLinkRestored();
+  static void networkRestored();
+  static void startNetworkServices();
+  static void loopNetworkServices();
+  static void stopNetworkServices();
+  template<class Server>
+  static void startServers(Server &throttle, Server &web) {
+#if defined(ETHERNET_CS_PIN)
+    static bool started = false;
+    if (started) return;
+#endif
+    throttle.begin();
+    web.begin();
+#if defined(ETHERNET_CS_PIN)
+    started = true;
+#endif
+  }
+  template<class Server>
+  static void stopServers(Server &throttle, Server &web) {
+    web.end();
+    throttle.end();
+  }
 };
 
 // Client facade that forwards the Client API to the active ESP32 transport.
@@ -207,17 +233,12 @@ public:
     return exNetworkUsingEthernet ? ethernetUDP.endPacket() : wifiUDP.endPacket();
   }
   using Print::write;
-  EthernetUDP *getEthernetUDP() {
-    return exNetworkUsingEthernet ? &ethernetUDP : nullptr;
-  }
 
 private:
   WiFiUDP wifiUDP;
   EthernetUDP ethernetUDP;
 };
 
-typedef EXNetworkUDP EXNetworkUDPRx;
-typedef EXNetworkUDP EXNetworkUDPTx;
 #define _SHIM_ EXNetworkShimESP32
 #endif
 
