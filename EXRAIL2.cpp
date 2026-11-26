@@ -171,7 +171,22 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
 
     // Note NVS values on ON*() statements are decoded once here
     // and flagged as needing boot if changed
-    if (opcode==op1 || opcode==op2 || opcode==op3)  list->add(getOperand(progCounter,0,true),progCounter);   
+    if (opcode==op1 || opcode==op2 || opcode==op3) {
+       auto operand=getOperand(progCounter,0,true);
+
+       // Special case processing for linear / addr-subaddr conversion
+       if (opcode==OPCODE_ONACTIVATE || opcode==OPCODE_ONDEACTIVATE) {
+         // these opcodes require conversion of addr,subaddr to the address
+         // as will be sent for the lookup by DCC::setAccessory
+         int16_t addr=operand;
+         int16_t subaddr=getOperand(progCounter,1,true) & 0x03;
+         operand=(addr<<2) | subaddr;
+       }
+       else if (opcode==OPCODE_ONACTIVATEL || opcode==OPCODE_ONDEACTIVATEL) {
+         operand+=3;
+       }
+       list->add(operand,progCounter);   
+    }
   }
   return list;
 }
@@ -193,8 +208,8 @@ LookList* RMFT2::LookListLoader(OPCODE op1, OPCODE op2, OPCODE op3) {
   }
   onThrowLookup=LookListLoader(OPCODE_ONTHROW);
   onCloseLookup=LookListLoader(OPCODE_ONCLOSE);
-  onActivateLookup=LookListLoader(OPCODE_ONACTIVATE);
-  onDeactivateLookup=LookListLoader(OPCODE_ONDEACTIVATE);
+  onActivateLookup=LookListLoader(OPCODE_ONACTIVATE, OPCODE_ONACTIVATEL);
+  onDeactivateLookup=LookListLoader(OPCODE_ONDEACTIVATE, OPCODE_ONDEACTIVATEL);
   onChangeLookup=LookListLoader(OPCODE_ONCHANGE);
   onClockLookup=LookListLoader(OPCODE_ONTIME);
   onRotateLookup=LookListLoader(OPCODE_ONROTATE);
@@ -935,14 +950,22 @@ void RMFT2::loop2() {
     DCC::setThrottle(operand,getOperand(1), false);
     break;
 
-  case OPCODE_DCCACTIVATE: {
-    // operand is address<<3 | subaddr<<1 | active
-    int16_t addr=operand>>3;
-    int16_t subaddr=(operand>>1) & 0x03;
-    bool active=operand & 0x01;
-    DCC::setAccessory(addr,subaddr,active);
+  case OPCODE_ACTIVATE:
+  case OPCODE_DEACTIVATE: {
+    int16_t addr=operand;
+    int16_t subaddr=getOperand(1) & 0x03;
+    DCC::setAccessory(addr,subaddr,opcode==OPCODE_ACTIVATE);
     break;
-  }
+    }
+  case OPCODE_ACTIVATEL:
+  case OPCODE_DEACTIVATEL: {
+    // algorithm copied from ZZ(a,address,activate) command in DCCEXCommands.h 
+    int16_t addr=(operand - 1) / 4 + 1;
+    int16_t subaddr=(operand-1)%4;
+    DCC::setAccessory(addr,subaddr,opcode==OPCODE_ACTIVATEL);
+    break;
+    }
+
    case OPCODE_ASPECT: {
     int16_t address=operand;
     byte aspect=getOperand(1) & 0x1f;

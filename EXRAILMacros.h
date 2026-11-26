@@ -489,8 +489,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define V(val) (byte)(((int32_t)(val))&0x00FF),(byte)(((int32_t)(val)>>8)&0x00FF),(byte)(((int32_t)(val)>>16)&0x00FF),(byte)(((int32_t)(val)>>24)&0x00FF)
 // Define macros for route code creation 
 
-#define ACTIVATE(addr,subaddr) OPCODE_DCCACTIVATE,V(addr<<3 | subaddr<<1 | 1),
-#define ACTIVATEL(addr) OPCODE_DCCACTIVATE,V((addr+3)<<1 | 1),
+#define ACTIVATE(addr,subaddr) OPCODE_ACTIVATE,V(addr),OPCODE_PAD,V(subaddr),
+#define ACTIVATEL(addr) OPCODE_ACTIVATEL,V(addr),
 #define AFTER(sensor_id,timer...) OPCODE_AT,V(sensor_id),OPCODE_AFTER,V(sensor_id),OPCODE_PAD,V(#timer[0]?timer+0:500),
 #define AFTEROVERLOAD(track_id) OPCODE_AFTEROVERLOAD,V(TRACK_NUMBER_##track_id),
 #define ALIAS(name,value...) 
@@ -516,8 +516,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define CONFIGURE_DIALOG(title,body)
 #define CONFIGURE_SERVO(vpin,pos1,pos2,profile)
 #define DCC_TURNTABLE(id,home,description...)
-#define DEACTIVATE(addr,subaddr) OPCODE_DCCACTIVATE,V(addr<<3 | subaddr<<1),
-#define DEACTIVATEL(addr) OPCODE_DCCACTIVATE,V((addr+3)<<1),
+#define DEACTIVATE(addr,subaddr) OPCODE_DEACTIVATE,V(addr),OPCODE_PAD,V(subaddr),
+#define DEACTIVATEL(addr) OPCODE_DEACTIVATEL,V(addr),
 
 // DELAY/DELAYRANDOM can now handle 32bit operands 
 #define DELAY(ms) OPCODE_DELAYMS,V(ms),
@@ -611,8 +611,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
          
 #define NEOPIXEL_SIGNAL(sigid,redcolour,ambercolour,greencolour,description...)
 #define NODE_SHARE_SCREEN0(display_id2,count...)
-#define ONACTIVATE(addr,subaddr) OPCODE_ONACTIVATE,V(addr<<2|subaddr),
-#define ONACTIVATEL(linear) OPCODE_ONACTIVATE,V(linear+3),
+#define ONACTIVATE(addr,subaddr) OPCODE_ONACTIVATE,V(addr),OPCODE_PAD,V(subaddr),
+#define ONACTIVATEL(linear) OPCODE_ONACTIVATEL,V(linear),
 #define ONAMBER(signal_id) OPCODE_ONAMBER,V(signal_id),
 #define ONBLOCKENTER(block_id) OPCODE_ONBLOCKENTER,V(block_id),
 #define ONBLOCKEXIT(block_id) OPCODE_ONBLOCKEXIT,V(block_id),
@@ -627,8 +627,8 @@ int RMFT2::onLCCLookup[RMFT2::countLCCLookup];
 #define ONOVERLOAD(track_id) OPCODE_ONOVERLOAD,V(TRACK_NUMBER_##track_id),
 #define ONRAILSYNCON OPCODE_ONRAILSYNCON,V(0),
 #define ONRAILSYNCOFF OPCODE_ONRAILSYNCOFF,V(0),
-#define ONDEACTIVATE(addr,subaddr) OPCODE_ONDEACTIVATE,V(addr<<2|subaddr),
-#define ONDEACTIVATEL(linear) OPCODE_ONDEACTIVATE,V(linear+3),
+#define ONDEACTIVATE(addr,subaddr) OPCODE_ONDEACTIVATE,V(addr),OPCODE_PAD,V(subaddr),
+#define ONDEACTIVATEL(linear) OPCODE_ONDEACTIVATEL,V(linear),
 #define ONGREEN(signal_id) OPCODE_ONGREEN,V(signal_id),
 #define ONRED(signal_id) OPCODE_ONRED,V(signal_id),
 #define ONROTATE(id) OPCODE_ONROTATE,V(id),
