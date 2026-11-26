@@ -88,6 +88,8 @@ AsyncUDP * udpListeners[3] = {nullptr, nullptr};
 bool WifiESP::startUDPListener(IPAddress multicastGroup,uint16_t port ) {
   AsyncUDP *udp =new AsyncUDP();
   udp->onPacket([](AsyncUDPPacket packet) {
+    // ignore packets from own broadcast or multicast send
+    if (packet.remoteIP() == WiFi.localIP() ) return; 
     // add packet info to the EXNetworkUdp packet queue
     EXNetworkUdp::addPacket(true, packet.remoteIP(), packet.localPort(), packet.data(), packet.length());
   });
