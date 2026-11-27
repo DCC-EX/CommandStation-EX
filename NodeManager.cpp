@@ -197,3 +197,9 @@ void NodeManager::loop() {
             break;
     }
 }
+
+void NodeManager::SODReset() {
+        // reset SOD sequence to share state again
+        sodState = SOD_WAITING_TO_START;
+        sodTime = 0;
+}
