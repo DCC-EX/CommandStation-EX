@@ -30,18 +30,30 @@
  
 class MCP23017 : public GPIOBase<uint16_t> {
 public:
-  static void create(VPIN vpin, uint8_t nPins, I2CAddress i2cAddress, int interruptPin=-1) {
-    if (checkNoOverlap(vpin, nPins, i2cAddress)) new MCP23017(vpin, nPins, i2cAddress, interruptPin);
+  // initPortState (optional, 0-0xFFFF): all pins become outputs in this state when created.
+  //  Omitted (-1) = no change. int32_t so that -1 and 0xFFFF differ on AVR.
+  static void create(VPIN vpin, uint8_t nPins, I2CAddress i2cAddress, int interruptPin=-1, int32_t initPortState=-1) {
+    if (checkNoOverlap(vpin, nPins, i2cAddress)) new MCP23017(vpin, nPins, i2cAddress, interruptPin, initPortState);
   }
 
 private:  
   // Constructor
-  MCP23017(VPIN vpin, uint8_t nPins, I2CAddress i2cAddress, int interruptPin=-1) 
+  MCP23017(VPIN vpin, uint8_t nPins, I2CAddress i2cAddress, int interruptPin=-1, int32_t initPortState=-1) 
     : GPIOBase<uint16_t>((FSH *)F("MCP23017"), vpin, nPins, i2cAddress, interruptPin) 
   {
     requestBlock.setRequestParams(_I2CAddress, inputBuffer, sizeof(inputBuffer),
       outputBuffer, sizeof(outputBuffer));
     outputBuffer[0] = REG_GPIOA;
+    if (initPortState >= 0 && initPortState <= 0xffff && _deviceState == DEVSTATE_NORMAL) {
+      uint16_t mask = (_nPins >= 16) ? 0xffff : (uint16_t)((1u << _nPins) - 1);
+      _portMode = mask;         // pins become outputs
+      _portInUse = mask;
+      _portOutputState = (uint16_t)initPortState & mask;
+      // Write the output latches before the directions, so that no pin is
+      //  driven with an old value when it becomes an output.
+      _writeGpioPort();
+      _writePortModes();
+    }
   }
   void _writeGpioPort() override {
     I2CManager.write(_I2CAddress, 3, REG_GPIOA, _portOutputState, _portOutputState>>8);
